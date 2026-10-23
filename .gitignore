@@ -147,3 +147,9 @@ vite.config.ts.timestamp-*
 
 # Turbo Repo
 .turbo
+
+# beyond-scoreboard (vite build output is covered by `dist` above)
+.env*.local
+*.pem
+.DS_Store
+.prompt-report/
