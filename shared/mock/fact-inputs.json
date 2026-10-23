@@ -1,0 +1,59 @@
+{
+  "teamId": "karpat",
+  "opponentId": "tappara",
+  "gameId": "game-1042",
+  "form": {
+    "results": ["W", "L", "L", "OTL", "W"],
+    "sourceGameIds": ["game-1009", "game-1010", "game-1013", "game-1014", "game-1015"]
+  },
+  "headToHead": {
+    "wins": 0,
+    "losses": 1,
+    "sourceGameIds": ["game-1011"]
+  },
+  "standings": {
+    "position": 13,
+    "points": 17,
+    "gamesPlayed": 14,
+    "pointsToPlayoffLine": 2,
+    "sourceGameIds": [
+      "game-1001",
+      "game-1002",
+      "game-1003",
+      "game-1004",
+      "game-1005",
+      "game-1011",
+      "game-1006",
+      "game-1007",
+      "game-1008",
+      "game-1009",
+      "game-1010",
+      "game-1013",
+      "game-1014",
+      "game-1015"
+    ]
+  },
+  "chances": {
+    "playoffs": 0.5158,
+    "top4": 0,
+    "relegation": 0.1445,
+    "ifRegulationWin": 0.7599,
+    "ifRegulationLoss": 0.2808,
+    "sourceGameIds": [
+      "game-1001",
+      "game-1002",
+      "game-1003",
+      "game-1004",
+      "game-1005",
+      "game-1011",
+      "game-1006",
+      "game-1007",
+      "game-1008",
+      "game-1009",
+      "game-1010",
+      "game-1013",
+      "game-1014",
+      "game-1015"
+    ]
+  }
+}

@@ -1,0 +1,434 @@
+[
+  {
+    "id": "game-1001",
+    "date": "2026-09-10T15:00:00.000Z",
+    "homeTeamId": "karpat",
+    "awayTeamId": "hpk",
+    "status": "final",
+    "score": {
+      "home": 4,
+      "away": 2
+    },
+    "decidedIn": "regulation"
+  },
+  {
+    "id": "game-1016",
+    "date": "2026-09-10T15:00:00.000Z",
+    "homeTeamId": "tappara",
+    "awayTeamId": "tps",
+    "status": "final",
+    "score": {
+      "home": 3,
+      "away": 1
+    },
+    "decidedIn": "regulation"
+  },
+  {
+    "id": "game-1002",
+    "date": "2026-09-13T15:00:00.000Z",
+    "homeTeamId": "ilves",
+    "awayTeamId": "karpat",
+    "status": "final",
+    "score": {
+      "home": 5,
+      "away": 2
+    },
+    "decidedIn": "regulation"
+  },
+  {
+    "id": "game-1017",
+    "date": "2026-09-13T15:00:00.000Z",
+    "homeTeamId": "jukurit",
+    "awayTeamId": "tappara",
+    "status": "final",
+    "score": {
+      "home": 2,
+      "away": 4
+    },
+    "decidedIn": "regulation"
+  },
+  {
+    "id": "game-1003",
+    "date": "2026-09-16T15:00:00.000Z",
+    "homeTeamId": "karpat",
+    "awayTeamId": "lukko",
+    "status": "final",
+    "score": {
+      "home": 1,
+      "away": 3
+    },
+    "decidedIn": "regulation"
+  },
+  {
+    "id": "game-1018",
+    "date": "2026-09-16T15:00:00.000Z",
+    "homeTeamId": "tappara",
+    "awayTeamId": "hifk",
+    "status": "final",
+    "score": {
+      "home": 2,
+      "away": 1
+    },
+    "decidedIn": "overtime"
+  },
+  {
+    "id": "game-1004",
+    "date": "2026-09-19T15:00:00.000Z",
+    "homeTeamId": "sport",
+    "awayTeamId": "karpat",
+    "status": "final",
+    "score": {
+      "home": 2,
+      "away": 1
+    },
+    "decidedIn": "shootout"
+  },
+  {
+    "id": "game-1019",
+    "date": "2026-09-19T15:00:00.000Z",
+    "homeTeamId": "kookoo",
+    "awayTeamId": "tappara",
+    "status": "final",
+    "score": {
+      "home": 2,
+      "away": 4
+    },
+    "decidedIn": "regulation"
+  },
+  {
+    "id": "game-1005",
+    "date": "2026-09-22T15:00:00.000Z",
+    "homeTeamId": "karpat",
+    "awayTeamId": "jokerit",
+    "status": "final",
+    "score": {
+      "home": 4,
+      "away": 2
+    },
+    "decidedIn": "regulation"
+  },
+  {
+    "id": "game-1020",
+    "date": "2026-09-22T15:00:00.000Z",
+    "homeTeamId": "tappara",
+    "awayTeamId": "pelicans",
+    "status": "final",
+    "score": {
+      "home": 2,
+      "away": 5
+    },
+    "decidedIn": "regulation"
+  },
+  {
+    "id": "game-1011",
+    "date": "2026-09-25T15:00:00.000Z",
+    "homeTeamId": "tappara",
+    "awayTeamId": "karpat",
+    "status": "final",
+    "score": {
+      "home": 4,
+      "away": 1
+    },
+    "decidedIn": "regulation"
+  },
+  {
+    "id": "game-1006",
+    "date": "2026-09-28T15:00:00.000Z",
+    "homeTeamId": "karpat",
+    "awayTeamId": "saipa",
+    "status": "final",
+    "score": {
+      "home": 3,
+      "away": 2
+    },
+    "decidedIn": "shootout"
+  },
+  {
+    "id": "game-1021",
+    "date": "2026-09-28T15:00:00.000Z",
+    "homeTeamId": "tappara",
+    "awayTeamId": "jyp",
+    "status": "final",
+    "score": {
+      "home": 3,
+      "away": 1
+    },
+    "decidedIn": "regulation"
+  },
+  {
+    "id": "game-1007",
+    "date": "2026-10-01T15:00:00.000Z",
+    "homeTeamId": "kalpa",
+    "awayTeamId": "karpat",
+    "status": "final",
+    "score": {
+      "home": 5,
+      "away": 2
+    },
+    "decidedIn": "regulation"
+  },
+  {
+    "id": "game-1022",
+    "date": "2026-10-01T15:00:00.000Z",
+    "homeTeamId": "ilves",
+    "awayTeamId": "tappara",
+    "status": "final",
+    "score": {
+      "home": 3,
+      "away": 2
+    },
+    "decidedIn": "overtime"
+  },
+  {
+    "id": "game-1008",
+    "date": "2026-10-04T15:00:00.000Z",
+    "homeTeamId": "karpat",
+    "awayTeamId": "jyp",
+    "status": "final",
+    "score": {
+      "home": 2,
+      "away": 3
+    },
+    "decidedIn": "overtime"
+  },
+  {
+    "id": "game-1023",
+    "date": "2026-10-04T15:00:00.000Z",
+    "homeTeamId": "tappara",
+    "awayTeamId": "kiekko-espoo",
+    "status": "final",
+    "score": {
+      "home": 3,
+      "away": 1
+    },
+    "decidedIn": "regulation"
+  },
+  {
+    "id": "game-1009",
+    "date": "2026-10-07T15:00:00.000Z",
+    "homeTeamId": "kookoo",
+    "awayTeamId": "karpat",
+    "status": "final",
+    "score": {
+      "home": 1,
+      "away": 3
+    },
+    "decidedIn": "regulation"
+  },
+  {
+    "id": "game-1024",
+    "date": "2026-10-07T15:00:00.000Z",
+    "homeTeamId": "sport",
+    "awayTeamId": "tappara",
+    "status": "final",
+    "score": {
+      "home": 2,
+      "away": 4
+    },
+    "decidedIn": "regulation"
+  },
+  {
+    "id": "game-1010",
+    "date": "2026-10-10T15:00:00.000Z",
+    "homeTeamId": "karpat",
+    "awayTeamId": "hifk",
+    "status": "final",
+    "score": {
+      "home": 1,
+      "away": 3
+    },
+    "decidedIn": "regulation"
+  },
+  {
+    "id": "game-1025",
+    "date": "2026-10-10T15:00:00.000Z",
+    "homeTeamId": "tappara",
+    "awayTeamId": "lukko",
+    "status": "final",
+    "score": {
+      "home": 2,
+      "away": 5
+    },
+    "decidedIn": "regulation"
+  },
+  {
+    "id": "game-1013",
+    "date": "2026-10-13T15:00:00.000Z",
+    "homeTeamId": "pelicans",
+    "awayTeamId": "karpat",
+    "status": "final",
+    "score": {
+      "home": 5,
+      "away": 2
+    },
+    "decidedIn": "regulation"
+  },
+  {
+    "id": "game-1026",
+    "date": "2026-10-13T15:00:00.000Z",
+    "homeTeamId": "assat",
+    "awayTeamId": "tappara",
+    "status": "final",
+    "score": {
+      "home": 2,
+      "away": 4
+    },
+    "decidedIn": "regulation"
+  },
+  {
+    "id": "game-1014",
+    "date": "2026-10-16T15:00:00.000Z",
+    "homeTeamId": "karpat",
+    "awayTeamId": "assat",
+    "status": "final",
+    "score": {
+      "home": 2,
+      "away": 3
+    },
+    "decidedIn": "shootout"
+  },
+  {
+    "id": "game-1027",
+    "date": "2026-10-16T15:00:00.000Z",
+    "homeTeamId": "tappara",
+    "awayTeamId": "hpk",
+    "status": "final",
+    "score": {
+      "home": 3,
+      "away": 1
+    },
+    "decidedIn": "regulation"
+  },
+  {
+    "id": "game-1015",
+    "date": "2026-10-19T15:00:00.000Z",
+    "homeTeamId": "kiekko-espoo",
+    "awayTeamId": "karpat",
+    "status": "final",
+    "score": {
+      "home": 1,
+      "away": 3
+    },
+    "decidedIn": "regulation"
+  },
+  {
+    "id": "game-1028",
+    "date": "2026-10-19T15:00:00.000Z",
+    "homeTeamId": "saipa",
+    "awayTeamId": "tappara",
+    "status": "final",
+    "score": {
+      "home": 2,
+      "away": 4
+    },
+    "decidedIn": "regulation"
+  },
+  {
+    "id": "game-1042",
+    "date": "2026-10-25T15:00:00.000Z",
+    "homeTeamId": "karpat",
+    "awayTeamId": "tappara",
+    "status": "scheduled",
+    "score": {
+      "home": 0,
+      "away": 0
+    },
+    "decidedIn": null
+  },
+  {
+    "id": "game-1043",
+    "date": "2026-10-28T15:00:00.000Z",
+    "homeTeamId": "ilves",
+    "awayTeamId": "karpat",
+    "status": "scheduled",
+    "score": {
+      "home": 0,
+      "away": 0
+    },
+    "decidedIn": null
+  },
+  {
+    "id": "game-1047",
+    "date": "2026-10-28T15:00:00.000Z",
+    "homeTeamId": "tappara",
+    "awayTeamId": "tps",
+    "status": "scheduled",
+    "score": {
+      "home": 0,
+      "away": 0
+    },
+    "decidedIn": null
+  },
+  {
+    "id": "game-1044",
+    "date": "2026-10-31T15:00:00.000Z",
+    "homeTeamId": "karpat",
+    "awayTeamId": "hifk",
+    "status": "scheduled",
+    "score": {
+      "home": 0,
+      "away": 0
+    },
+    "decidedIn": null
+  },
+  {
+    "id": "game-1048",
+    "date": "2026-10-31T15:00:00.000Z",
+    "homeTeamId": "saipa",
+    "awayTeamId": "tappara",
+    "status": "scheduled",
+    "score": {
+      "home": 0,
+      "away": 0
+    },
+    "decidedIn": null
+  },
+  {
+    "id": "game-1045",
+    "date": "2026-11-03T15:00:00.000Z",
+    "homeTeamId": "lukko",
+    "awayTeamId": "karpat",
+    "status": "scheduled",
+    "score": {
+      "home": 0,
+      "away": 0
+    },
+    "decidedIn": null
+  },
+  {
+    "id": "game-1049",
+    "date": "2026-11-03T15:00:00.000Z",
+    "homeTeamId": "tappara",
+    "awayTeamId": "kalpa",
+    "status": "scheduled",
+    "score": {
+      "home": 0,
+      "away": 0
+    },
+    "decidedIn": null
+  },
+  {
+    "id": "game-1046",
+    "date": "2026-11-06T15:00:00.000Z",
+    "homeTeamId": "karpat",
+    "awayTeamId": "jukurit",
+    "status": "scheduled",
+    "score": {
+      "home": 0,
+      "away": 0
+    },
+    "decidedIn": null
+  },
+  {
+    "id": "game-1050",
+    "date": "2026-11-06T15:00:00.000Z",
+    "homeTeamId": "pelicans",
+    "awayTeamId": "tappara",
+    "status": "scheduled",
+    "score": {
+      "home": 0,
+      "away": 0
+    },
+    "decidedIn": null
+  }
+]

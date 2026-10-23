@@ -1,0 +1,365 @@
+{
+  "story": {
+    "id": "story.karpat.game-1042.en",
+    "kind": "story",
+    "gameId": "game-1042",
+    "teamId": "karpat",
+    "language": "en",
+    "sentences": [
+      {
+        "text": "Kärpät beat Tappara 3–2 in regulation, with the winner at 58:51.",
+        "factIds": ["F13", "F14", "F15"]
+      },
+      {
+        "text": "Trailing after two periods, Kärpät scored 2 goals in the third.",
+        "factIds": ["F16"]
+      },
+      {
+        "text": "The win lifts Kärpät from 13th to 12th, back above the playoff line.",
+        "factIds": ["F1", "F17"]
+      },
+      {
+        "text": "Their playoff chance is now 76%, up from 52% before puck drop.",
+        "factIds": ["F18", "F5"]
+      }
+    ],
+    "status": "verified",
+    "generatedAt": "2026-10-24T17:45:00.000Z"
+  },
+  "ledger": [
+    {
+      "id": "F1",
+      "label": "league position",
+      "value": 13,
+      "unit": null,
+      "sourceGameIds": [
+        "game-1001",
+        "game-1002",
+        "game-1003",
+        "game-1004",
+        "game-1005",
+        "game-1011",
+        "game-1006",
+        "game-1007",
+        "game-1008",
+        "game-1009",
+        "game-1010",
+        "game-1013",
+        "game-1014",
+        "game-1015"
+      ]
+    },
+    {
+      "id": "F2",
+      "label": "points",
+      "value": 17,
+      "unit": "points",
+      "sourceGameIds": [
+        "game-1001",
+        "game-1002",
+        "game-1003",
+        "game-1004",
+        "game-1005",
+        "game-1011",
+        "game-1006",
+        "game-1007",
+        "game-1008",
+        "game-1009",
+        "game-1010",
+        "game-1013",
+        "game-1014",
+        "game-1015"
+      ]
+    },
+    {
+      "id": "F3",
+      "label": "games played",
+      "value": 14,
+      "unit": "games",
+      "sourceGameIds": [
+        "game-1001",
+        "game-1002",
+        "game-1003",
+        "game-1004",
+        "game-1005",
+        "game-1011",
+        "game-1006",
+        "game-1007",
+        "game-1008",
+        "game-1009",
+        "game-1010",
+        "game-1013",
+        "game-1014",
+        "game-1015"
+      ]
+    },
+    {
+      "id": "F4",
+      "label": "points to the playoff line",
+      "value": 2,
+      "unit": "points",
+      "sourceGameIds": [
+        "game-1001",
+        "game-1002",
+        "game-1003",
+        "game-1004",
+        "game-1005",
+        "game-1011",
+        "game-1006",
+        "game-1007",
+        "game-1008",
+        "game-1009",
+        "game-1010",
+        "game-1013",
+        "game-1014",
+        "game-1015"
+      ]
+    },
+    {
+      "id": "F5",
+      "label": "playoff chance",
+      "value": 52,
+      "unit": "%",
+      "sourceGameIds": [
+        "game-1001",
+        "game-1002",
+        "game-1003",
+        "game-1004",
+        "game-1005",
+        "game-1011",
+        "game-1006",
+        "game-1007",
+        "game-1008",
+        "game-1009",
+        "game-1010",
+        "game-1013",
+        "game-1014",
+        "game-1015"
+      ]
+    },
+    {
+      "id": "F6",
+      "label": "top-4 chance",
+      "value": 0,
+      "unit": "%",
+      "sourceGameIds": [
+        "game-1001",
+        "game-1002",
+        "game-1003",
+        "game-1004",
+        "game-1005",
+        "game-1011",
+        "game-1006",
+        "game-1007",
+        "game-1008",
+        "game-1009",
+        "game-1010",
+        "game-1013",
+        "game-1014",
+        "game-1015"
+      ]
+    },
+    {
+      "id": "F7",
+      "label": "relegation chance",
+      "value": 14,
+      "unit": "%",
+      "sourceGameIds": [
+        "game-1001",
+        "game-1002",
+        "game-1003",
+        "game-1004",
+        "game-1005",
+        "game-1011",
+        "game-1006",
+        "game-1007",
+        "game-1008",
+        "game-1009",
+        "game-1010",
+        "game-1013",
+        "game-1014",
+        "game-1015"
+      ]
+    },
+    {
+      "id": "F8",
+      "label": "playoff chance with a regulation win",
+      "value": 76,
+      "unit": "%",
+      "sourceGameIds": [
+        "game-1001",
+        "game-1002",
+        "game-1003",
+        "game-1004",
+        "game-1005",
+        "game-1011",
+        "game-1006",
+        "game-1007",
+        "game-1008",
+        "game-1009",
+        "game-1010",
+        "game-1013",
+        "game-1014",
+        "game-1015"
+      ]
+    },
+    {
+      "id": "F9",
+      "label": "playoff chance with a regulation loss",
+      "value": 28,
+      "unit": "%",
+      "sourceGameIds": [
+        "game-1001",
+        "game-1002",
+        "game-1003",
+        "game-1004",
+        "game-1005",
+        "game-1011",
+        "game-1006",
+        "game-1007",
+        "game-1008",
+        "game-1009",
+        "game-1010",
+        "game-1013",
+        "game-1014",
+        "game-1015"
+      ]
+    },
+    {
+      "id": "F10",
+      "label": "form, oldest first",
+      "value": "W-L-L-OTL-W",
+      "unit": null,
+      "sourceGameIds": ["game-1009", "game-1010", "game-1013", "game-1014", "game-1015"]
+    },
+    {
+      "id": "F11",
+      "label": "head-to-head wins this season",
+      "value": 0,
+      "unit": null,
+      "sourceGameIds": ["game-1011"]
+    },
+    {
+      "id": "F12",
+      "label": "head-to-head losses this season",
+      "value": 1,
+      "unit": null,
+      "sourceGameIds": ["game-1011"]
+    },
+    {
+      "id": "F13",
+      "label": "Kärpät goals",
+      "value": 3,
+      "unit": null,
+      "sourceGameIds": ["game-1042"]
+    },
+    {
+      "id": "F14",
+      "label": "Tappara goals",
+      "value": 2,
+      "unit": null,
+      "sourceGameIds": ["game-1042"]
+    },
+    {
+      "id": "F15",
+      "label": "game-winning goal time",
+      "value": "58:51",
+      "unit": null,
+      "sourceGameIds": ["game-1042"]
+    },
+    {
+      "id": "F16",
+      "label": "Kärpät goals in the third period",
+      "value": 2,
+      "unit": null,
+      "sourceGameIds": ["game-1042"]
+    },
+    {
+      "id": "F17",
+      "label": "league position after the game",
+      "value": 12,
+      "unit": null,
+      "sourceGameIds": [
+        "game-1001",
+        "game-1002",
+        "game-1003",
+        "game-1004",
+        "game-1005",
+        "game-1011",
+        "game-1006",
+        "game-1007",
+        "game-1008",
+        "game-1009",
+        "game-1010",
+        "game-1013",
+        "game-1014",
+        "game-1015",
+        "game-1042"
+      ]
+    },
+    {
+      "id": "F18",
+      "label": "playoff chance after the game",
+      "value": 76,
+      "unit": "%",
+      "sourceGameIds": [
+        "game-1001",
+        "game-1002",
+        "game-1003",
+        "game-1004",
+        "game-1005",
+        "game-1011",
+        "game-1006",
+        "game-1007",
+        "game-1008",
+        "game-1009",
+        "game-1010",
+        "game-1013",
+        "game-1014",
+        "game-1015",
+        "game-1042"
+      ]
+    }
+  ],
+  "report": {
+    "contentId": "story.karpat.game-1042.en",
+    "claims": [
+      {
+        "text": "Kärpät beat Tappara 3–2 in regulation, with the winner at 58:51.",
+        "factIds": ["F13", "F14", "F15"],
+        "passed": true,
+        "errorType": null,
+        "reason": null
+      },
+      {
+        "text": "Trailing after two periods, Kärpät scored 2 goals in the third.",
+        "factIds": ["F16"],
+        "passed": true,
+        "errorType": null,
+        "reason": null
+      },
+      {
+        "text": "The win lifts Kärpät from 13th to 12th, back above the playoff line.",
+        "factIds": ["F1", "F17"],
+        "passed": true,
+        "errorType": null,
+        "reason": null
+      },
+      {
+        "text": "Their playoff chance is now 76%, up from 52% before puck drop.",
+        "factIds": ["F18", "F5"],
+        "passed": true,
+        "errorType": null,
+        "reason": null
+      },
+      {
+        "text": "It was Kärpät's 5th straight home win.",
+        "factIds": ["F10"],
+        "passed": false,
+        "errorType": "model_typed_number",
+        "reason": "\"5\" is not a value in the cited facts (F10 is \"W-L-L-OTL-W\")"
+      }
+    ],
+    "blockedCount": 1
+  }
+}

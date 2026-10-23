@@ -1,0 +1,121 @@
+[
+  {
+    "id": "karpat",
+    "name": "Kärpät",
+    "shortName": "KÄR",
+    "city": "Oulu",
+    "colours": { "primary": "#111111", "secondary": "#FDB913" }
+  },
+  {
+    "id": "tappara",
+    "name": "Tappara",
+    "shortName": "TAP",
+    "city": "Tampere",
+    "colours": { "primary": "#F47A20", "secondary": "#003A70" }
+  },
+  {
+    "id": "ilves",
+    "name": "Ilves",
+    "shortName": "ILV",
+    "city": "Tampere",
+    "colours": { "primary": "#00703C", "secondary": "#FFD200" }
+  },
+  {
+    "id": "pelicans",
+    "name": "Pelicans",
+    "shortName": "PEL",
+    "city": "Lahti",
+    "colours": { "primary": "#0078C1", "secondary": "#FFFFFF" }
+  },
+  {
+    "id": "kalpa",
+    "name": "KalPa",
+    "shortName": "KAL",
+    "city": "Kuopio",
+    "colours": { "primary": "#111111", "secondary": "#F3C300" }
+  },
+  {
+    "id": "hifk",
+    "name": "HIFK",
+    "shortName": "IFK",
+    "city": "Helsinki",
+    "colours": { "primary": "#D2001F", "secondary": "#FFFFFF" }
+  },
+  {
+    "id": "lukko",
+    "name": "Lukko",
+    "shortName": "LUK",
+    "city": "Rauma",
+    "colours": { "primary": "#0057A8", "secondary": "#FFFFFF" }
+  },
+  {
+    "id": "tps",
+    "name": "TPS",
+    "shortName": "TPS",
+    "city": "Turku",
+    "colours": { "primary": "#111111", "secondary": "#FFFFFF" }
+  },
+  {
+    "id": "saipa",
+    "name": "SaiPa",
+    "shortName": "SAI",
+    "city": "Lappeenranta",
+    "colours": { "primary": "#FFD100", "secondary": "#111111" }
+  },
+  {
+    "id": "jyp",
+    "name": "JYP",
+    "shortName": "JYP",
+    "city": "Jyväskylä",
+    "colours": { "primary": "#111111", "secondary": "#E30613" }
+  },
+  {
+    "id": "assat",
+    "name": "Ässät",
+    "shortName": "ÄSS",
+    "city": "Pori",
+    "colours": { "primary": "#D50032", "secondary": "#111111" }
+  },
+  {
+    "id": "sport",
+    "name": "Sport",
+    "shortName": "SPO",
+    "city": "Vaasa",
+    "colours": { "primary": "#DA291C", "secondary": "#FFFFFF" }
+  },
+  {
+    "id": "jukurit",
+    "name": "Jukurit",
+    "shortName": "JUK",
+    "city": "Mikkeli",
+    "colours": { "primary": "#002B5C", "secondary": "#FFC72C" }
+  },
+  {
+    "id": "hpk",
+    "name": "HPK",
+    "shortName": "HPK",
+    "city": "Hämeenlinna",
+    "colours": { "primary": "#F26522", "secondary": "#111111" }
+  },
+  {
+    "id": "kookoo",
+    "name": "KooKoo",
+    "shortName": "KOO",
+    "city": "Kouvola",
+    "colours": { "primary": "#F37021", "secondary": "#111111" }
+  },
+  {
+    "id": "kiekko-espoo",
+    "name": "Kiekko-Espoo",
+    "shortName": "K-E",
+    "city": "Espoo",
+    "colours": { "primary": "#003DA5", "secondary": "#FFFFFF" }
+  },
+  {
+    "id": "jokerit",
+    "name": "Jokerit",
+    "shortName": "JOK",
+    "city": "Helsinki",
+    "colours": { "primary": "#E30613", "secondary": "#111111" }
+  }
+]

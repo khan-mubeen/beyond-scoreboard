@@ -1,0 +1,3088 @@
+[
+  {
+    "code": "TEST",
+    "serverNow": 1792854000000,
+    "phase": "lobby",
+    "game": {
+      "id": "game-1042",
+      "homeTeamId": "karpat",
+      "awayTeamId": "tappara"
+    },
+    "gameTimeSeconds": 0,
+    "score": {
+      "home": 0,
+      "away": 0
+    },
+    "events": [],
+    "activeCall": null,
+    "lastResolved": null,
+    "leaderboard": [
+      {
+        "playerId": "p-aino",
+        "nickname": "Aino",
+        "score": 0,
+        "rank": 1
+      },
+      {
+        "playerId": "p-jere",
+        "nickname": "Jere",
+        "score": 0,
+        "rank": 1
+      },
+      {
+        "playerId": "p-mikko",
+        "nickname": "Mikko",
+        "score": 0,
+        "rank": 1
+      },
+      {
+        "playerId": "p-sanni",
+        "nickname": "Sanni",
+        "score": 0,
+        "rank": 1
+      },
+      {
+        "playerId": "p-tuomas",
+        "nickname": "Tuomas",
+        "score": 0,
+        "rank": 1
+      },
+      {
+        "playerId": "p-veera",
+        "nickname": "Veera",
+        "score": 0,
+        "rank": 1
+      }
+    ],
+    "me": {
+      "playerId": "p-aino",
+      "score": 0,
+      "rank": 1
+    },
+    "stakes": {
+      "teamId": "karpat",
+      "gameId": "game-1042",
+      "currentPosition": 13,
+      "currentZone": "safe",
+      "zoneOddsByOutcome": {
+        "regulationWin": {
+          "top4": 0,
+          "playoffs": 0.7599,
+          "safe": 0.2103,
+          "relegated": 0.0298
+        },
+        "overtimeWin": {
+          "top4": 0,
+          "playoffs": 0.6383,
+          "safe": 0.2991,
+          "relegated": 0.0626
+        },
+        "overtimeLoss": {
+          "top4": 0,
+          "playoffs": 0.5241,
+          "safe": 0.3687,
+          "relegated": 0.1072
+        },
+        "regulationLoss": {
+          "top4": 0,
+          "playoffs": 0.2808,
+          "safe": 0.4478,
+          "relegated": 0.2714
+        }
+      },
+      "positionOdds": [
+        0, 0, 0, 0, 0.0001, 0.0008, 0.0043, 0.0164, 0.0463, 0.0974, 0.156, 0.1945, 0.1913, 0.1484, 0.0895, 0.041, 0.014
+      ],
+      "headline": "Kärpät's playoff chance is 52%. A regulation win takes it to 76%."
+    },
+    "projectedTable": [
+      {
+        "teamId": "tappara",
+        "points": 34,
+        "rank": 1,
+        "zone": "top4"
+      },
+      {
+        "teamId": "ilves",
+        "points": 31,
+        "rank": 2,
+        "zone": "top4"
+      },
+      {
+        "teamId": "pelicans",
+        "points": 30,
+        "rank": 3,
+        "zone": "top4"
+      },
+      {
+        "teamId": "kalpa",
+        "points": 29,
+        "rank": 4,
+        "zone": "top4"
+      },
+      {
+        "teamId": "hifk",
+        "points": 27,
+        "rank": 5,
+        "zone": "playoffs"
+      },
+      {
+        "teamId": "lukko",
+        "points": 26,
+        "rank": 6,
+        "zone": "playoffs"
+      },
+      {
+        "teamId": "tps",
+        "points": 25,
+        "rank": 7,
+        "zone": "playoffs"
+      },
+      {
+        "teamId": "saipa",
+        "points": 24,
+        "rank": 8,
+        "zone": "playoffs"
+      },
+      {
+        "teamId": "jyp",
+        "points": 23,
+        "rank": 9,
+        "zone": "playoffs"
+      },
+      {
+        "teamId": "assat",
+        "points": 22,
+        "rank": 10,
+        "zone": "playoffs"
+      },
+      {
+        "teamId": "sport",
+        "points": 21,
+        "rank": 11,
+        "zone": "playoffs"
+      },
+      {
+        "teamId": "jukurit",
+        "points": 19,
+        "rank": 12,
+        "zone": "playoffs"
+      },
+      {
+        "teamId": "karpat",
+        "points": 18,
+        "rank": 13,
+        "zone": "safe"
+      },
+      {
+        "teamId": "hpk",
+        "points": 16,
+        "rank": 14,
+        "zone": "safe"
+      },
+      {
+        "teamId": "kookoo",
+        "points": 14,
+        "rank": 15,
+        "zone": "relegated"
+      },
+      {
+        "teamId": "kiekko-espoo",
+        "points": 12,
+        "rank": 16,
+        "zone": "relegated"
+      },
+      {
+        "teamId": "jokerit",
+        "points": 10,
+        "rank": 17,
+        "zone": "relegated"
+      }
+    ]
+  },
+  {
+    "code": "TEST",
+    "serverNow": 1792854180000,
+    "phase": "live",
+    "game": {
+      "id": "game-1042",
+      "homeTeamId": "karpat",
+      "awayTeamId": "tappara"
+    },
+    "gameTimeSeconds": 180,
+    "score": {
+      "home": 0,
+      "away": 0
+    },
+    "events": [],
+    "activeCall": {
+      "id": "next_goal@120",
+      "type": "next_goal",
+      "opensAt": 120,
+      "locksAt": 300,
+      "question": "Who scores next this period?",
+      "options": [
+        {
+          "id": "karpat",
+          "label": "Kärpät"
+        },
+        {
+          "id": "tappara",
+          "label": "Tappara"
+        },
+        {
+          "id": "none",
+          "label": "No goal this period"
+        }
+      ],
+      "resolvesAt": 1200
+    },
+    "lastResolved": null,
+    "leaderboard": [
+      {
+        "playerId": "p-aino",
+        "nickname": "Aino",
+        "score": 0,
+        "rank": 1
+      },
+      {
+        "playerId": "p-jere",
+        "nickname": "Jere",
+        "score": 0,
+        "rank": 1
+      },
+      {
+        "playerId": "p-mikko",
+        "nickname": "Mikko",
+        "score": 0,
+        "rank": 1
+      },
+      {
+        "playerId": "p-sanni",
+        "nickname": "Sanni",
+        "score": 0,
+        "rank": 1
+      },
+      {
+        "playerId": "p-tuomas",
+        "nickname": "Tuomas",
+        "score": 0,
+        "rank": 1
+      },
+      {
+        "playerId": "p-veera",
+        "nickname": "Veera",
+        "score": 0,
+        "rank": 1
+      }
+    ],
+    "me": {
+      "playerId": "p-aino",
+      "score": 0,
+      "rank": 1
+    },
+    "stakes": {
+      "teamId": "karpat",
+      "gameId": "game-1042",
+      "currentPosition": 13,
+      "currentZone": "safe",
+      "zoneOddsByOutcome": {
+        "regulationWin": {
+          "top4": 0,
+          "playoffs": 0.7599,
+          "safe": 0.2103,
+          "relegated": 0.0298
+        },
+        "overtimeWin": {
+          "top4": 0,
+          "playoffs": 0.6383,
+          "safe": 0.2991,
+          "relegated": 0.0626
+        },
+        "overtimeLoss": {
+          "top4": 0,
+          "playoffs": 0.5241,
+          "safe": 0.3687,
+          "relegated": 0.1072
+        },
+        "regulationLoss": {
+          "top4": 0,
+          "playoffs": 0.2808,
+          "safe": 0.4478,
+          "relegated": 0.2714
+        }
+      },
+      "positionOdds": [
+        0, 0, 0, 0, 0.0001, 0.0008, 0.0043, 0.0164, 0.0463, 0.0974, 0.156, 0.1945, 0.1913, 0.1484, 0.0895, 0.041, 0.014
+      ],
+      "headline": "Kärpät's playoff chance is 52%. A regulation win takes it to 76%."
+    },
+    "projectedTable": [
+      {
+        "teamId": "tappara",
+        "points": 34,
+        "rank": 1,
+        "zone": "top4"
+      },
+      {
+        "teamId": "ilves",
+        "points": 31,
+        "rank": 2,
+        "zone": "top4"
+      },
+      {
+        "teamId": "pelicans",
+        "points": 30,
+        "rank": 3,
+        "zone": "top4"
+      },
+      {
+        "teamId": "kalpa",
+        "points": 29,
+        "rank": 4,
+        "zone": "top4"
+      },
+      {
+        "teamId": "hifk",
+        "points": 27,
+        "rank": 5,
+        "zone": "playoffs"
+      },
+      {
+        "teamId": "lukko",
+        "points": 26,
+        "rank": 6,
+        "zone": "playoffs"
+      },
+      {
+        "teamId": "tps",
+        "points": 25,
+        "rank": 7,
+        "zone": "playoffs"
+      },
+      {
+        "teamId": "saipa",
+        "points": 24,
+        "rank": 8,
+        "zone": "playoffs"
+      },
+      {
+        "teamId": "jyp",
+        "points": 23,
+        "rank": 9,
+        "zone": "playoffs"
+      },
+      {
+        "teamId": "assat",
+        "points": 22,
+        "rank": 10,
+        "zone": "playoffs"
+      },
+      {
+        "teamId": "sport",
+        "points": 21,
+        "rank": 11,
+        "zone": "playoffs"
+      },
+      {
+        "teamId": "jukurit",
+        "points": 19,
+        "rank": 12,
+        "zone": "playoffs"
+      },
+      {
+        "teamId": "karpat",
+        "points": 18,
+        "rank": 13,
+        "zone": "safe"
+      },
+      {
+        "teamId": "hpk",
+        "points": 16,
+        "rank": 14,
+        "zone": "safe"
+      },
+      {
+        "teamId": "kookoo",
+        "points": 14,
+        "rank": 15,
+        "zone": "relegated"
+      },
+      {
+        "teamId": "kiekko-espoo",
+        "points": 12,
+        "rank": 16,
+        "zone": "relegated"
+      },
+      {
+        "teamId": "jokerit",
+        "points": 10,
+        "rank": 17,
+        "zone": "relegated"
+      }
+    ]
+  },
+  {
+    "code": "TEST",
+    "serverNow": 1792854400000,
+    "phase": "live",
+    "game": {
+      "id": "game-1042",
+      "homeTeamId": "karpat",
+      "awayTeamId": "tappara"
+    },
+    "gameTimeSeconds": 400,
+    "score": {
+      "home": 0,
+      "away": 0
+    },
+    "events": [],
+    "activeCall": {
+      "id": "next_goal@120",
+      "type": "next_goal",
+      "opensAt": 120,
+      "locksAt": 300,
+      "question": "Who scores next this period?",
+      "options": [
+        {
+          "id": "karpat",
+          "label": "Kärpät"
+        },
+        {
+          "id": "tappara",
+          "label": "Tappara"
+        },
+        {
+          "id": "none",
+          "label": "No goal this period"
+        }
+      ],
+      "resolvesAt": 1200
+    },
+    "lastResolved": null,
+    "leaderboard": [
+      {
+        "playerId": "p-aino",
+        "nickname": "Aino",
+        "score": 0,
+        "rank": 1
+      },
+      {
+        "playerId": "p-jere",
+        "nickname": "Jere",
+        "score": 0,
+        "rank": 1
+      },
+      {
+        "playerId": "p-mikko",
+        "nickname": "Mikko",
+        "score": 0,
+        "rank": 1
+      },
+      {
+        "playerId": "p-sanni",
+        "nickname": "Sanni",
+        "score": 0,
+        "rank": 1
+      },
+      {
+        "playerId": "p-tuomas",
+        "nickname": "Tuomas",
+        "score": 0,
+        "rank": 1
+      },
+      {
+        "playerId": "p-veera",
+        "nickname": "Veera",
+        "score": 0,
+        "rank": 1
+      }
+    ],
+    "me": {
+      "playerId": "p-aino",
+      "score": 0,
+      "rank": 1
+    },
+    "stakes": {
+      "teamId": "karpat",
+      "gameId": "game-1042",
+      "currentPosition": 13,
+      "currentZone": "safe",
+      "zoneOddsByOutcome": {
+        "regulationWin": {
+          "top4": 0,
+          "playoffs": 0.7599,
+          "safe": 0.2103,
+          "relegated": 0.0298
+        },
+        "overtimeWin": {
+          "top4": 0,
+          "playoffs": 0.6383,
+          "safe": 0.2991,
+          "relegated": 0.0626
+        },
+        "overtimeLoss": {
+          "top4": 0,
+          "playoffs": 0.5241,
+          "safe": 0.3687,
+          "relegated": 0.1072
+        },
+        "regulationLoss": {
+          "top4": 0,
+          "playoffs": 0.2808,
+          "safe": 0.4478,
+          "relegated": 0.2714
+        }
+      },
+      "positionOdds": [
+        0, 0, 0, 0, 0.0001, 0.0008, 0.0043, 0.0164, 0.0463, 0.0974, 0.156, 0.1945, 0.1913, 0.1484, 0.0895, 0.041, 0.014
+      ],
+      "headline": "Kärpät's playoff chance is 52%. A regulation win takes it to 76%."
+    },
+    "projectedTable": [
+      {
+        "teamId": "tappara",
+        "points": 34,
+        "rank": 1,
+        "zone": "top4"
+      },
+      {
+        "teamId": "ilves",
+        "points": 31,
+        "rank": 2,
+        "zone": "top4"
+      },
+      {
+        "teamId": "pelicans",
+        "points": 30,
+        "rank": 3,
+        "zone": "top4"
+      },
+      {
+        "teamId": "kalpa",
+        "points": 29,
+        "rank": 4,
+        "zone": "top4"
+      },
+      {
+        "teamId": "hifk",
+        "points": 27,
+        "rank": 5,
+        "zone": "playoffs"
+      },
+      {
+        "teamId": "lukko",
+        "points": 26,
+        "rank": 6,
+        "zone": "playoffs"
+      },
+      {
+        "teamId": "tps",
+        "points": 25,
+        "rank": 7,
+        "zone": "playoffs"
+      },
+      {
+        "teamId": "saipa",
+        "points": 24,
+        "rank": 8,
+        "zone": "playoffs"
+      },
+      {
+        "teamId": "jyp",
+        "points": 23,
+        "rank": 9,
+        "zone": "playoffs"
+      },
+      {
+        "teamId": "assat",
+        "points": 22,
+        "rank": 10,
+        "zone": "playoffs"
+      },
+      {
+        "teamId": "sport",
+        "points": 21,
+        "rank": 11,
+        "zone": "playoffs"
+      },
+      {
+        "teamId": "jukurit",
+        "points": 19,
+        "rank": 12,
+        "zone": "playoffs"
+      },
+      {
+        "teamId": "karpat",
+        "points": 18,
+        "rank": 13,
+        "zone": "safe"
+      },
+      {
+        "teamId": "hpk",
+        "points": 16,
+        "rank": 14,
+        "zone": "safe"
+      },
+      {
+        "teamId": "kookoo",
+        "points": 14,
+        "rank": 15,
+        "zone": "relegated"
+      },
+      {
+        "teamId": "kiekko-espoo",
+        "points": 12,
+        "rank": 16,
+        "zone": "relegated"
+      },
+      {
+        "teamId": "jokerit",
+        "points": 10,
+        "rank": 17,
+        "zone": "relegated"
+      }
+    ]
+  },
+  {
+    "code": "TEST",
+    "serverNow": 1792854470000,
+    "phase": "live",
+    "game": {
+      "id": "game-1042",
+      "homeTeamId": "karpat",
+      "awayTeamId": "tappara"
+    },
+    "gameTimeSeconds": 470,
+    "score": {
+      "home": 1,
+      "away": 0
+    },
+    "events": [
+      {
+        "id": "goal-1",
+        "gameId": "game-1042",
+        "teamId": "karpat",
+        "gameTimeSeconds": 462,
+        "period": 1,
+        "scorer": "J. Rautiainen",
+        "assists": ["A. Lehtonen"],
+        "strength": "powerplay"
+      }
+    ],
+    "activeCall": null,
+    "lastResolved": {
+      "callId": "next_goal@120",
+      "correctOptionId": "karpat",
+      "youWereRight": true
+    },
+    "leaderboard": [
+      {
+        "playerId": "p-aino",
+        "nickname": "Aino",
+        "score": 150,
+        "rank": 1
+      },
+      {
+        "playerId": "p-jere",
+        "nickname": "Jere",
+        "score": 150,
+        "rank": 1
+      },
+      {
+        "playerId": "p-mikko",
+        "nickname": "Mikko",
+        "score": 150,
+        "rank": 1
+      },
+      {
+        "playerId": "p-veera",
+        "nickname": "Veera",
+        "score": 150,
+        "rank": 1
+      },
+      {
+        "playerId": "p-sanni",
+        "nickname": "Sanni",
+        "score": 0,
+        "rank": 5
+      },
+      {
+        "playerId": "p-tuomas",
+        "nickname": "Tuomas",
+        "score": 0,
+        "rank": 5
+      }
+    ],
+    "me": {
+      "playerId": "p-aino",
+      "score": 150,
+      "rank": 1
+    },
+    "stakes": {
+      "teamId": "karpat",
+      "gameId": "game-1042",
+      "currentPosition": 13,
+      "currentZone": "safe",
+      "zoneOddsByOutcome": {
+        "regulationWin": {
+          "top4": 0,
+          "playoffs": 0.7599,
+          "safe": 0.2103,
+          "relegated": 0.0298
+        },
+        "overtimeWin": {
+          "top4": 0,
+          "playoffs": 0.6383,
+          "safe": 0.2991,
+          "relegated": 0.0626
+        },
+        "overtimeLoss": {
+          "top4": 0,
+          "playoffs": 0.5241,
+          "safe": 0.3687,
+          "relegated": 0.1072
+        },
+        "regulationLoss": {
+          "top4": 0,
+          "playoffs": 0.2808,
+          "safe": 0.4478,
+          "relegated": 0.2714
+        }
+      },
+      "positionOdds": [
+        0, 0, 0, 0, 0.0002, 0.0012, 0.0063, 0.0234, 0.0632, 0.1246, 0.1826, 0.203, 0.1749, 0.1194, 0.0648, 0.0275,
+        0.0089
+      ],
+      "headline": "Kärpät lead: playoff chance up to 60%."
+    },
+    "projectedTable": [
+      {
+        "teamId": "tappara",
+        "points": 33,
+        "rank": 1,
+        "zone": "top4"
+      },
+      {
+        "teamId": "ilves",
+        "points": 31,
+        "rank": 2,
+        "zone": "top4"
+      },
+      {
+        "teamId": "pelicans",
+        "points": 30,
+        "rank": 3,
+        "zone": "top4"
+      },
+      {
+        "teamId": "kalpa",
+        "points": 29,
+        "rank": 4,
+        "zone": "top4"
+      },
+      {
+        "teamId": "hifk",
+        "points": 27,
+        "rank": 5,
+        "zone": "playoffs"
+      },
+      {
+        "teamId": "lukko",
+        "points": 26,
+        "rank": 6,
+        "zone": "playoffs"
+      },
+      {
+        "teamId": "tps",
+        "points": 25,
+        "rank": 7,
+        "zone": "playoffs"
+      },
+      {
+        "teamId": "saipa",
+        "points": 24,
+        "rank": 8,
+        "zone": "playoffs"
+      },
+      {
+        "teamId": "jyp",
+        "points": 23,
+        "rank": 9,
+        "zone": "playoffs"
+      },
+      {
+        "teamId": "assat",
+        "points": 22,
+        "rank": 10,
+        "zone": "playoffs"
+      },
+      {
+        "teamId": "sport",
+        "points": 21,
+        "rank": 11,
+        "zone": "playoffs"
+      },
+      {
+        "teamId": "karpat",
+        "points": 20,
+        "rank": 12,
+        "zone": "playoffs"
+      },
+      {
+        "teamId": "jukurit",
+        "points": 19,
+        "rank": 13,
+        "zone": "safe"
+      },
+      {
+        "teamId": "hpk",
+        "points": 16,
+        "rank": 14,
+        "zone": "safe"
+      },
+      {
+        "teamId": "kookoo",
+        "points": 14,
+        "rank": 15,
+        "zone": "relegated"
+      },
+      {
+        "teamId": "kiekko-espoo",
+        "points": 12,
+        "rank": 16,
+        "zone": "relegated"
+      },
+      {
+        "teamId": "jokerit",
+        "points": 10,
+        "rank": 17,
+        "zone": "relegated"
+      }
+    ]
+  },
+  {
+    "code": "TEST",
+    "serverNow": 1792854690000,
+    "phase": "live",
+    "game": {
+      "id": "game-1042",
+      "homeTeamId": "karpat",
+      "awayTeamId": "tappara"
+    },
+    "gameTimeSeconds": 690,
+    "score": {
+      "home": 1,
+      "away": 0
+    },
+    "events": [
+      {
+        "id": "goal-1",
+        "gameId": "game-1042",
+        "teamId": "karpat",
+        "gameTimeSeconds": 462,
+        "period": 1,
+        "scorer": "J. Rautiainen",
+        "assists": ["A. Lehtonen"],
+        "strength": "powerplay"
+      }
+    ],
+    "activeCall": {
+      "id": "goal_in_5@660",
+      "type": "goal_in_5",
+      "opensAt": 660,
+      "locksAt": 720,
+      "question": "Goal in the next 5 minutes?",
+      "options": [
+        {
+          "id": "yes",
+          "label": "Yes"
+        },
+        {
+          "id": "no",
+          "label": "No"
+        }
+      ],
+      "resolvesAt": 1020
+    },
+    "lastResolved": {
+      "callId": "next_goal@120",
+      "correctOptionId": "karpat",
+      "youWereRight": true
+    },
+    "leaderboard": [
+      {
+        "playerId": "p-aino",
+        "nickname": "Aino",
+        "score": 150,
+        "rank": 1
+      },
+      {
+        "playerId": "p-jere",
+        "nickname": "Jere",
+        "score": 150,
+        "rank": 1
+      },
+      {
+        "playerId": "p-mikko",
+        "nickname": "Mikko",
+        "score": 150,
+        "rank": 1
+      },
+      {
+        "playerId": "p-veera",
+        "nickname": "Veera",
+        "score": 150,
+        "rank": 1
+      },
+      {
+        "playerId": "p-sanni",
+        "nickname": "Sanni",
+        "score": 0,
+        "rank": 5
+      },
+      {
+        "playerId": "p-tuomas",
+        "nickname": "Tuomas",
+        "score": 0,
+        "rank": 5
+      }
+    ],
+    "me": {
+      "playerId": "p-aino",
+      "score": 150,
+      "rank": 1
+    },
+    "stakes": {
+      "teamId": "karpat",
+      "gameId": "game-1042",
+      "currentPosition": 13,
+      "currentZone": "safe",
+      "zoneOddsByOutcome": {
+        "regulationWin": {
+          "top4": 0,
+          "playoffs": 0.7599,
+          "safe": 0.2103,
+          "relegated": 0.0298
+        },
+        "overtimeWin": {
+          "top4": 0,
+          "playoffs": 0.6383,
+          "safe": 0.2991,
+          "relegated": 0.0626
+        },
+        "overtimeLoss": {
+          "top4": 0,
+          "playoffs": 0.5241,
+          "safe": 0.3687,
+          "relegated": 0.1072
+        },
+        "regulationLoss": {
+          "top4": 0,
+          "playoffs": 0.2808,
+          "safe": 0.4478,
+          "relegated": 0.2714
+        }
+      },
+      "positionOdds": [
+        0, 0, 0, 0, 0.0002, 0.0012, 0.0063, 0.0234, 0.0632, 0.1246, 0.1826, 0.203, 0.1749, 0.1194, 0.0648, 0.0275,
+        0.0089
+      ],
+      "headline": "Kärpät lead: playoff chance up to 60%."
+    },
+    "projectedTable": [
+      {
+        "teamId": "tappara",
+        "points": 33,
+        "rank": 1,
+        "zone": "top4"
+      },
+      {
+        "teamId": "ilves",
+        "points": 31,
+        "rank": 2,
+        "zone": "top4"
+      },
+      {
+        "teamId": "pelicans",
+        "points": 30,
+        "rank": 3,
+        "zone": "top4"
+      },
+      {
+        "teamId": "kalpa",
+        "points": 29,
+        "rank": 4,
+        "zone": "top4"
+      },
+      {
+        "teamId": "hifk",
+        "points": 27,
+        "rank": 5,
+        "zone": "playoffs"
+      },
+      {
+        "teamId": "lukko",
+        "points": 26,
+        "rank": 6,
+        "zone": "playoffs"
+      },
+      {
+        "teamId": "tps",
+        "points": 25,
+        "rank": 7,
+        "zone": "playoffs"
+      },
+      {
+        "teamId": "saipa",
+        "points": 24,
+        "rank": 8,
+        "zone": "playoffs"
+      },
+      {
+        "teamId": "jyp",
+        "points": 23,
+        "rank": 9,
+        "zone": "playoffs"
+      },
+      {
+        "teamId": "assat",
+        "points": 22,
+        "rank": 10,
+        "zone": "playoffs"
+      },
+      {
+        "teamId": "sport",
+        "points": 21,
+        "rank": 11,
+        "zone": "playoffs"
+      },
+      {
+        "teamId": "karpat",
+        "points": 20,
+        "rank": 12,
+        "zone": "playoffs"
+      },
+      {
+        "teamId": "jukurit",
+        "points": 19,
+        "rank": 13,
+        "zone": "safe"
+      },
+      {
+        "teamId": "hpk",
+        "points": 16,
+        "rank": 14,
+        "zone": "safe"
+      },
+      {
+        "teamId": "kookoo",
+        "points": 14,
+        "rank": 15,
+        "zone": "relegated"
+      },
+      {
+        "teamId": "kiekko-espoo",
+        "points": 12,
+        "rank": 16,
+        "zone": "relegated"
+      },
+      {
+        "teamId": "jokerit",
+        "points": 10,
+        "rank": 17,
+        "zone": "relegated"
+      }
+    ]
+  },
+  {
+    "code": "TEST",
+    "serverNow": 1792855200000,
+    "phase": "intermission",
+    "game": {
+      "id": "game-1042",
+      "homeTeamId": "karpat",
+      "awayTeamId": "tappara"
+    },
+    "gameTimeSeconds": 1200,
+    "score": {
+      "home": 1,
+      "away": 0
+    },
+    "events": [
+      {
+        "id": "goal-1",
+        "gameId": "game-1042",
+        "teamId": "karpat",
+        "gameTimeSeconds": 462,
+        "period": 1,
+        "scorer": "J. Rautiainen",
+        "assists": ["A. Lehtonen"],
+        "strength": "powerplay"
+      }
+    ],
+    "activeCall": null,
+    "lastResolved": {
+      "callId": "goal_in_5@660",
+      "correctOptionId": "no",
+      "youWereRight": true
+    },
+    "leaderboard": [
+      {
+        "playerId": "p-aino",
+        "nickname": "Aino",
+        "score": 250,
+        "rank": 1
+      },
+      {
+        "playerId": "p-mikko",
+        "nickname": "Mikko",
+        "score": 250,
+        "rank": 1
+      },
+      {
+        "playerId": "p-veera",
+        "nickname": "Veera",
+        "score": 250,
+        "rank": 1
+      },
+      {
+        "playerId": "p-jere",
+        "nickname": "Jere",
+        "score": 150,
+        "rank": 4
+      },
+      {
+        "playerId": "p-sanni",
+        "nickname": "Sanni",
+        "score": 100,
+        "rank": 5
+      },
+      {
+        "playerId": "p-tuomas",
+        "nickname": "Tuomas",
+        "score": 0,
+        "rank": 6
+      }
+    ],
+    "me": {
+      "playerId": "p-aino",
+      "score": 250,
+      "rank": 1
+    },
+    "stakes": {
+      "teamId": "karpat",
+      "gameId": "game-1042",
+      "currentPosition": 13,
+      "currentZone": "safe",
+      "zoneOddsByOutcome": {
+        "regulationWin": {
+          "top4": 0,
+          "playoffs": 0.7599,
+          "safe": 0.2103,
+          "relegated": 0.0298
+        },
+        "overtimeWin": {
+          "top4": 0,
+          "playoffs": 0.6383,
+          "safe": 0.2991,
+          "relegated": 0.0626
+        },
+        "overtimeLoss": {
+          "top4": 0,
+          "playoffs": 0.5241,
+          "safe": 0.3687,
+          "relegated": 0.1072
+        },
+        "regulationLoss": {
+          "top4": 0,
+          "playoffs": 0.2808,
+          "safe": 0.4478,
+          "relegated": 0.2714
+        }
+      },
+      "positionOdds": [
+        0, 0, 0, 0, 0.0002, 0.0012, 0.0063, 0.0234, 0.0632, 0.1246, 0.1826, 0.203, 0.1749, 0.1194, 0.0648, 0.0275,
+        0.0089
+      ],
+      "headline": "Kärpät lead: playoff chance up to 60%."
+    },
+    "projectedTable": [
+      {
+        "teamId": "tappara",
+        "points": 33,
+        "rank": 1,
+        "zone": "top4"
+      },
+      {
+        "teamId": "ilves",
+        "points": 31,
+        "rank": 2,
+        "zone": "top4"
+      },
+      {
+        "teamId": "pelicans",
+        "points": 30,
+        "rank": 3,
+        "zone": "top4"
+      },
+      {
+        "teamId": "kalpa",
+        "points": 29,
+        "rank": 4,
+        "zone": "top4"
+      },
+      {
+        "teamId": "hifk",
+        "points": 27,
+        "rank": 5,
+        "zone": "playoffs"
+      },
+      {
+        "teamId": "lukko",
+        "points": 26,
+        "rank": 6,
+        "zone": "playoffs"
+      },
+      {
+        "teamId": "tps",
+        "points": 25,
+        "rank": 7,
+        "zone": "playoffs"
+      },
+      {
+        "teamId": "saipa",
+        "points": 24,
+        "rank": 8,
+        "zone": "playoffs"
+      },
+      {
+        "teamId": "jyp",
+        "points": 23,
+        "rank": 9,
+        "zone": "playoffs"
+      },
+      {
+        "teamId": "assat",
+        "points": 22,
+        "rank": 10,
+        "zone": "playoffs"
+      },
+      {
+        "teamId": "sport",
+        "points": 21,
+        "rank": 11,
+        "zone": "playoffs"
+      },
+      {
+        "teamId": "karpat",
+        "points": 20,
+        "rank": 12,
+        "zone": "playoffs"
+      },
+      {
+        "teamId": "jukurit",
+        "points": 19,
+        "rank": 13,
+        "zone": "safe"
+      },
+      {
+        "teamId": "hpk",
+        "points": 16,
+        "rank": 14,
+        "zone": "safe"
+      },
+      {
+        "teamId": "kookoo",
+        "points": 14,
+        "rank": 15,
+        "zone": "relegated"
+      },
+      {
+        "teamId": "kiekko-espoo",
+        "points": 12,
+        "rank": 16,
+        "zone": "relegated"
+      },
+      {
+        "teamId": "jokerit",
+        "points": 10,
+        "rank": 17,
+        "zone": "relegated"
+      }
+    ]
+  },
+  {
+    "code": "TEST",
+    "serverNow": 1792855460000,
+    "phase": "live",
+    "game": {
+      "id": "game-1042",
+      "homeTeamId": "karpat",
+      "awayTeamId": "tappara"
+    },
+    "gameTimeSeconds": 1460,
+    "score": {
+      "home": 1,
+      "away": 1
+    },
+    "events": [
+      {
+        "id": "goal-1",
+        "gameId": "game-1042",
+        "teamId": "karpat",
+        "gameTimeSeconds": 462,
+        "period": 1,
+        "scorer": "J. Rautiainen",
+        "assists": ["A. Lehtonen"],
+        "strength": "powerplay"
+      },
+      {
+        "id": "goal-2",
+        "gameId": "game-1042",
+        "teamId": "tappara",
+        "gameTimeSeconds": 1455,
+        "period": 2,
+        "scorer": "M. Kumpulainen",
+        "strength": "even"
+      }
+    ],
+    "activeCall": null,
+    "lastResolved": {
+      "callId": "goal_in_5@660",
+      "correctOptionId": "no",
+      "youWereRight": true
+    },
+    "leaderboard": [
+      {
+        "playerId": "p-aino",
+        "nickname": "Aino",
+        "score": 250,
+        "rank": 1
+      },
+      {
+        "playerId": "p-mikko",
+        "nickname": "Mikko",
+        "score": 250,
+        "rank": 1
+      },
+      {
+        "playerId": "p-veera",
+        "nickname": "Veera",
+        "score": 250,
+        "rank": 1
+      },
+      {
+        "playerId": "p-jere",
+        "nickname": "Jere",
+        "score": 150,
+        "rank": 4
+      },
+      {
+        "playerId": "p-sanni",
+        "nickname": "Sanni",
+        "score": 100,
+        "rank": 5
+      },
+      {
+        "playerId": "p-tuomas",
+        "nickname": "Tuomas",
+        "score": 0,
+        "rank": 6
+      }
+    ],
+    "me": {
+      "playerId": "p-aino",
+      "score": 250,
+      "rank": 1
+    },
+    "stakes": {
+      "teamId": "karpat",
+      "gameId": "game-1042",
+      "currentPosition": 13,
+      "currentZone": "safe",
+      "zoneOddsByOutcome": {
+        "regulationWin": {
+          "top4": 0,
+          "playoffs": 0.7599,
+          "safe": 0.2103,
+          "relegated": 0.0298
+        },
+        "overtimeWin": {
+          "top4": 0,
+          "playoffs": 0.6383,
+          "safe": 0.2991,
+          "relegated": 0.0626
+        },
+        "overtimeLoss": {
+          "top4": 0,
+          "playoffs": 0.5241,
+          "safe": 0.3687,
+          "relegated": 0.1072
+        },
+        "regulationLoss": {
+          "top4": 0,
+          "playoffs": 0.2808,
+          "safe": 0.4478,
+          "relegated": 0.2714
+        }
+      },
+      "positionOdds": [
+        0, 0, 0, 0, 0.0001, 0.0008, 0.0042, 0.0163, 0.0462, 0.0975, 0.1566, 0.1953, 0.1917, 0.1481, 0.0889, 0.0405,
+        0.0138
+      ],
+      "headline": "All square: Kärpät's playoff chance is 52%."
+    },
+    "projectedTable": [
+      {
+        "teamId": "tappara",
+        "points": 34,
+        "rank": 1,
+        "zone": "top4"
+      },
+      {
+        "teamId": "ilves",
+        "points": 31,
+        "rank": 2,
+        "zone": "top4"
+      },
+      {
+        "teamId": "pelicans",
+        "points": 30,
+        "rank": 3,
+        "zone": "top4"
+      },
+      {
+        "teamId": "kalpa",
+        "points": 29,
+        "rank": 4,
+        "zone": "top4"
+      },
+      {
+        "teamId": "hifk",
+        "points": 27,
+        "rank": 5,
+        "zone": "playoffs"
+      },
+      {
+        "teamId": "lukko",
+        "points": 26,
+        "rank": 6,
+        "zone": "playoffs"
+      },
+      {
+        "teamId": "tps",
+        "points": 25,
+        "rank": 7,
+        "zone": "playoffs"
+      },
+      {
+        "teamId": "saipa",
+        "points": 24,
+        "rank": 8,
+        "zone": "playoffs"
+      },
+      {
+        "teamId": "jyp",
+        "points": 23,
+        "rank": 9,
+        "zone": "playoffs"
+      },
+      {
+        "teamId": "assat",
+        "points": 22,
+        "rank": 10,
+        "zone": "playoffs"
+      },
+      {
+        "teamId": "sport",
+        "points": 21,
+        "rank": 11,
+        "zone": "playoffs"
+      },
+      {
+        "teamId": "jukurit",
+        "points": 19,
+        "rank": 12,
+        "zone": "playoffs"
+      },
+      {
+        "teamId": "karpat",
+        "points": 18,
+        "rank": 13,
+        "zone": "safe"
+      },
+      {
+        "teamId": "hpk",
+        "points": 16,
+        "rank": 14,
+        "zone": "safe"
+      },
+      {
+        "teamId": "kookoo",
+        "points": 14,
+        "rank": 15,
+        "zone": "relegated"
+      },
+      {
+        "teamId": "kiekko-espoo",
+        "points": 12,
+        "rank": 16,
+        "zone": "relegated"
+      },
+      {
+        "teamId": "jokerit",
+        "points": 10,
+        "rank": 17,
+        "zone": "relegated"
+      }
+    ]
+  },
+  {
+    "code": "TEST",
+    "serverNow": 1792856200000,
+    "phase": "live",
+    "game": {
+      "id": "game-1042",
+      "homeTeamId": "karpat",
+      "awayTeamId": "tappara"
+    },
+    "gameTimeSeconds": 2200,
+    "score": {
+      "home": 1,
+      "away": 2
+    },
+    "events": [
+      {
+        "id": "goal-1",
+        "gameId": "game-1042",
+        "teamId": "karpat",
+        "gameTimeSeconds": 462,
+        "period": 1,
+        "scorer": "J. Rautiainen",
+        "assists": ["A. Lehtonen"],
+        "strength": "powerplay"
+      },
+      {
+        "id": "goal-2",
+        "gameId": "game-1042",
+        "teamId": "tappara",
+        "gameTimeSeconds": 1455,
+        "period": 2,
+        "scorer": "M. Kumpulainen",
+        "strength": "even"
+      },
+      {
+        "id": "goal-3",
+        "gameId": "game-1042",
+        "teamId": "tappara",
+        "gameTimeSeconds": 2190,
+        "period": 2,
+        "scorer": "K. Ojanen",
+        "assists": ["O. Järvinen", "P. Seppälä"],
+        "strength": "even"
+      }
+    ],
+    "activeCall": null,
+    "lastResolved": {
+      "callId": "goal_in_5@660",
+      "correctOptionId": "no",
+      "youWereRight": true
+    },
+    "leaderboard": [
+      {
+        "playerId": "p-aino",
+        "nickname": "Aino",
+        "score": 250,
+        "rank": 1
+      },
+      {
+        "playerId": "p-mikko",
+        "nickname": "Mikko",
+        "score": 250,
+        "rank": 1
+      },
+      {
+        "playerId": "p-veera",
+        "nickname": "Veera",
+        "score": 250,
+        "rank": 1
+      },
+      {
+        "playerId": "p-jere",
+        "nickname": "Jere",
+        "score": 150,
+        "rank": 4
+      },
+      {
+        "playerId": "p-sanni",
+        "nickname": "Sanni",
+        "score": 100,
+        "rank": 5
+      },
+      {
+        "playerId": "p-tuomas",
+        "nickname": "Tuomas",
+        "score": 0,
+        "rank": 6
+      }
+    ],
+    "me": {
+      "playerId": "p-aino",
+      "score": 250,
+      "rank": 1
+    },
+    "stakes": {
+      "teamId": "karpat",
+      "gameId": "game-1042",
+      "currentPosition": 13,
+      "currentZone": "safe",
+      "zoneOddsByOutcome": {
+        "regulationWin": {
+          "top4": 0,
+          "playoffs": 0.7599,
+          "safe": 0.2103,
+          "relegated": 0.0298
+        },
+        "overtimeWin": {
+          "top4": 0,
+          "playoffs": 0.6383,
+          "safe": 0.2991,
+          "relegated": 0.0626
+        },
+        "overtimeLoss": {
+          "top4": 0,
+          "playoffs": 0.5241,
+          "safe": 0.3687,
+          "relegated": 0.1072
+        },
+        "regulationLoss": {
+          "top4": 0,
+          "playoffs": 0.2808,
+          "safe": 0.4478,
+          "relegated": 0.2714
+        }
+      },
+      "positionOdds": [
+        0, 0, 0, 0, 0.0001, 0.0005, 0.0026, 0.0102, 0.0304, 0.0695, 0.1253, 0.1802, 0.2047, 0.1796, 0.1186, 0.0578,
+        0.0205
+      ],
+      "headline": "Kärpät trail: playoff chance down to 42%."
+    },
+    "projectedTable": [
+      {
+        "teamId": "tappara",
+        "points": 36,
+        "rank": 1,
+        "zone": "top4"
+      },
+      {
+        "teamId": "ilves",
+        "points": 31,
+        "rank": 2,
+        "zone": "top4"
+      },
+      {
+        "teamId": "pelicans",
+        "points": 30,
+        "rank": 3,
+        "zone": "top4"
+      },
+      {
+        "teamId": "kalpa",
+        "points": 29,
+        "rank": 4,
+        "zone": "top4"
+      },
+      {
+        "teamId": "hifk",
+        "points": 27,
+        "rank": 5,
+        "zone": "playoffs"
+      },
+      {
+        "teamId": "lukko",
+        "points": 26,
+        "rank": 6,
+        "zone": "playoffs"
+      },
+      {
+        "teamId": "tps",
+        "points": 25,
+        "rank": 7,
+        "zone": "playoffs"
+      },
+      {
+        "teamId": "saipa",
+        "points": 24,
+        "rank": 8,
+        "zone": "playoffs"
+      },
+      {
+        "teamId": "jyp",
+        "points": 23,
+        "rank": 9,
+        "zone": "playoffs"
+      },
+      {
+        "teamId": "assat",
+        "points": 22,
+        "rank": 10,
+        "zone": "playoffs"
+      },
+      {
+        "teamId": "sport",
+        "points": 21,
+        "rank": 11,
+        "zone": "playoffs"
+      },
+      {
+        "teamId": "jukurit",
+        "points": 19,
+        "rank": 12,
+        "zone": "playoffs"
+      },
+      {
+        "teamId": "karpat",
+        "points": 17,
+        "rank": 13,
+        "zone": "safe"
+      },
+      {
+        "teamId": "hpk",
+        "points": 16,
+        "rank": 14,
+        "zone": "safe"
+      },
+      {
+        "teamId": "kookoo",
+        "points": 14,
+        "rank": 15,
+        "zone": "relegated"
+      },
+      {
+        "teamId": "kiekko-espoo",
+        "points": 12,
+        "rank": 16,
+        "zone": "relegated"
+      },
+      {
+        "teamId": "jokerit",
+        "points": 10,
+        "rank": 17,
+        "zone": "relegated"
+      }
+    ]
+  },
+  {
+    "code": "TEST",
+    "serverNow": 1792856400000,
+    "phase": "intermission",
+    "game": {
+      "id": "game-1042",
+      "homeTeamId": "karpat",
+      "awayTeamId": "tappara"
+    },
+    "gameTimeSeconds": 2400,
+    "score": {
+      "home": 1,
+      "away": 2
+    },
+    "events": [
+      {
+        "id": "goal-1",
+        "gameId": "game-1042",
+        "teamId": "karpat",
+        "gameTimeSeconds": 462,
+        "period": 1,
+        "scorer": "J. Rautiainen",
+        "assists": ["A. Lehtonen"],
+        "strength": "powerplay"
+      },
+      {
+        "id": "goal-2",
+        "gameId": "game-1042",
+        "teamId": "tappara",
+        "gameTimeSeconds": 1455,
+        "period": 2,
+        "scorer": "M. Kumpulainen",
+        "strength": "even"
+      },
+      {
+        "id": "goal-3",
+        "gameId": "game-1042",
+        "teamId": "tappara",
+        "gameTimeSeconds": 2190,
+        "period": 2,
+        "scorer": "K. Ojanen",
+        "assists": ["O. Järvinen", "P. Seppälä"],
+        "strength": "even"
+      }
+    ],
+    "activeCall": {
+      "id": "regulation_result@2400",
+      "type": "regulation_result",
+      "opensAt": 2400,
+      "locksAt": 2460,
+      "question": "How does regulation end?",
+      "options": [
+        {
+          "id": "home_win",
+          "label": "Kärpät win"
+        },
+        {
+          "id": "tie",
+          "label": "Tied, to overtime"
+        },
+        {
+          "id": "away_win",
+          "label": "Tappara win"
+        }
+      ],
+      "resolvesAt": 3600
+    },
+    "lastResolved": {
+      "callId": "goal_in_5@660",
+      "correctOptionId": "no",
+      "youWereRight": true
+    },
+    "leaderboard": [
+      {
+        "playerId": "p-aino",
+        "nickname": "Aino",
+        "score": 250,
+        "rank": 1
+      },
+      {
+        "playerId": "p-mikko",
+        "nickname": "Mikko",
+        "score": 250,
+        "rank": 1
+      },
+      {
+        "playerId": "p-veera",
+        "nickname": "Veera",
+        "score": 250,
+        "rank": 1
+      },
+      {
+        "playerId": "p-jere",
+        "nickname": "Jere",
+        "score": 150,
+        "rank": 4
+      },
+      {
+        "playerId": "p-sanni",
+        "nickname": "Sanni",
+        "score": 100,
+        "rank": 5
+      },
+      {
+        "playerId": "p-tuomas",
+        "nickname": "Tuomas",
+        "score": 0,
+        "rank": 6
+      }
+    ],
+    "me": {
+      "playerId": "p-aino",
+      "score": 250,
+      "rank": 1
+    },
+    "stakes": {
+      "teamId": "karpat",
+      "gameId": "game-1042",
+      "currentPosition": 13,
+      "currentZone": "safe",
+      "zoneOddsByOutcome": {
+        "regulationWin": {
+          "top4": 0,
+          "playoffs": 0.7599,
+          "safe": 0.2103,
+          "relegated": 0.0298
+        },
+        "overtimeWin": {
+          "top4": 0,
+          "playoffs": 0.6383,
+          "safe": 0.2991,
+          "relegated": 0.0626
+        },
+        "overtimeLoss": {
+          "top4": 0,
+          "playoffs": 0.5241,
+          "safe": 0.3687,
+          "relegated": 0.1072
+        },
+        "regulationLoss": {
+          "top4": 0,
+          "playoffs": 0.2808,
+          "safe": 0.4478,
+          "relegated": 0.2714
+        }
+      },
+      "positionOdds": [
+        0, 0, 0, 0, 0.0001, 0.0005, 0.0026, 0.0102, 0.0304, 0.0695, 0.1253, 0.1802, 0.2047, 0.1796, 0.1186, 0.0578,
+        0.0205
+      ],
+      "headline": "Kärpät trail: playoff chance down to 42%."
+    },
+    "projectedTable": [
+      {
+        "teamId": "tappara",
+        "points": 36,
+        "rank": 1,
+        "zone": "top4"
+      },
+      {
+        "teamId": "ilves",
+        "points": 31,
+        "rank": 2,
+        "zone": "top4"
+      },
+      {
+        "teamId": "pelicans",
+        "points": 30,
+        "rank": 3,
+        "zone": "top4"
+      },
+      {
+        "teamId": "kalpa",
+        "points": 29,
+        "rank": 4,
+        "zone": "top4"
+      },
+      {
+        "teamId": "hifk",
+        "points": 27,
+        "rank": 5,
+        "zone": "playoffs"
+      },
+      {
+        "teamId": "lukko",
+        "points": 26,
+        "rank": 6,
+        "zone": "playoffs"
+      },
+      {
+        "teamId": "tps",
+        "points": 25,
+        "rank": 7,
+        "zone": "playoffs"
+      },
+      {
+        "teamId": "saipa",
+        "points": 24,
+        "rank": 8,
+        "zone": "playoffs"
+      },
+      {
+        "teamId": "jyp",
+        "points": 23,
+        "rank": 9,
+        "zone": "playoffs"
+      },
+      {
+        "teamId": "assat",
+        "points": 22,
+        "rank": 10,
+        "zone": "playoffs"
+      },
+      {
+        "teamId": "sport",
+        "points": 21,
+        "rank": 11,
+        "zone": "playoffs"
+      },
+      {
+        "teamId": "jukurit",
+        "points": 19,
+        "rank": 12,
+        "zone": "playoffs"
+      },
+      {
+        "teamId": "karpat",
+        "points": 17,
+        "rank": 13,
+        "zone": "safe"
+      },
+      {
+        "teamId": "hpk",
+        "points": 16,
+        "rank": 14,
+        "zone": "safe"
+      },
+      {
+        "teamId": "kookoo",
+        "points": 14,
+        "rank": 15,
+        "zone": "relegated"
+      },
+      {
+        "teamId": "kiekko-espoo",
+        "points": 12,
+        "rank": 16,
+        "zone": "relegated"
+      },
+      {
+        "teamId": "jokerit",
+        "points": 10,
+        "rank": 17,
+        "zone": "relegated"
+      }
+    ]
+  },
+  {
+    "code": "TEST",
+    "serverNow": 1792856890000,
+    "phase": "live",
+    "game": {
+      "id": "game-1042",
+      "homeTeamId": "karpat",
+      "awayTeamId": "tappara"
+    },
+    "gameTimeSeconds": 2890,
+    "score": {
+      "home": 2,
+      "away": 2
+    },
+    "events": [
+      {
+        "id": "goal-1",
+        "gameId": "game-1042",
+        "teamId": "karpat",
+        "gameTimeSeconds": 462,
+        "period": 1,
+        "scorer": "J. Rautiainen",
+        "assists": ["A. Lehtonen"],
+        "strength": "powerplay"
+      },
+      {
+        "id": "goal-2",
+        "gameId": "game-1042",
+        "teamId": "tappara",
+        "gameTimeSeconds": 1455,
+        "period": 2,
+        "scorer": "M. Kumpulainen",
+        "strength": "even"
+      },
+      {
+        "id": "goal-3",
+        "gameId": "game-1042",
+        "teamId": "tappara",
+        "gameTimeSeconds": 2190,
+        "period": 2,
+        "scorer": "K. Ojanen",
+        "assists": ["O. Järvinen", "P. Seppälä"],
+        "strength": "even"
+      },
+      {
+        "id": "goal-4",
+        "gameId": "game-1042",
+        "teamId": "karpat",
+        "gameTimeSeconds": 2885,
+        "period": 3,
+        "scorer": "A. Lehtonen",
+        "strength": "shorthanded"
+      }
+    ],
+    "activeCall": {
+      "id": "regulation_result@2400",
+      "type": "regulation_result",
+      "opensAt": 2400,
+      "locksAt": 2460,
+      "question": "How does regulation end?",
+      "options": [
+        {
+          "id": "home_win",
+          "label": "Kärpät win"
+        },
+        {
+          "id": "tie",
+          "label": "Tied, to overtime"
+        },
+        {
+          "id": "away_win",
+          "label": "Tappara win"
+        }
+      ],
+      "resolvesAt": 3600
+    },
+    "lastResolved": {
+      "callId": "goal_in_5@660",
+      "correctOptionId": "no",
+      "youWereRight": true
+    },
+    "leaderboard": [
+      {
+        "playerId": "p-aino",
+        "nickname": "Aino",
+        "score": 250,
+        "rank": 1
+      },
+      {
+        "playerId": "p-mikko",
+        "nickname": "Mikko",
+        "score": 250,
+        "rank": 1
+      },
+      {
+        "playerId": "p-veera",
+        "nickname": "Veera",
+        "score": 250,
+        "rank": 1
+      },
+      {
+        "playerId": "p-jere",
+        "nickname": "Jere",
+        "score": 150,
+        "rank": 4
+      },
+      {
+        "playerId": "p-sanni",
+        "nickname": "Sanni",
+        "score": 100,
+        "rank": 5
+      },
+      {
+        "playerId": "p-tuomas",
+        "nickname": "Tuomas",
+        "score": 0,
+        "rank": 6
+      }
+    ],
+    "me": {
+      "playerId": "p-aino",
+      "score": 250,
+      "rank": 1
+    },
+    "stakes": {
+      "teamId": "karpat",
+      "gameId": "game-1042",
+      "currentPosition": 13,
+      "currentZone": "safe",
+      "zoneOddsByOutcome": {
+        "regulationWin": {
+          "top4": 0,
+          "playoffs": 0.7599,
+          "safe": 0.2103,
+          "relegated": 0.0298
+        },
+        "overtimeWin": {
+          "top4": 0,
+          "playoffs": 0.6383,
+          "safe": 0.2991,
+          "relegated": 0.0626
+        },
+        "overtimeLoss": {
+          "top4": 0,
+          "playoffs": 0.5241,
+          "safe": 0.3687,
+          "relegated": 0.1072
+        },
+        "regulationLoss": {
+          "top4": 0,
+          "playoffs": 0.2808,
+          "safe": 0.4478,
+          "relegated": 0.2714
+        }
+      },
+      "positionOdds": [
+        0, 0, 0, 0, 0.0001, 0.0008, 0.0042, 0.0162, 0.046, 0.0976, 0.1572, 0.1961, 0.1921, 0.1478, 0.0882, 0.0401,
+        0.0136
+      ],
+      "headline": "All square: Kärpät's playoff chance is 52%."
+    },
+    "projectedTable": [
+      {
+        "teamId": "tappara",
+        "points": 34,
+        "rank": 1,
+        "zone": "top4"
+      },
+      {
+        "teamId": "ilves",
+        "points": 31,
+        "rank": 2,
+        "zone": "top4"
+      },
+      {
+        "teamId": "pelicans",
+        "points": 30,
+        "rank": 3,
+        "zone": "top4"
+      },
+      {
+        "teamId": "kalpa",
+        "points": 29,
+        "rank": 4,
+        "zone": "top4"
+      },
+      {
+        "teamId": "hifk",
+        "points": 27,
+        "rank": 5,
+        "zone": "playoffs"
+      },
+      {
+        "teamId": "lukko",
+        "points": 26,
+        "rank": 6,
+        "zone": "playoffs"
+      },
+      {
+        "teamId": "tps",
+        "points": 25,
+        "rank": 7,
+        "zone": "playoffs"
+      },
+      {
+        "teamId": "saipa",
+        "points": 24,
+        "rank": 8,
+        "zone": "playoffs"
+      },
+      {
+        "teamId": "jyp",
+        "points": 23,
+        "rank": 9,
+        "zone": "playoffs"
+      },
+      {
+        "teamId": "assat",
+        "points": 22,
+        "rank": 10,
+        "zone": "playoffs"
+      },
+      {
+        "teamId": "sport",
+        "points": 21,
+        "rank": 11,
+        "zone": "playoffs"
+      },
+      {
+        "teamId": "jukurit",
+        "points": 19,
+        "rank": 12,
+        "zone": "playoffs"
+      },
+      {
+        "teamId": "karpat",
+        "points": 18,
+        "rank": 13,
+        "zone": "safe"
+      },
+      {
+        "teamId": "hpk",
+        "points": 16,
+        "rank": 14,
+        "zone": "safe"
+      },
+      {
+        "teamId": "kookoo",
+        "points": 14,
+        "rank": 15,
+        "zone": "relegated"
+      },
+      {
+        "teamId": "kiekko-espoo",
+        "points": 12,
+        "rank": 16,
+        "zone": "relegated"
+      },
+      {
+        "teamId": "jokerit",
+        "points": 10,
+        "rank": 17,
+        "zone": "relegated"
+      }
+    ]
+  },
+  {
+    "code": "TEST",
+    "serverNow": 1792857060000,
+    "phase": "live",
+    "game": {
+      "id": "game-1042",
+      "homeTeamId": "karpat",
+      "awayTeamId": "tappara"
+    },
+    "gameTimeSeconds": 3060,
+    "score": {
+      "home": 2,
+      "away": 2
+    },
+    "events": [
+      {
+        "id": "goal-1",
+        "gameId": "game-1042",
+        "teamId": "karpat",
+        "gameTimeSeconds": 462,
+        "period": 1,
+        "scorer": "J. Rautiainen",
+        "assists": ["A. Lehtonen"],
+        "strength": "powerplay"
+      },
+      {
+        "id": "goal-2",
+        "gameId": "game-1042",
+        "teamId": "tappara",
+        "gameTimeSeconds": 1455,
+        "period": 2,
+        "scorer": "M. Kumpulainen",
+        "strength": "even"
+      },
+      {
+        "id": "goal-3",
+        "gameId": "game-1042",
+        "teamId": "tappara",
+        "gameTimeSeconds": 2190,
+        "period": 2,
+        "scorer": "K. Ojanen",
+        "assists": ["O. Järvinen", "P. Seppälä"],
+        "strength": "even"
+      },
+      {
+        "id": "goal-4",
+        "gameId": "game-1042",
+        "teamId": "karpat",
+        "gameTimeSeconds": 2885,
+        "period": 3,
+        "scorer": "A. Lehtonen",
+        "strength": "shorthanded"
+      }
+    ],
+    "activeCall": {
+      "id": "overtime@3000",
+      "type": "overtime",
+      "opensAt": 3000,
+      "locksAt": 3120,
+      "question": "Will this game go to overtime?",
+      "options": [
+        {
+          "id": "yes",
+          "label": "Yes"
+        },
+        {
+          "id": "no",
+          "label": "No"
+        }
+      ],
+      "resolvesAt": 3600
+    },
+    "lastResolved": {
+      "callId": "goal_in_5@660",
+      "correctOptionId": "no",
+      "youWereRight": true
+    },
+    "leaderboard": [
+      {
+        "playerId": "p-aino",
+        "nickname": "Aino",
+        "score": 250,
+        "rank": 1
+      },
+      {
+        "playerId": "p-mikko",
+        "nickname": "Mikko",
+        "score": 250,
+        "rank": 1
+      },
+      {
+        "playerId": "p-veera",
+        "nickname": "Veera",
+        "score": 250,
+        "rank": 1
+      },
+      {
+        "playerId": "p-jere",
+        "nickname": "Jere",
+        "score": 150,
+        "rank": 4
+      },
+      {
+        "playerId": "p-sanni",
+        "nickname": "Sanni",
+        "score": 100,
+        "rank": 5
+      },
+      {
+        "playerId": "p-tuomas",
+        "nickname": "Tuomas",
+        "score": 0,
+        "rank": 6
+      }
+    ],
+    "me": {
+      "playerId": "p-aino",
+      "score": 250,
+      "rank": 1
+    },
+    "stakes": {
+      "teamId": "karpat",
+      "gameId": "game-1042",
+      "currentPosition": 13,
+      "currentZone": "safe",
+      "zoneOddsByOutcome": {
+        "regulationWin": {
+          "top4": 0,
+          "playoffs": 0.7599,
+          "safe": 0.2103,
+          "relegated": 0.0298
+        },
+        "overtimeWin": {
+          "top4": 0,
+          "playoffs": 0.6383,
+          "safe": 0.2991,
+          "relegated": 0.0626
+        },
+        "overtimeLoss": {
+          "top4": 0,
+          "playoffs": 0.5241,
+          "safe": 0.3687,
+          "relegated": 0.1072
+        },
+        "regulationLoss": {
+          "top4": 0,
+          "playoffs": 0.2808,
+          "safe": 0.4478,
+          "relegated": 0.2714
+        }
+      },
+      "positionOdds": [
+        0, 0, 0, 0, 0.0001, 0.0008, 0.0042, 0.0162, 0.046, 0.0976, 0.1572, 0.1961, 0.1921, 0.1478, 0.0882, 0.0401,
+        0.0136
+      ],
+      "headline": "All square: Kärpät's playoff chance is 52%."
+    },
+    "projectedTable": [
+      {
+        "teamId": "tappara",
+        "points": 34,
+        "rank": 1,
+        "zone": "top4"
+      },
+      {
+        "teamId": "ilves",
+        "points": 31,
+        "rank": 2,
+        "zone": "top4"
+      },
+      {
+        "teamId": "pelicans",
+        "points": 30,
+        "rank": 3,
+        "zone": "top4"
+      },
+      {
+        "teamId": "kalpa",
+        "points": 29,
+        "rank": 4,
+        "zone": "top4"
+      },
+      {
+        "teamId": "hifk",
+        "points": 27,
+        "rank": 5,
+        "zone": "playoffs"
+      },
+      {
+        "teamId": "lukko",
+        "points": 26,
+        "rank": 6,
+        "zone": "playoffs"
+      },
+      {
+        "teamId": "tps",
+        "points": 25,
+        "rank": 7,
+        "zone": "playoffs"
+      },
+      {
+        "teamId": "saipa",
+        "points": 24,
+        "rank": 8,
+        "zone": "playoffs"
+      },
+      {
+        "teamId": "jyp",
+        "points": 23,
+        "rank": 9,
+        "zone": "playoffs"
+      },
+      {
+        "teamId": "assat",
+        "points": 22,
+        "rank": 10,
+        "zone": "playoffs"
+      },
+      {
+        "teamId": "sport",
+        "points": 21,
+        "rank": 11,
+        "zone": "playoffs"
+      },
+      {
+        "teamId": "jukurit",
+        "points": 19,
+        "rank": 12,
+        "zone": "playoffs"
+      },
+      {
+        "teamId": "karpat",
+        "points": 18,
+        "rank": 13,
+        "zone": "safe"
+      },
+      {
+        "teamId": "hpk",
+        "points": 16,
+        "rank": 14,
+        "zone": "safe"
+      },
+      {
+        "teamId": "kookoo",
+        "points": 14,
+        "rank": 15,
+        "zone": "relegated"
+      },
+      {
+        "teamId": "kiekko-espoo",
+        "points": 12,
+        "rank": 16,
+        "zone": "relegated"
+      },
+      {
+        "teamId": "jokerit",
+        "points": 10,
+        "rank": 17,
+        "zone": "relegated"
+      }
+    ]
+  },
+  {
+    "code": "TEST",
+    "serverNow": 1792857535000,
+    "phase": "live",
+    "game": {
+      "id": "game-1042",
+      "homeTeamId": "karpat",
+      "awayTeamId": "tappara"
+    },
+    "gameTimeSeconds": 3535,
+    "score": {
+      "home": 3,
+      "away": 2
+    },
+    "events": [
+      {
+        "id": "goal-1",
+        "gameId": "game-1042",
+        "teamId": "karpat",
+        "gameTimeSeconds": 462,
+        "period": 1,
+        "scorer": "J. Rautiainen",
+        "assists": ["A. Lehtonen"],
+        "strength": "powerplay"
+      },
+      {
+        "id": "goal-2",
+        "gameId": "game-1042",
+        "teamId": "tappara",
+        "gameTimeSeconds": 1455,
+        "period": 2,
+        "scorer": "M. Kumpulainen",
+        "strength": "even"
+      },
+      {
+        "id": "goal-3",
+        "gameId": "game-1042",
+        "teamId": "tappara",
+        "gameTimeSeconds": 2190,
+        "period": 2,
+        "scorer": "K. Ojanen",
+        "assists": ["O. Järvinen", "P. Seppälä"],
+        "strength": "even"
+      },
+      {
+        "id": "goal-4",
+        "gameId": "game-1042",
+        "teamId": "karpat",
+        "gameTimeSeconds": 2885,
+        "period": 3,
+        "scorer": "A. Lehtonen",
+        "strength": "shorthanded"
+      },
+      {
+        "id": "goal-5",
+        "gameId": "game-1042",
+        "teamId": "karpat",
+        "gameTimeSeconds": 3531,
+        "period": 3,
+        "scorer": "J. Rautiainen",
+        "assists": ["V. Kärkkäinen"],
+        "strength": "even"
+      }
+    ],
+    "activeCall": {
+      "id": "overtime@3000",
+      "type": "overtime",
+      "opensAt": 3000,
+      "locksAt": 3120,
+      "question": "Will this game go to overtime?",
+      "options": [
+        {
+          "id": "yes",
+          "label": "Yes"
+        },
+        {
+          "id": "no",
+          "label": "No"
+        }
+      ],
+      "resolvesAt": 3600
+    },
+    "lastResolved": {
+      "callId": "goal_in_5@660",
+      "correctOptionId": "no",
+      "youWereRight": true
+    },
+    "leaderboard": [
+      {
+        "playerId": "p-aino",
+        "nickname": "Aino",
+        "score": 250,
+        "rank": 1
+      },
+      {
+        "playerId": "p-mikko",
+        "nickname": "Mikko",
+        "score": 250,
+        "rank": 1
+      },
+      {
+        "playerId": "p-veera",
+        "nickname": "Veera",
+        "score": 250,
+        "rank": 1
+      },
+      {
+        "playerId": "p-jere",
+        "nickname": "Jere",
+        "score": 150,
+        "rank": 4
+      },
+      {
+        "playerId": "p-sanni",
+        "nickname": "Sanni",
+        "score": 100,
+        "rank": 5
+      },
+      {
+        "playerId": "p-tuomas",
+        "nickname": "Tuomas",
+        "score": 0,
+        "rank": 6
+      }
+    ],
+    "me": {
+      "playerId": "p-aino",
+      "score": 250,
+      "rank": 1
+    },
+    "stakes": {
+      "teamId": "karpat",
+      "gameId": "game-1042",
+      "currentPosition": 13,
+      "currentZone": "safe",
+      "zoneOddsByOutcome": {
+        "regulationWin": {
+          "top4": 0,
+          "playoffs": 0.7599,
+          "safe": 0.2103,
+          "relegated": 0.0298
+        },
+        "overtimeWin": {
+          "top4": 0,
+          "playoffs": 0.6383,
+          "safe": 0.2991,
+          "relegated": 0.0626
+        },
+        "overtimeLoss": {
+          "top4": 0,
+          "playoffs": 0.5241,
+          "safe": 0.3687,
+          "relegated": 0.1072
+        },
+        "regulationLoss": {
+          "top4": 0,
+          "playoffs": 0.2808,
+          "safe": 0.4478,
+          "relegated": 0.2714
+        }
+      },
+      "positionOdds": [
+        0, 0, 0, 0, 0.0002, 0.0018, 0.0089, 0.0323, 0.0841, 0.1572, 0.2127, 0.21, 0.1538, 0.0854, 0.0371, 0.0129, 0.0036
+      ],
+      "headline": "Kärpät lead: playoff chance up to 71%."
+    },
+    "projectedTable": [
+      {
+        "teamId": "tappara",
+        "points": 33,
+        "rank": 1,
+        "zone": "top4"
+      },
+      {
+        "teamId": "ilves",
+        "points": 31,
+        "rank": 2,
+        "zone": "top4"
+      },
+      {
+        "teamId": "pelicans",
+        "points": 30,
+        "rank": 3,
+        "zone": "top4"
+      },
+      {
+        "teamId": "kalpa",
+        "points": 29,
+        "rank": 4,
+        "zone": "top4"
+      },
+      {
+        "teamId": "hifk",
+        "points": 27,
+        "rank": 5,
+        "zone": "playoffs"
+      },
+      {
+        "teamId": "lukko",
+        "points": 26,
+        "rank": 6,
+        "zone": "playoffs"
+      },
+      {
+        "teamId": "tps",
+        "points": 25,
+        "rank": 7,
+        "zone": "playoffs"
+      },
+      {
+        "teamId": "saipa",
+        "points": 24,
+        "rank": 8,
+        "zone": "playoffs"
+      },
+      {
+        "teamId": "jyp",
+        "points": 23,
+        "rank": 9,
+        "zone": "playoffs"
+      },
+      {
+        "teamId": "assat",
+        "points": 22,
+        "rank": 10,
+        "zone": "playoffs"
+      },
+      {
+        "teamId": "sport",
+        "points": 21,
+        "rank": 11,
+        "zone": "playoffs"
+      },
+      {
+        "teamId": "karpat",
+        "points": 20,
+        "rank": 12,
+        "zone": "playoffs"
+      },
+      {
+        "teamId": "jukurit",
+        "points": 19,
+        "rank": 13,
+        "zone": "safe"
+      },
+      {
+        "teamId": "hpk",
+        "points": 16,
+        "rank": 14,
+        "zone": "safe"
+      },
+      {
+        "teamId": "kookoo",
+        "points": 14,
+        "rank": 15,
+        "zone": "relegated"
+      },
+      {
+        "teamId": "kiekko-espoo",
+        "points": 12,
+        "rank": 16,
+        "zone": "relegated"
+      },
+      {
+        "teamId": "jokerit",
+        "points": 10,
+        "rank": 17,
+        "zone": "relegated"
+      }
+    ]
+  },
+  {
+    "code": "TEST",
+    "serverNow": 1792857600000,
+    "phase": "final",
+    "game": {
+      "id": "game-1042",
+      "homeTeamId": "karpat",
+      "awayTeamId": "tappara"
+    },
+    "gameTimeSeconds": 3600,
+    "score": {
+      "home": 3,
+      "away": 2
+    },
+    "events": [
+      {
+        "id": "goal-1",
+        "gameId": "game-1042",
+        "teamId": "karpat",
+        "gameTimeSeconds": 462,
+        "period": 1,
+        "scorer": "J. Rautiainen",
+        "assists": ["A. Lehtonen"],
+        "strength": "powerplay"
+      },
+      {
+        "id": "goal-2",
+        "gameId": "game-1042",
+        "teamId": "tappara",
+        "gameTimeSeconds": 1455,
+        "period": 2,
+        "scorer": "M. Kumpulainen",
+        "strength": "even"
+      },
+      {
+        "id": "goal-3",
+        "gameId": "game-1042",
+        "teamId": "tappara",
+        "gameTimeSeconds": 2190,
+        "period": 2,
+        "scorer": "K. Ojanen",
+        "assists": ["O. Järvinen", "P. Seppälä"],
+        "strength": "even"
+      },
+      {
+        "id": "goal-4",
+        "gameId": "game-1042",
+        "teamId": "karpat",
+        "gameTimeSeconds": 2885,
+        "period": 3,
+        "scorer": "A. Lehtonen",
+        "strength": "shorthanded"
+      },
+      {
+        "id": "goal-5",
+        "gameId": "game-1042",
+        "teamId": "karpat",
+        "gameTimeSeconds": 3531,
+        "period": 3,
+        "scorer": "J. Rautiainen",
+        "assists": ["V. Kärkkäinen"],
+        "strength": "even"
+      }
+    ],
+    "activeCall": null,
+    "lastResolved": {
+      "callId": "overtime@3000",
+      "correctOptionId": "no",
+      "youWereRight": true
+    },
+    "leaderboard": [
+      {
+        "playerId": "p-mikko",
+        "nickname": "Mikko",
+        "score": 550,
+        "rank": 1
+      },
+      {
+        "playerId": "p-veera",
+        "nickname": "Veera",
+        "score": 450,
+        "rank": 2
+      },
+      {
+        "playerId": "p-aino",
+        "nickname": "Aino",
+        "score": 350,
+        "rank": 3
+      },
+      {
+        "playerId": "p-jere",
+        "nickname": "Jere",
+        "score": 250,
+        "rank": 4
+      },
+      {
+        "playerId": "p-tuomas",
+        "nickname": "Tuomas",
+        "score": 200,
+        "rank": 5
+      },
+      {
+        "playerId": "p-sanni",
+        "nickname": "Sanni",
+        "score": 100,
+        "rank": 6
+      }
+    ],
+    "me": {
+      "playerId": "p-aino",
+      "score": 350,
+      "rank": 3
+    },
+    "stakes": {
+      "teamId": "karpat",
+      "gameId": "game-1042",
+      "currentPosition": 13,
+      "currentZone": "safe",
+      "zoneOddsByOutcome": {
+        "regulationWin": {
+          "top4": 0,
+          "playoffs": 0.7599,
+          "safe": 0.2103,
+          "relegated": 0.0298
+        },
+        "overtimeWin": {
+          "top4": 0,
+          "playoffs": 0.6383,
+          "safe": 0.2991,
+          "relegated": 0.0626
+        },
+        "overtimeLoss": {
+          "top4": 0,
+          "playoffs": 0.5241,
+          "safe": 0.3687,
+          "relegated": 0.1072
+        },
+        "regulationLoss": {
+          "top4": 0,
+          "playoffs": 0.2808,
+          "safe": 0.4478,
+          "relegated": 0.2714
+        }
+      },
+      "positionOdds": [
+        0, 0, 0, 0, 0.0003, 0.0021, 0.0103, 0.0371, 0.0951, 0.1742, 0.2278, 0.2131, 0.1423, 0.0679, 0.0232, 0.0056,
+        0.001
+      ],
+      "headline": "Final: the win puts Kärpät's playoff chance at 76%."
+    },
+    "projectedTable": [
+      {
+        "teamId": "tappara",
+        "points": 33,
+        "rank": 1,
+        "zone": "top4"
+      },
+      {
+        "teamId": "ilves",
+        "points": 31,
+        "rank": 2,
+        "zone": "top4"
+      },
+      {
+        "teamId": "pelicans",
+        "points": 30,
+        "rank": 3,
+        "zone": "top4"
+      },
+      {
+        "teamId": "kalpa",
+        "points": 29,
+        "rank": 4,
+        "zone": "top4"
+      },
+      {
+        "teamId": "hifk",
+        "points": 27,
+        "rank": 5,
+        "zone": "playoffs"
+      },
+      {
+        "teamId": "lukko",
+        "points": 26,
+        "rank": 6,
+        "zone": "playoffs"
+      },
+      {
+        "teamId": "tps",
+        "points": 25,
+        "rank": 7,
+        "zone": "playoffs"
+      },
+      {
+        "teamId": "saipa",
+        "points": 24,
+        "rank": 8,
+        "zone": "playoffs"
+      },
+      {
+        "teamId": "jyp",
+        "points": 23,
+        "rank": 9,
+        "zone": "playoffs"
+      },
+      {
+        "teamId": "assat",
+        "points": 22,
+        "rank": 10,
+        "zone": "playoffs"
+      },
+      {
+        "teamId": "sport",
+        "points": 21,
+        "rank": 11,
+        "zone": "playoffs"
+      },
+      {
+        "teamId": "karpat",
+        "points": 20,
+        "rank": 12,
+        "zone": "playoffs"
+      },
+      {
+        "teamId": "jukurit",
+        "points": 19,
+        "rank": 13,
+        "zone": "safe"
+      },
+      {
+        "teamId": "hpk",
+        "points": 16,
+        "rank": 14,
+        "zone": "safe"
+      },
+      {
+        "teamId": "kookoo",
+        "points": 14,
+        "rank": 15,
+        "zone": "relegated"
+      },
+      {
+        "teamId": "kiekko-espoo",
+        "points": 12,
+        "rank": 16,
+        "zone": "relegated"
+      },
+      {
+        "teamId": "jokerit",
+        "points": 10,
+        "rank": 17,
+        "zone": "relegated"
+      }
+    ]
+  }
+]
