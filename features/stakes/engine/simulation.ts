@@ -21,6 +21,12 @@ export interface SimulationInput {
   seed?: number;
   /** games to also play out under each forced result ("what this game is worth") */
   targets?: string[];
+  /**
+   * games whose result is set (home team's view): "what if?". the random numbers for a fixed game
+   * are still drawn, so every other game plays out exactly as without it, and fixing a target game
+   * gives the same chances as that target's forced result
+   */
+  fixed?: Record<string, GameOutcome>;
 }
 
 /** chances 0-1 and the full position distribution (index 0 = 1st place) */
@@ -132,6 +138,7 @@ export function simulateSeason(input: SimulationInput): Forecast {
       const [lh, la] = expectedGoals(input.model, f.homeTeamId, f.awayTeamId);
       return { id: f.id, h: idx.get(f.homeTeamId)!, a: idx.get(f.awayTeamId)!, ch: poissonCdf(lh), ca: poissonCdf(la) };
     });
+  const fixedAt = games.map((g) => input.fixed?.[g.id] ?? null);
   const targetSet = new Set(input.targets ?? []);
   const targets = games.map((g, gi) => ({ g, gi })).filter(({ g }) => targetSet.has(g.id));
 
@@ -187,6 +194,8 @@ export function simulateSeason(input: SimulationInput): Forecast {
       rec[4] = hg - ag;
       rec[5] = hg;
       rec[6] = ag;
+      const fix = fixedAt[gi];
+      if (fix) rec.set(FORCED[fix]);
       pts[g.h] += rec[0];
       pts[g.a] += rec[1];
       rw[g.h] += rec[2];

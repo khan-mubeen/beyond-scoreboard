@@ -2,6 +2,7 @@
 // server only. the maths is pure and lives in features/stakes/engine
 import { getSchedule, getSeason, getStandings, type DataSource } from "@/features/liiga/server";
 import type { LiigaFixture } from "@/features/liiga";
+import type { GameOutcome } from "@/shared/types";
 import { checkPlayoffLines } from "../engine/rules.config";
 import { simulateSeason, type Forecast } from "../engine/simulation";
 import { fitStrength, type StrengthModel } from "../engine/strength";
@@ -38,9 +39,9 @@ function remember(key: string, make: () => ForecastResult): ForecastResult {
   return value;
 }
 
-function run(world: World, targets: string[]): ForecastResult {
+function run(world: World, targets: string[], fixed?: Record<string, GameOutcome>): ForecastResult {
   const model = fitStrength(world.teamIds, world.results);
-  const forecast = simulateSeason({ table: world.table, remaining: world.remaining, model, n: RUNS, targets });
+  const forecast = simulateSeason({ table: world.table, remaining: world.remaining, model, n: RUNS, targets, fixed });
   return { world, model, forecast };
 }
 
@@ -50,6 +51,19 @@ export function forecastNow(ctx: SeasonContext, targets: string[]): ForecastResu
   const live = new Set(world.remaining.map((f) => f.id));
   const t = [...new Set(targets)].filter((id) => live.has(id)).sort();
   return remember(`now:${worldKey(world)}:${t.join(",")}`, () => run(world, t));
+}
+
+/**
+ * "what if?": the season now with some unplayed games' results set (home team's view), the rest
+ * simulated as usual. throws for a game that is already decided
+ */
+export function forecastWhatIf(ctx: SeasonContext, fixed: Record<string, GameOutcome>): ForecastResult {
+  const world = worldAt(ctx.schedule);
+  const open = new Set(world.remaining.map((f) => f.id));
+  const ids = Object.keys(fixed).sort();
+  const played = ids.filter((id) => !open.has(id));
+  if (played.length) throw new Error(`already played: ${played.join(", ")}`);
+  return remember(`whatif:${worldKey(world)}:${ids.map((id) => `${id}=${fixed[id]}`).join(",")}`, () => run(world, [], fixed));
 }
 
 /**

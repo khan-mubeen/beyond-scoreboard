@@ -93,6 +93,42 @@ describe("monte carlo", () => {
   });
 });
 
+describe("what if: fixed results", () => {
+  const world = worldAt(schedule);
+  const model = fitStrength(world.teamIds, world.results);
+  const [target, other] = world.remaining;
+  const base = { table: world.table, remaining: world.remaining, model, n: 3000 };
+  const forced = simulateSeason({ ...base, targets: [target.id] }).forced[target.id];
+
+  it("fixing a game's result gives exactly the forced number for that result", () => {
+    for (const o of OUTCOMES) {
+      const f = simulateSeason({ ...base, fixed: { [target.id]: o } });
+      for (const side of ["home", "away"] as const) {
+        const team = side === "home" ? target.homeTeamId : target.awayTeamId;
+        const { playoffs, top4, relegation } = f.teams[team];
+        const want = forced.outcomes[o][side];
+        expect({ playoffs, top4, relegation }, `${o} ${side}`).toEqual({ playoffs: want.playoffs, top4: want.top4, relegation: want.relegation });
+      }
+    }
+  });
+
+  it("win >= overtime win >= overtime loss >= loss, also with another game set", () => {
+    const chance = (o: (typeof OUTCOMES)[number]) =>
+      simulateSeason({ ...base, fixed: { [target.id]: o, [other.id]: "regulationLoss" } }).teams[target.homeTeamId].playoffs;
+    const [w, otw, otl, l] = OUTCOMES.map(chance);
+    expect(w).toBeGreaterThanOrEqual(otw);
+    expect(otw).toBeGreaterThanOrEqual(otl);
+    expect(otl).toBeGreaterThanOrEqual(l);
+  });
+
+  it("a set game leaves the chances of teams it doesn't touch close to the plain forecast", () => {
+    const plain = simulateSeason(base).teams;
+    const set = simulateSeason({ ...base, fixed: { [target.id]: "regulationWin" } }).teams;
+    const untouched = world.teamIds.filter((id) => id !== target.homeTeamId && id !== target.awayTeamId);
+    for (const id of untouched) expect(Math.abs(set[id].playoffs - plain[id].playoffs)).toBeLessThan(0.05);
+  });
+});
+
 describe("a team that cannot reach 12th", () => {
   it("has a playoff chance of 0 and a team that can't drop below 12th has 1", () => {
     const teams = Array.from({ length: 17 }, (_, i) => `t${i}`);
