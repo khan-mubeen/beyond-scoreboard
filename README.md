@@ -42,7 +42,7 @@ The server is the only authority: it runs the clock, opens and locks calls, judg
 | ------ | ------------------ | ------------------------------------------------------------------------------- |
 | liiga  | `features/liiga/`  | Liiga API client, cache, normalisers, snapshots                                 |
 | stakes | `features/stakes/` | standings, simulation, stakes visuals, big screen                               |
-| live   | `features/live/`   | live engine, replay, call it! rules, answers, realtime, rooms, phone and host   |
+| live   | `features/live/`   | live engine, replay, Your Call! rules, answers, realtime, rooms, phone and host |
 | story  | `features/story/`  | fact ledger, templates, LLM writer, validator, trust components                 |
 | site   | `features/site/`   | Kaleva Sports pages and their api: home, match pages, rewards                   |
 | shared | `shared/`          | contract types, db, mock data, UI primitives, tokens. tell the team before changing |
@@ -71,7 +71,7 @@ Other scripts:
 | `npm run db:seed`        | demo fans, points and comments (idempotent)                                         |
 | `npm run fake-players`   | `-- <matchId> [count]`, fans that join and answer every call on a running server   |
 | `npm run pregen`         | `-- --match <id>`, LLM match stories into `content_cache`, validated               |
-| `npm run pregen:phrases` | LLM wordings for each call it! question into `phrase_bank`, validated              |
+| `npm run pregen:phrases` | LLM wordings for each Your Call! question into `phrase_bank`, validated              |
 | `npm run pregen:demo`    | the rotation's stories and 60-second summaries, en + fi                             |
 | `npm run audio:generate` | Azure neural voice MP3s of the summaries into `match-audio` (needs `AZURE_SPEECH_KEY`) |
 | `npm run audio:import`   | `-- --match <id> --lang en\|fi --file x.mp3`, a recorded summary instead           |
@@ -84,7 +84,7 @@ Copy `.env.example` to `.env` to change anything; it says which variables are br
 
 ### Demo replay
 
-A finished game replayed as live, with Call It! running on it.
+A finished game replayed as live, with Your Call! running on it.
 
 ```sh
 # .env: DEMO_REPLAY_MATCH_ID=2027-2701404  HOST_TOKEN=<anything>  (DEMO_REPLAY_SPEED=15)
@@ -98,7 +98,7 @@ The replay only shows what had happened by its clock (no final stats, no future 
 
 ### Demo night (`DEMO_MODE=true`)
 
-The league clock is pinned at `demoNow` in `demo/rotation.json` (an hour before a real night's first game), so every page shows the season as it stood then and nothing after it leaks. Three highlight matches of that night play in a loop: lobby (60 s, "Who wins?") → live (the highlight video drives the game clock, goals land with the video, Call It! questions between goals) → summary (600 s: final, 60-second audio summary, "Next match starts in …"). Everyone watching is in one shared Watch Together board per cycle.
+The league clock is pinned at `demoNow` in `demo/rotation.json` (an hour before a real night's first game), so every page shows the season as it stood then and nothing after it leaks. Three highlight matches of that night play in a loop: lobby (60 s, "Who wins?") → live (the highlight video drives the game clock, goals land with the video, Your Call! questions between goals) → summary (600 s: final, 60-second audio summary, "Next match starts in …"). Everyone watching is in one shared Watch Together board per cycle.
 
 ```sh
 npm run demo:pick && npm run demo:videos && npm run demo:cues   # once: picks, builds and cues the videos
@@ -109,12 +109,13 @@ npm run build && npm start                                       # or npm run de
 ```
 
 - [`/demo/control`](http://localhost:3000/demo/control) host controls (token): restart, skip, pause, resume; shows the phase and what's next.
-- [`/tv`](http://localhost:3000/tv) the big screen: follows the rotation, video + scoreboard + Call It! + the board, and a QR code for phones. `/match/<id>?tv=1` is one match in TV mode.
+- [`/tv`](http://localhost:3000/tv) the big screen: follows the rotation, video + scoreboard + Your Call! + the board, and a QR code for phones. `/match/<id>?tv=1` is one match in TV mode.
 - Phones scan the QR (same wifi, `http://<laptop-ip>:3000/match/<id>`), pick a nickname and play along; desktop/TV autoplays muted, phones show the poster until tapped.
 
 ### Pages
 
-- [`/`](http://localhost:3000/) Kaleva Sports home
+- [`/`](http://localhost:3000/) the Kaleva Media front page (kalevamedia.fi rebuilt; the menu adds Sports). Its other links open `/media/<page>`: "This page is part of kalevamedia.fi", with a link to the real page
+- [`/sports`](http://localhost:3000/sports) Kaleva Sports home (`?show=live|results`). Old links to the sports home at `/` (`/?show=…`, `/#liiga-table`) redirect here; `/dev/brand` shows the wordmark options
 - [`/match/2027-2701404`](http://localhost:3000/match/2027-2701404) a real match (`{season}-{gameId}`): live while it's played or replayed, the finished page after. `?host=1` shows the host bar, `?realtime=off` forces polling, `?room=CODE` joins a friend's room
 - [`/match/karpat-assat-live`](http://localhost:3000/match/karpat-assat-live) and [`/match/karpat-assat-final`](http://localhost:3000/match/karpat-assat-final), the design's mock pages, kept working without a backend
 - [`/rewards`](http://localhost:3000/rewards) Kaleva Rewards, [`/leaderboard`](http://localhost:3000/leaderboard) weekly / season / Watch Together

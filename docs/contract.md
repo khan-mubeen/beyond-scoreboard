@@ -202,10 +202,11 @@ Every request is validated with zod (400 with the reason). Every response has `a
 | `/api/site/profile`                | GET    |                                    | 200 `ProfileData` (call stats, achievements)                   |
 | `/api/site/calls`                  | GET    | `?view=recent\|history&match=`     | 200 `MyCallsData`                                              |
 | `/api/site/whatif`                 | POST   | `{ matchId, overrides: [{ gameId, outcome }] }` (≤ 4, home view) | 200 `WhatIfResult`, 400 played / unknown / repeat, 429 > 30/min ([what-if.md](what-if.md)) |
+| `/api/site/matches/:id/presence`   | POST   | `{ leave? }` (every 30 s while the page is visible) | 200 `{ watching }`, 409 not started; joins, leaves and timeouts broadcast `room` |
 | `/api/site/rotation`               | GET    |                                    | 200 `RotationInfo` (phase, ends at, current, next), 404 when `DEMO_MODE` is off |
 | `/api/site/rotation/control`       | POST   | `{ action: restart\|skip\|pause\|resume }`, header `x-host-token` | 200, 403, 503                      |
-| `/api/site/matches/:id`            | GET    | id `2027-2701404`                  | 200 `MatchDetail`, 400, 404                                    |
-| `/api/site/matches/:id/state`      | GET    |                                    | 200 `LiveState`, 404                                           |
+| `/api/site/matches/:id`            | GET    | id `2027-2701404`                  | 200 `MatchDetail` (`status: "preview"` before the game or its rotation lobby starts), 400, 404 |
+| `/api/site/matches/:id/state`      | GET    |                                    | 200 `LiveState`, 404, 409 not started                          |
 | `/api/site/matches/:id/join`       | POST   | `{ nickname?, roomCode?, bot? }` (`bot` needs `x-host-token`) | 200 `{ user, nickname, room }`, 404 unknown room code |
 | `/api/site/matches/:id/control`    | POST   | `{ action }`, header `x-host-token`| 200, 400, 403 wrong token, 409 no replay, 503 no `HOST_TOKEN`  |
 | `/api/site/calls/:callId/answer`   | POST   | `{ optionId }`                     | 201, 400, 404, 409 locked / cancelled / already answered       |
@@ -230,6 +231,7 @@ Sent by the server only (REST, secret key). Browsers subscribe with the publisha
 | `call_resolved`  | callId, correctOptionId, split, serverNow                               |
 | `call_cancelled` | callId, reason, serverNow                                               |
 | `leaderboard`    | leaderboard, watching                                                   |
+| `room`           | leaderboard, watching (active viewers: a heartbeat in the last 90 s, bots excluded), on every join, leave and timeout |
 | `comment`        | comment                                                                 |
 | `game_end`       | score, decidedIn, serverNow                                             |
 
