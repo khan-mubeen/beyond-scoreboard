@@ -5,6 +5,7 @@ export type * from "./dto";
 export { describeGoalTypes, GOAL_TYPE_LABELS, isEmptyNetGoal, isPowerPlayGoal, isShootoutGoal } from "./goal-types";
 export { FORBIDDEN_KEYS, findGamblingFields, stripGambling } from "./sanitize";
 export { maskPastAndFuture, unplayedFixture, unplayedGame } from "./mask";
+export { LIIGA_GAMES_URL, liigaGameUrl } from "./links";
 export {
   decidedInOf,
   internalIdOf,
