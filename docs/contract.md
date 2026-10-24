@@ -89,7 +89,7 @@ Percentages are whole numbers 0-100. Changes are percentage points.
 - `LiveCallStatus`: `open | locked | resolved | cancelled`
 - `LiveCall`: id, type, question, options, stakesLine, points (20), status, openedAt, locksAt (ms, server time), split (`%` per option, from the lock), correctOptionId (**only once resolved**), reason (why cancelled)
 - `LiveStakes`: chips, seasonStakes, whatItMeans
-- `LiveState`: matchId, serverNow, isReplay, status, clock `{ period, gameTime, label, clock }`, score, periodScores, events (newest first), stakes, call (open or locked), lastCall (resolved or cancelled), leaderboard, watching, me `{ userId, nickname, matchPoints, answers }` (from the cookie, null for guests)
+- `LiveState`: matchId, serverNow, isReplay, status, clock `{ period, gameTime, label, clock }`, score, periodScores, events (newest first), stakes, call (open or locked), lastCall (resolved or cancelled), leaderboard, watching, me `{ userId, nickname, matchPoints, answers, rank, of }` (from the cookie, null for guests; "You're #rank of of"), rotation (demo mode: phase, phaseEndsAt, liveStartedAt, videoSec, durationSec, paused, next)
 
 ## Call it! rules (`features/live/engine/rules.ts`)
 
@@ -190,10 +190,23 @@ Every request is validated with zod (400 with the reason). Every response has `a
 | route                              | method | body / query                       | returns                                                        |
 | ---------------------------------- | ------ | ---------------------------------- | -------------------------------------------------------------- |
 | `/api/site/home`                   | GET    | `?team=&date=YYYY-MM-DD`           | 200 `HomePage`                                                 |
-| `/api/site/me`                     | GET    |                                    | 200 `{ user, joined, nickname }`                               |
+| `/api/site/me`                     | GET    |                                    | 200 `MeResponse` (user, follows, language, notification prefs, unread count, open call answers, demo chip) |
+| `/api/site/settings`               | POST   | `{ nickname?, language?: en\|fi, notificationPrefs? }` | 200 `MeResponse`, 400                       |
+| `/api/site/me/reset`               | POST   |                                    | 200, removes the fan and everything of theirs, clears the cookie |
+| `/api/site/notifications`          | GET    |                                    | 200 `NotificationsResponse` (made lazily: favourites, reminders, call results) |
+| `/api/site/notifications/read`     | POST   | `{ ids? }` (none = all)            | 200                                                            |
+| `/api/site/leaderboard`            | GET    | `?scope=weekly\|season\|room`      | 200 `LeaderboardPageData` (top 20 + your row, bots excluded)   |
+| `/api/site/teams`                  | GET    |                                    | 200 `TeamsPageData` (17 teams, demo-clock table)               |
+| `/api/site/teams/:slug`            | GET    | slug `kärpät`                      | 200 `TeamPageData`, 404                                        |
+| `/api/site/favorites`              | POST   | `{ teamId: "123:kärpät", on }`     | 200 `{ follows }`, 400                                         |
+| `/api/site/profile`                | GET    |                                    | 200 `ProfileData` (call stats, achievements)                   |
+| `/api/site/calls`                  | GET    | `?view=recent\|history&match=`     | 200 `MyCallsData`                                              |
+| `/api/site/whatif`                 | POST   | `{ matchId, overrides: [{ gameId, outcome }] }` (≤ 4, home view) | 200 `WhatIfResult`, 400 played / unknown / repeat, 429 > 30/min ([what-if.md](what-if.md)) |
+| `/api/site/rotation`               | GET    |                                    | 200 `RotationInfo` (phase, ends at, current, next), 404 when `DEMO_MODE` is off |
+| `/api/site/rotation/control`       | POST   | `{ action: restart\|skip\|pause\|resume }`, header `x-host-token` | 200, 403, 503                      |
 | `/api/site/matches/:id`            | GET    | id `2027-2701404`                  | 200 `MatchDetail`, 400, 404                                    |
 | `/api/site/matches/:id/state`      | GET    |                                    | 200 `LiveState`, 404                                           |
-| `/api/site/matches/:id/join`       | POST   | `{ nickname?, roomCode? }`         | 200 `{ user, nickname, room }`, 404 unknown room code          |
+| `/api/site/matches/:id/join`       | POST   | `{ nickname?, roomCode?, bot? }` (`bot` needs `x-host-token`) | 200 `{ user, nickname, room }`, 404 unknown room code |
 | `/api/site/matches/:id/control`    | POST   | `{ action }`, header `x-host-token`| 200, 400, 403 wrong token, 409 no replay, 503 no `HOST_TOKEN`  |
 | `/api/site/calls/:callId/answer`   | POST   | `{ optionId }`                     | 201, 400, 404, 409 locked / cancelled / already answered       |
 | `/api/site/matches/:id/comments`   | GET    |                                    | 200 `{ comments }`                                             |
@@ -222,7 +235,7 @@ Sent by the server only (REST, secret key). Browsers subscribe with the publisha
 
 ## Database (`supabase/migrations/`)
 
-`users`, `match_rooms`, `room_members`, `calls`, `answers` (unique per call and user), `points_ledger` (unique per user and call), `comments`, `comment_likes`, `reminders`, `content_cache`, `phrase_bank`. RLS is on for every table with no policies: only the server's secret key reads or writes. Repositories: `shared/db` (`Db` interface, Supabase and memory implementations).
+`users` (+ `is_bot`, `language`, `notification_prefs`), `match_rooms`, `room_members`, `calls` (+ `i18n`: the Finnish wording), `answers` (unique per call and user), `points_ledger` (unique per user and call), `comments`, `comment_likes`, `reminders`, `content_cache`, `phrase_bank`, `notifications` (unique `dedupe_key`), `settings` (key → jsonb: the rotation clock), `user_favorites`. Storage: public buckets `highlights` (rotation videos and posters) and `match-audio` (summary MP3s). RLS is on for every table with no policies: only the server's secret key reads or writes. Repositories: `shared/db` (`Db` interface, Supabase and memory implementations).
 
 ## Mock data (`shared/mock/`)
 

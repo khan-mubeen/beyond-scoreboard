@@ -12,10 +12,11 @@
 | `RL`  | rangaistuslaukaus                          | penalty shot      | 1 goal (2701407, 12:50): the other team got a 0-minute holding penalty at the same second                                                                |
 | `VL`  | voittolaukaus                              | shootout goal     | 3 events at game time 3900 (period 5) in the three shootout games, `winningGoal: true`, the score fields not updated                                     |
 | `VT0` | video review, goal disallowed              | (not a goal)      | 2 events (2701400 13:07, 2701405 27:18): the score fields don't move, there is no clip, and the official final score only adds up without them |
+| `RL0` | rangaistuslaukaus, ei maalia               | missed penalty shot (not a goal) | 2 events (2701382 47:22, 2701387 18:09): listed in `goalEvents`, the score fields don't move, the official score only adds up without them |
 
 ## How the code uses them
 
-- `VT0` events are dropped in `normalizeGame` (`DISALLOWED_GOAL`), so the replay, the event list, the score and the story never count a disallowed goal. The replay test checks that the goals of every recorded game add up to the official score.
+- `VT0` and `RL0` events are dropped in `normalizeGame` (`DISALLOWED_GOAL`, `MISSED_PENALTY_SHOT`), so the replay, the event list, the score and the story never count a disallowed goal. The replay test checks that the goals of every recorded game add up to the official score.
 - A shootout's `VL` goal counts in the final score, as the API's team totals do (a 2-1 shootout win is 1-1 plus the winning shot).
 - Power play goals (`YV`, `YV2`) feed the power play stat and the "Will {team} score on this power play?" call.
 - A code not in the table is shown as-is, and the server logs `liiga: unconfirmed goalTypes code "XX"` once. `getGame` also warns when a game's goal events don't add up to its score, which is how a new "doesn't count" code would show up.

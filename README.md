@@ -66,12 +66,19 @@ Other scripts:
 | `npm run lint`           | eslint, including the import rules below                                            |
 | `npm run typecheck`      | `tsc --noEmit`                                                                      |
 | `npm run format`         | prettier                                                                            |
-| `npm run snapshot`       | record Liiga responses into `features/liiga/snapshots/` (needs the api key)        |
+| `npm run snapshot`       | record Liiga responses into `features/liiga/snapshots/` (needs the api key); `-- --games 2701379,2701398` adds only those games |
 | `npm run db:migrate`     | apply `supabase/migrations/` (needs `SUPABASE_DB_URL`)                              |
 | `npm run db:seed`        | demo fans, points and comments (idempotent)                                         |
 | `npm run fake-players`   | `-- <matchId> [count]`, fans that join and answer every call on a running server   |
 | `npm run pregen`         | `-- --match <id>`, LLM match stories into `content_cache`, validated               |
 | `npm run pregen:phrases` | LLM wordings for each call it! question into `phrase_bank`, validated              |
+| `npm run pregen:demo`    | the rotation's stories and 60-second summaries, en + fi                             |
+| `npm run audio:generate` | Azure neural voice MP3s of the summaries into `match-audio` (needs `AZURE_SPEECH_KEY`) |
+| `npm run audio:import`   | `-- --match <id> --lang en\|fi --file x.mp3`, a recorded summary instead           |
+| `npm run demo:pick`      | picks the demo night and its 3 matches → `demo/rotation.json`, `demo/DOWNLOADS.md`  |
+| `npm run demo:videos`    | builds and uploads the 3 highlight MP4s + posters (`highlights` bucket)              |
+| `npm run demo:cues`      | finds each goal in the highlights → cues in `demo/rotation.json`                    |
+| `npm run demo:reset`     | removes bots, answers, points, notifications and comments; restarts the rotation    |
 
 Copy `.env.example` to `.env` to change anything; it says which variables are browser-safe (only `VITE_*`). Defaults work offline: `USE_SNAPSHOT=true` serves the recorded snapshots, no Supabase means an in-memory store, and `LLM_ENABLED=false` uses templates. The running app never waits on the LLM: texts come from `content_cache` (re-verified against the current facts) or templates, and only the deterministic validator decides what passes.
 
@@ -89,12 +96,31 @@ HOST_TOKEN=<same> npm run fake-players -- 2027-2701404 30
 
 The replay only shows what had happened by its clock (no final stats, no future goals). It runs at 1x while a call takes answers, so 20 s to answer is 20 s of game, as in a live game; at 15x the power play would be over before the lock. Host buttons: Start, Pause, Resume, Skip to next call, Reset (a reset starts a fresh room leaderboard; season points stay). Real live games are picked up on their own and ticked every 5 s.
 
+### Demo night (`DEMO_MODE=true`)
+
+The league clock is pinned at `demoNow` in `demo/rotation.json` (an hour before a real night's first game), so every page shows the season as it stood then and nothing after it leaks. Three highlight matches of that night play in a loop: lobby (60 s, "Who wins?") → live (the highlight video drives the game clock, goals land with the video, Call It! questions between goals) → summary (600 s: final, 60-second audio summary, "Next match starts in …"). Everyone watching is in one shared Watch Together board per cycle.
+
+```sh
+npm run demo:pick && npm run demo:videos && npm run demo:cues   # once: picks, builds and cues the videos
+npm run pregen:demo && npm run audio:generate                    # once: texts (and voices with an Azure key)
+npm run demo:reset                                               # before showing it: clean slate, rotation from match 1
+# .env: DEMO_MODE=true  HOST_TOKEN=<anything>
+npm run build && npm start                                       # or npm run dev
+```
+
+- [`/demo/control`](http://localhost:3000/demo/control) host controls (token): restart, skip, pause, resume; shows the phase and what's next.
+- [`/tv`](http://localhost:3000/tv) the big screen: follows the rotation, video + scoreboard + Call It! + the board, and a QR code for phones. `/match/<id>?tv=1` is one match in TV mode.
+- Phones scan the QR (same wifi, `http://<laptop-ip>:3000/match/<id>`), pick a nickname and play along; desktop/TV autoplays muted, phones show the poster until tapped.
+
 ### Pages
 
 - [`/`](http://localhost:3000/) Kaleva Sports home
 - [`/match/2027-2701404`](http://localhost:3000/match/2027-2701404) a real match (`{season}-{gameId}`): live while it's played or replayed, the finished page after. `?host=1` shows the host bar, `?realtime=off` forces polling, `?room=CODE` joins a friend's room
 - [`/match/karpat-assat-live`](http://localhost:3000/match/karpat-assat-live) and [`/match/karpat-assat-final`](http://localhost:3000/match/karpat-assat-final), the design's mock pages, kept working without a backend
-- [`/rewards`](http://localhost:3000/rewards) Kaleva Rewards. `/calls`, `/calls/history`, `/achievements` and `/settings` say "Coming soon"
+- [`/rewards`](http://localhost:3000/rewards) Kaleva Rewards, [`/leaderboard`](http://localhost:3000/leaderboard) weekly / season / Watch Together
+- [`/teams`](http://localhost:3000/teams) all 17 teams (follow with the star), [`/teams/kärpät`](http://localhost:3000/teams/k%C3%A4rp%C3%A4t) one team: chances, last 5, next 3
+- [`/profile`](http://localhost:3000/profile), [`/calls`](http://localhost:3000/calls), [`/calls/history`](http://localhost:3000/calls/history), [`/achievements`](http://localhost:3000/achievements), [`/settings`](http://localhost:3000/settings) (nickname, language, notifications, reset), [`/guidelines`](http://localhost:3000/guidelines)
+- On a match page, Season stakes has "What if?": set this match and up to 3 other games that night, see the playoff race change ([docs/what-if.md](docs/what-if.md))
 - [`/watch`](http://localhost:3000/watch) create or join a watch party room
 - [`/dev`](http://localhost:3000/dev) links to everything below
 - [`/dev/stakes`](http://localhost:3000/dev/stakes) meter, season strip and projected table on mock data
