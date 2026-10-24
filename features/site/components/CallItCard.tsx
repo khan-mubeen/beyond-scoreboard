@@ -6,16 +6,32 @@ import type { CallItView } from "./use-call-it";
 import { fmtClock } from "../format";
 import { NAMES } from "@/shared/copy/names";
 
-function optionClass(view: CallItView, id: string): string {
+/**
+ * each state sets its own border, background and text: the button's base has no background, so
+ * no two background utilities ever compete (the old base bg-surface beat the state's fill in the
+ * built css, and a picked answer turned white on white). contrast is 4.5:1 or more in each state
+ */
+export function optionClass(view: Pick<CallItView, "phase" | "picked" | "correctOptionId">, id: string): string {
   const { phase, picked, correctOptionId } = view;
+  const mine = picked === id;
   if (phase === "revealed") {
-    if (id === correctOptionId) return "border-good bg-good-soft text-good";
-    if (id === picked) return "border-bad bg-accent-soft text-bad";
-    return "border-line opacity-60";
+    if (id === correctOptionId) return "border-2 border-good bg-good-soft text-ink";
+    if (mine) return "border-2 border-bad bg-surface text-bad line-through decoration-2";
+    return "border-line bg-surface text-muted";
   }
-  if (phase === "cancelled") return "border-line opacity-50";
-  if (phase === "locked") return id === picked ? "border-ink bg-ink text-surface" : "border-line opacity-50";
-  return "border-line hover:border-ink";
+  if (phase === "cancelled") return "border-line bg-surface text-muted";
+  // your answer: kaleva red, white text, until it is revealed
+  if (mine) return "border-accent bg-accent text-accent-ink";
+  if (phase === "locked" || picked) return "border-line bg-surface text-muted";
+  return "border-line bg-surface text-ink hover:border-ink hover:bg-surface-2";
+}
+
+/** the icon an option carries: your pick (check while open, lock once locked), right, or wrong */
+function optionIcon(view: Pick<CallItView, "phase" | "picked" | "correctOptionId">, id: string): "check" | "lock" | "close" | null {
+  const { phase, picked, correctOptionId } = view;
+  if (phase === "revealed") return id === correctOptionId ? "check" : id === picked ? "close" : null;
+  if (picked !== id || phase === "cancelled") return null;
+  return phase === "locked" ? "lock" : "check";
 }
 
 function resultText(view: CallItView): string {
@@ -29,8 +45,26 @@ function resultText(view: CallItView): string {
   return picked === correctOptionId ? `You got it! +${points} pts` : `Not this time — the answer was ${correct}.`;
 }
 
+/** "8 of 12 have answered": counts only while the question is open, never the split */
+function AnswerCount({ answered, display }: { answered: { count: number; of: number }; display: boolean }) {
+  const share = answered.of ? Math.min(100, Math.round((100 * answered.count) / answered.of)) : 0;
+  return (
+    <div className={display ? "text-lg" : "text-xs"} aria-live="polite">
+      <p className="flex items-center justify-between font-semibold">
+        <span>
+          <span className="tabular-nums">{answered.count}</span> of <span className="tabular-nums">{answered.of}</span> {answered.count === 1 ? "has" : "have"} answered
+        </span>
+        {!display && <span className="text-muted">Split shows when answers lock</span>}
+      </p>
+      <span className="mt-1 block h-1.5 overflow-hidden rounded-full bg-surface-2">
+        <motion.span className="block h-full rounded-full bg-accent" initial={false} animate={{ width: `${share}%` }} transition={{ duration: 0.4 }} />
+      </span>
+    </div>
+  );
+}
+
 /** the question, options, countdown and result. display (tv mode) shows the crowd but no buttons */
-function CallBody({ view, display = false }: { view: CallItView; display?: boolean }) {
+function CallBody({ view, display = false, answered = null }: { view: CallItView; display?: boolean; answered?: { count: number; of: number } | null }) {
   const { phase, picked, secondsLeft, options: opts, split } = view;
   const open = phase === "open";
   return (
@@ -59,13 +93,12 @@ function CallBody({ view, display = false }: { view: CallItView; display?: boole
                   transition={{ duration: 0.6 }}
                 />
               )}
-              {!display && (phase === "locked" || (phase === "open" && picked)) && picked === o.id && <Icon name="lock" className="size-3.5" />}
-              {phase === "revealed" && o.id === view.correctOptionId && <Icon name="check" className="size-4" />}
+              {optionIcon(view, o.id) && <Icon name={optionIcon(view, o.id)!} className={`relative size-4 ${optionIcon(view, o.id) === "check" && phase === "revealed" ? "text-good" : ""}`} />}
               <span className="relative">{o.label}</span>
               {share !== undefined && phase !== "open" && <span className="relative font-normal tabular-nums">{share}%</span>}
             </>
           );
-          const cls = `relative flex min-h-11 items-center justify-center gap-1.5 overflow-hidden rounded-lg border bg-surface px-3 py-2.5 font-semibold transition-colors ${
+          const cls = `relative flex min-h-11 items-center justify-center gap-1.5 overflow-hidden rounded-lg border px-3 py-2.5 font-semibold transition-colors ${
             display ? "text-xl" : "text-sm"
           } ${wide} ${optionClass(view, o.id)}`;
           return display ? (
@@ -84,11 +117,13 @@ function CallBody({ view, display = false }: { view: CallItView; display?: boole
               className={cls}
             >
               {content}
-              {picked === o.id && phase !== "revealed" && <span className="sr-only">, locked</span>}
+              {picked === o.id && phase !== "revealed" && <span className="sr-only">{phase === "open" ? ", your answer" : ", locked"}</span>}
             </motion.button>
           );
         })}
       </div>
+
+      {answered && answered.of > 0 && phase === "open" && <AnswerCount answered={answered} display={display} />}
 
       {!display && (
         <p aria-live="polite" className="min-h-5 text-sm font-semibold">
@@ -156,6 +191,7 @@ export function CallItCard({
   lastCall = null,
   points = 20,
   display = false,
+  answered = null,
 }: {
   view: CallItView | null;
   sheet?: boolean;
@@ -167,6 +203,8 @@ export function CallItCard({
   points?: number;
   /** tv mode: big, no answer buttons */
   display?: boolean;
+  /** "8 of 12 have answered" while the question is open */
+  answered?: { count: number; of: number } | null;
 }) {
   const open = view?.phase === "open";
   const header = (
@@ -176,10 +214,10 @@ export function CallItCard({
         {NAMES.call}
         {open && <span className="ml-1 rounded-md bg-accent px-2 py-0.5 text-[11px] font-bold tracking-wider text-accent-ink">OPEN NOW</span>}
       </h2>
-      <Pill tone="accent">+{view?.points ?? points} pts</Pill>
+      <Pill tone="accent">+{view?.points ?? points} pts if right</Pill>
     </header>
   );
-  const body = view ? <CallBody view={view} display={display} /> : <Waiting text={waitingText} lastCall={lastCall} />;
+  const body = view ? <CallBody view={view} display={display} answered={answered} /> : <Waiting text={waitingText} lastCall={lastCall} />;
   const frame = open ? "feature-active" : "feature-idle";
 
   if (!sheet) {

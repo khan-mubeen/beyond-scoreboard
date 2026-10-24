@@ -4,8 +4,13 @@
 // first paint, never as a silent fallback. a failed request is an "error" state
 import { useCallback, useEffect, useState, useSyncExternalStore } from "react";
 import type {
+  Burst,
   Comment,
   DataSource,
+  FactCard,
+  FriendsPageData,
+  InviteCreated,
+  InviteInfo,
   HomePage,
   LeaderboardPageData,
   LeaderboardScope,
@@ -376,5 +381,54 @@ export function navigate(href: string) {
   window.scrollTo(0, 0);
 }
 
-/** ?room=ABCD from the qr code */
+/** ?room=ABCD from an old qr code (every fan on a match is in its one party now) */
 export const roomFromUrl = () => (typeof window === "undefined" ? null : new URLSearchParams(window.location.search).get("room")?.toUpperCase() ?? null);
+
+// ---------- the watch party ----------
+
+/** a friendly nickname to start from ("Kiekko-fan 482"); the fan can change it */
+export const suggestNickname = () => `${["Kiekko", "Lätkä", "Maali", "Kaukalo"][Math.floor(Math.random() * 4)]}-fan ${100 + Math.floor(Math.random() * 900)}`;
+
+export const postBurstApi = (matchId: string, emoji: string) => postJson<{ burst: Burst }>(`/api/site/matches/${matchId}/bursts`, { emoji });
+
+export const reactApi = (commentId: string, emoji: string) => postJson<{ commentId: string; reactions: Record<string, number> }>(`/api/site/comments/${commentId}/react`, { emoji });
+
+/** "ask the match": the fact card (posted to the party when the data has the answer) */
+export const askApi = (matchId: string, text: string) => postJson<{ card: FactCard; comment: Comment | null; posted: boolean }>(`/api/site/matches/${matchId}/ask`, { text });
+
+export const FRIENDS_URL = "/api/site/friends";
+export const useFriends = () => useQuery<FriendsPageData>(USE_MOCKS ? null : FRIENDS_URL, { refreshMs: 15_000 });
+
+/** friends in a watch party now (one match, or anywhere) */
+export const useFriendsWatching = (matchId?: string | null, enabled = true) =>
+  useQuery<{ friends: { userId: string; name: string; matchId: string; title: string }[] }>(
+    enabled && !USE_MOCKS ? `/api/site/friends/watching${matchId ? `?match=${encodeURIComponent(matchId)}` : ""}` : null,
+    { refreshMs: 20_000 },
+  );
+
+async function friendAction<T>(url: string, body: unknown) {
+  const res = await postJson<T>(url, body);
+  for (const u of [FRIENDS_URL, ME_URL, NOTIFICATIONS_URL]) invalidate(u);
+  return res;
+}
+export const addFriendApi = (code: string) => friendAction<{ status: "requested" | "friends" }>("/api/site/friends/add", { code });
+export const acceptFriendApi = (userId: string) => friendAction(`/api/site/friends/${userId}/accept`, {});
+export const removeFriendApi = (userId: string) => friendAction(`/api/site/friends/${userId}/remove`, {});
+
+export const createInviteApi = (matchId: string | null) => postJson<InviteCreated>("/api/site/invites", { matchId });
+export const useInvite = (code: string) => useQuery<InviteInfo>(USE_MOCKS ? null : `/api/site/invites/${encodeURIComponent(code)}`);
+export async function acceptInviteApi(code: string, nickname?: string) {
+  const res = await postJson<{ matchId: string | null; friend: string; pass: boolean }>(`/api/site/invites/${encodeURIComponent(code)}/accept`, nickname ? { nickname } : {});
+  if (res.ok) for (const u of [ME_URL, FRIENDS_URL]) invalidate(u);
+  return res;
+}
+
+/** "Watch free": the guest pass is bound to this match; the page refetches with the stream */
+export async function claimPassApi(matchId: string) {
+  const res = await postJson<{ ok: true }>(`/api/site/matches/${matchId}/pass`, {});
+  if (res.ok) {
+    invalidate(ME_URL);
+    invalidatePrefix("/api/site/matches/");
+  }
+  return res;
+}

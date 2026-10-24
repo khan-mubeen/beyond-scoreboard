@@ -12,7 +12,7 @@ function game(t: number, opts: { goals?: [Side, number][]; penalties?: [Side, nu
   const goals: LiigaGoal[] = (opts.goals ?? []).map(([side, at]) => {
     if (side === "home") home++;
     else away++;
-    return { id: `g${at}`, teamId: `${side}-id`, side, gameTime: at, period: Math.min(4, Math.ceil(at / PERIOD)), scorer: null, assists: [], types: [], homeScore: home, awayScore: away, winningGoal: false, videoUrl: null, thumbUrl: null };
+    return { id: `g${at}`, teamId: `${side}-id`, side, gameTime: at, period: Math.min(4, Math.ceil(at / PERIOD)), scorer: null, scorerId: null, assists: [], assistIds: [], types: [], homeScore: home, awayScore: away, winningGoal: false, videoUrl: null, thumbUrl: null };
   });
   const penalties: LiigaPenalty[] = (opts.penalties ?? []).map(([side, at, minutes = 2]) => ({
     id: `p${side}${at}`,

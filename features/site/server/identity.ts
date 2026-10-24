@@ -32,7 +32,8 @@ export async function viewerOf(req: Request, res: Response): Promise<Viewer> {
   let anonId = readCookie(req, COOKIE);
   if (!anonId || !/^[0-9a-f-]{36}$/.test(anonId)) {
     anonId = randomUUID();
-    res.cookie(COOKIE, anonId, { httpOnly: true, sameSite: "lax", maxAge: YEAR, secure: req.secure });
+    // secure when the page came over https (a tunnel or a host terminates tls; trust proxy is on)
+    res.cookie(COOKIE, anonId, { httpOnly: true, sameSite: "lax", maxAge: YEAR, secure: req.secure, path: "/" });
   }
   const user = await getDb().users.getByAnonId(anonId);
   return { anonId, user };
@@ -55,4 +56,5 @@ export async function ensureUser(viewer: Viewer, nickname?: string, isBot = fals
   return viewer.user;
 }
 
-export const displayName = (u: Pick<DbUser, "nickname"> | null | undefined) => u?.nickname?.trim() || "Fan";
+/** a fan's name everywhere: their nickname, or "Guest" until they pick one */
+export const displayName = (u: Pick<DbUser, "nickname"> | null | undefined) => u?.nickname?.trim() || "Guest";

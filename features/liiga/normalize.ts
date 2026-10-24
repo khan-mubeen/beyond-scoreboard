@@ -23,6 +23,8 @@ import type {
   LiigaGoal,
   LiigaLineups,
   LiigaPastAndFuture,
+  LiigaRoster,
+  RosterPlayer,
   LiigaPenalty,
   LiigaStandings,
   LiigaStatus,
@@ -73,7 +75,9 @@ function goalsOf(team: GameTeamDTO, side: Side): LiigaGoal[] {
     gameTime: e.gameTime,
     period: e.period,
     scorer: playerName(e.scorerPlayer),
+    scorerId: e.scorerPlayerId ?? e.scorerPlayer?.playerId ?? null,
     assists: (e.assistantPlayers ?? []).map(playerName).filter((n): n is string => !!n),
+    assistIds: e.assistantPlayerIds ?? (e.assistantPlayers ?? []).map((p) => p.playerId).filter((n): n is number => typeof n === "number"),
     types: e.goalTypes ?? [],
     homeScore: e.homeTeamScore,
     awayScore: e.awayTeamScore,
@@ -265,6 +269,34 @@ const lineup = (players: PlayerDTO[] | null | undefined): LineupPlayer[] =>
 
 export function normalizeLineups(p: GamePlayersDTO): LiigaLineups {
   return { home: lineup(p.homeTeamPlayers), away: lineup(p.awayTeamPlayers) };
+}
+
+const rosterOf = (players: PlayerDTO[] | null | undefined, side: Side): RosterPlayer[] =>
+  (players ?? [])
+    .filter((p) => p.id != null && !p.removed && (p.firstName || p.lastName))
+    .map((p) => ({
+      id: p.id!,
+      teamId: p.teamId ?? side,
+      side,
+      name: playerName(p)!,
+      firstName: p.firstName?.trim() ?? "",
+      lastName: p.lastName?.trim() ?? "",
+      jersey: p.jersey ?? null,
+      role: p.role ?? null,
+      line: p.line ?? null,
+      birthDate: p.dateOfBirth ?? null,
+      birthPlace: p.placeOfBirth?.trim() || null,
+      birthCountry: p.countryOfBirth ?? null,
+      nationality: p.nationality ?? null,
+      height: p.height ?? null,
+      weight: p.weight ?? null,
+      captain: !!p.captain,
+      pictureUrl: p.pictureUrl ?? null,
+    }));
+
+/** a game's two rosters with each player's details (the game details and /players both carry them) */
+export function normalizeRoster(p: GamePlayersDTO): LiigaRoster {
+  return { home: rosterOf(p.homeTeamPlayers, "home"), away: rosterOf(p.awayTeamPlayers, "away") };
 }
 
 const summary = (g: GameSummaryDTO): LiigaGameSummary => ({

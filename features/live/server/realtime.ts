@@ -13,7 +13,12 @@ export type MatchEvent =
   | "leaderboard"
   | "room"
   | "comment"
-  | "game_end";
+  | "game_end"
+  // the watch party: the open question's answer count, trivia, reaction bursts, emoji on a message
+  | "call_count"
+  | "trivia"
+  | "burst"
+  | "reaction";
 
 const url = process.env.SUPABASE_URL;
 const key = process.env.SUPABASE_SECRET_KEY ?? process.env.SUPABASE_SERVICE_ROLE_KEY;

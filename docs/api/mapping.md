@@ -77,4 +77,4 @@ Playoff and relegation chance, what a game is worth (win / OT win / OT loss / lo
 | featured-match background, video posters, fan avatars | no images in the feed; `/placeholders/*.svg`                  |
 | a team logo the api doesn't have                | placeholder by slug                                                  |
 | fans, points, comments, rooms, reminders        | ours, in the database (`supabase/migrations/`)                       |
-| guest profile (Mikko Korhonen)                  | `npm run db:seed` demo fan, shown to guests unless `DEMO_PROFILE=false` |
+| a guest's profile                               | "Guest" with an initial and the welcome balance; the seeded fans (`npm run db:seed`) are only ever themselves |

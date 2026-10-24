@@ -2,26 +2,54 @@
 // real live game: tick every 5 s on the cached api (10 s ttl). demo replay (DEMO_REPLAY_MATCH_ID):
 // tick every 1 s on a finished game replayed at DEMO_REPLAY_SPEED. demo rotation (DEMO_MODE):
 // tick every 0.5 s; the game follows its highlight video and calls are planned ahead from the cues.
-// each tick: lock, cancel or resolve calls, maybe open the next one, re-render on changes,
-// and broadcast to "match:{id}"
+// each tick on the leader (./leader.ts): lock, cancel or resolve calls, maybe open the next one
+// (or a trivia question in a play gap), re-render on changes, and broadcast to "match:{id}".
+// on a follower the same loops are mirrors: they read the leader's calls from the database to
+// serve pages and never open, settle, pay or broadcast anything. a promoted follower adopts the
+// calls it mirrored, so an open question carries on through a takeover
 import { parseMatchId, unplayedGame, type LiigaGame } from "@/features/liiga";
 import { getGame, getGamesOn, helsinkiDate, liigaNow } from "@/features/liiga/server";
 import { demoMode } from "@/shared/clock";
 import { getDb, type DbCall } from "@/shared/db";
 import type { RotationMatchConfig } from "@/shared/demo";
-import type { LiveCall, LiveRotation, LiveStakes, LiveState, MatchEvent, RoomLeaderboardRow, Score } from "@/shared/types";
+import type { LiveCall, LiveRotation, LiveStakes, LiveState, MatchEvent, PartyMember, RoomLeaderboardRow, Score } from "@/shared/types";
 import { optionsFi, wordCall } from "../engine/phrases";
 import { gameAt, nextMomentAfter, replayEnd, replayTime, type ReplayClock } from "../engine/replay";
 import { gameAtVideo, goalVideoTimes, planCalls, type PlannedCall } from "../engine/rotation";
 import { decidedInWindow, nextCall, resolve, whoWinsDraft, type CallDraft, type ResolveRule } from "../engine/rules";
+import { isLeader, onLeadership } from "./leader";
 import { publish, type MatchEvent as Broadcast } from "./realtime";
-import { initRotation, isRotationMatch, phaseOf, rotationConfig, rotationMatch, rotationNow } from "./rotation";
+import { initRotation, isRotationMatch, phaseOf, rotationMatch, rotationNow } from "./rotation";
 
 export interface RenderedMatch {
   stakes: LiveStakes;
   /** newest first */
   events: MatchEvent[];
   periodScores: (Score | null)[];
+}
+
+/** the party as everyone sees it: the board (every participant, 0 points too), who is active */
+export interface PartyBoard {
+  rows: RoomLeaderboardRow[];
+  watching: number;
+  members: PartyMember[];
+}
+
+/** a trivia question built from the match's player and team data, with its verified answer */
+export interface TriviaDraft {
+  question: string;
+  options: { id: string; label: string }[];
+  answer: string;
+  fi?: { question: string; options: { id: string; label: string }[] } | null;
+}
+
+/** a line the engine puts in the party feed: a goal, a result, a trivia card */
+export interface PartyLine {
+  text: string;
+  /** posted once per key, whatever restarts or leader changes happen */
+  key: string;
+  kind?: "system" | "trivia";
+  data?: Record<string, unknown>;
 }
 
 /** the site server turns a game state into ui pieces; the engine stays free of ui code */
@@ -31,17 +59,37 @@ export interface MatchRenderer {
   /** every tick: "2nd period", "14:26" */
   clock(game: LiigaGame): { label: string; clock: string };
   stakesLine(matchId: string, game: LiigaGame, draft: CallDraft): Promise<string | null>;
-  leaderboard(matchId: string): Promise<{ rows: RoomLeaderboardRow[]; watching: number }>;
+  /** the party: board, watching count and who is here */
+  leaderboard(matchId: string): Promise<PartyBoard>;
+  /** "GOAL! Kärpät 2–1 · 11:40" */
+  goalLine(game: LiigaGame, goal: LiigaGame["goals"][number]): string;
+  /** puts a line in the party feed; the comment to broadcast, null when the key was posted already */
+  post(matchId: string, cycle: string, line: PartyLine): Promise<Record<string, unknown> | null>;
+  /** a trivia question for a play gap (null when none fits the data) */
+  trivia(matchId: string, game: LiigaGame, n: number): Promise<TriviaDraft | null>;
 }
 
 let renderer: MatchRenderer | null = null;
 const ANSWER_MS = Number(process.env.CALL_ANSWER_SECONDS ?? 20) * 1000;
 export const CALL_POINTS = 20;
+/** trivia: fixed points, a shorter window, and spacing so it only fills the gaps */
+export const TRIVIA_POINTS = 10;
+const TRIVIA_MS = Number(process.env.TRIVIA_ANSWER_SECONDS ?? 15) * 1000;
+/** a play gap: this long since the last question or trivia (rehearsals can shorten both) */
+const TRIVIA_GAP_MS = Number(process.env.TRIVIA_GAP_SECONDS ?? 90) * 1000;
+const TRIVIA_EVERY_MS = Number(process.env.TRIVIA_EVERY_SECONDS ?? 120) * 1000;
 /** a planned call more than this late (a restart mid-highlight) is skipped, not opened late */
 const PLAN_LATE_MS = 2000;
+/** the board (watching, who's here) is re-read this often while a match is on */
+const BOARD_LEADER_MS = 1000;
+const BOARD_MIRROR_MS = 2500;
+/** a follower re-reads the leader's calls this often */
+const MIRROR_MS = 1000;
 
 type Message = { event: Broadcast; payload: Record<string, unknown> };
 type Kind = "live" | "replay" | "rotation";
+
+const isTrivia = (c: DbCall) => c.type === "trivia";
 
 /** one in-app notification per fan who answered and wants them (bots never get one), in one insert */
 async function notifyResults(matchId: string, c: DbCall, correct: string, answers: { userId: string; optionId: string }[]) {
@@ -77,13 +125,27 @@ class MatchLoop {
   private seenEvents = new Set<string>();
   private lastOpenedAt: number | null = null;
   private rendered: RenderedMatch | null = null;
-  private board: { rows: RoomLeaderboardRow[]; watching: number } = { rows: [], watching: 0 };
+  private board: PartyBoard = { rows: [], watching: 0, members: [] };
+  private boardKey = "";
+  private boardAt = 0;
   // rotation only: the calls planned from the cues, the next one, and the cycle they belong to
   private plan: PlannedCall[] = [];
   private planIndex = 0;
   private cycle: string | null = null;
   private lastPublishedAt = 0;
   private rotation: LiveRotation | null = null;
+  // the leader adopts the database's calls (and goals already seen) on its first tick and on a new cycle
+  private needSync = true;
+  private syncedAt = 0;
+  private led = false;
+  /** goals already in the party feed (or there before this loop looked): only new ones are announced */
+  private announced = new Set<string>();
+  /** the open your call! question's answer count, for "8 of 12 have answered" */
+  private answered: { callId: string; count: number } | null = null;
+  private answeredAt = 0;
+  /** wall clock of the last question or trivia, and of the last trivia */
+  private lastQuestionAt = Date.now();
+  private lastTriviaAt = 0;
   visible: LiigaGame | null = null;
   state: LiveState | null = null;
   /** a replay can run many times: the match leaderboard counts points from this run on */
@@ -103,6 +165,13 @@ class MatchLoop {
 
   private baseSpeed: number;
 
+  /** the party this loop's calls, feed lines and presence belong to (see roomScope) */
+  partyCycle(): string {
+    if (this.kind === "rotation") return this.cycle ?? "";
+    if (this.kind === "replay") return `run:${this.runSince}`;
+    return "";
+  }
+
   /**
    * a replay runs at 1x while a call takes answers: 20 s to answer is then 20 s of game time, as
    * in a live game. at 15x it would be 5 minutes, and a power play would be over before the lock
@@ -116,14 +185,20 @@ class MatchLoop {
 
   async start() {
     const db = getDb();
-    const stored = await db.calls.listForMatch(this.matchId);
-    for (const c of stored.filter((x) => x.status === "open" || x.status === "locked")) {
-      // a replay or rotation starts over; a live game keeps calls that were locked before a restart
-      if (this.kind !== "live" || c.status === "open") await db.calls.update(c.id, { status: "cancelled", resolvedAt: new Date().toISOString() });
+    if (this.kind === "replay" && isLeader()) {
+      // a replay starts over: calls an earlier run left open are cancelled
+      for (const c of (await db.calls.listForMatch(this.matchId)).filter((x) => x.status === "open" || x.status === "locked")) {
+        await db.calls.update(c.id, { status: "cancelled", resolvedAt: new Date().toISOString() });
+      }
     }
-    // a live game remembers its calls (no trigger fires twice after a restart); a replay starts clean
-    this.calls = this.kind === "live" ? await db.calls.listForMatch(this.matchId) : [];
-    this.lastOpenedAt = this.calls.length ? Math.max(...this.calls.map((c) => c.openedGameTime)) : null;
+    if (this.kind === "live") {
+      // a live game remembers its calls (no trigger fires twice after a restart); open ones from
+      // before a restart are cancelled, locked ones still resolve
+      const stored = await db.calls.listForMatch(this.matchId);
+      if (isLeader()) for (const c of stored.filter((x) => x.status === "open")) await db.calls.update(c.id, { status: "cancelled", resolvedAt: new Date().toISOString() });
+      this.calls = await db.calls.listForMatch(this.matchId);
+      this.lastOpenedAt = this.calls.filter((c) => !isTrivia(c)).reduce<number | null>((m, c) => Math.max(m ?? 0, c.openedGameTime), null);
+    }
     this.timer = setInterval(() => void this.tick(), this.kind === "live" ? 5000 : this.kind === "replay" ? 1000 : 500);
     await this.tick();
   }
@@ -144,9 +219,15 @@ class MatchLoop {
       this.calls = [];
       this.splits.clear();
       this.seenEvents.clear();
+      this.announced.clear();
       this.planIndex = 0;
       this.rendered = null;
-      this.board = { rows: [], watching: 0 };
+      this.board = { rows: [], watching: 0, members: [] };
+      this.boardKey = "";
+      this.answered = null;
+      this.lastQuestionAt = now;
+      this.lastTriviaAt = 0;
+      this.needSync = true;
     }
     const next = rotationMatch(r.next.matchId);
     // r.at is now, or the moment of the pause: a paused highlight stays on its second
@@ -176,6 +257,42 @@ class MatchLoop {
     return res?.data.game ?? null;
   }
 
+  /** a call of this loop's run: a rotation cycle's own, a live game's every call */
+  private owns(c: DbCall): boolean {
+    if (this.kind === "rotation") return this.cycle !== null && c.trigger.startsWith(`${this.cycle}:`);
+    return this.kind === "live";
+  }
+
+  /**
+   * this run's calls from the database. a follower mirrors the leader with it; a new leader (or a
+   * new cycle) adopts what is there, so nothing opens twice and an open call still settles
+   */
+  private async syncCalls(game: LiigaGame, now: number) {
+    if (this.kind === "replay") return;
+    const db = getDb();
+    const rows = await db.calls.listForMatch(this.matchId);
+    if (isLeader() && this.kind === "rotation") {
+      // a call from an earlier cycle left open by a server that stopped: nobody would settle it
+      for (const c of rows.filter((x) => !this.owns(x) && (x.status === "open" || x.status === "locked"))) {
+        await db.calls.update(c.id, { status: "cancelled", resolvedAt: new Date(now).toISOString() });
+      }
+    }
+    const mine = rows.filter((c) => this.owns(c));
+    for (const c of mine) {
+      if (c.status !== "open" && !isTrivia(c) && !this.splits.has(c.id)) this.splits.set(c.id, splitOf(c.options, await db.answers.listForCall(c.id)));
+    }
+    this.calls = mine;
+    const asked = mine.filter((c) => !isTrivia(c));
+    this.lastOpenedAt = asked.length ? Math.max(...asked.map((c) => c.openedGameTime)) : null;
+    const at = (list: DbCall[]) => (list.length ? Math.max(...list.map((c) => Date.parse(c.openedAt))) : 0);
+    this.lastQuestionAt = Math.max(this.lastQuestionAt, at(mine));
+    this.lastTriviaAt = Math.max(this.lastTriviaAt, at(mine.filter(isTrivia)));
+    // goals already on screen are not news: only later ones get a line in the feed
+    for (const g of game.goals) this.announced.add(g.id);
+    this.syncedAt = now;
+    this.needSync = false;
+  }
+
   async tick(force = false) {
     if (!renderer) return;
     if (this.busy) {
@@ -188,6 +305,12 @@ class MatchLoop {
       const now = Date.now();
       const game = await this.currentGame(now);
       if (!game) return;
+      const leading = isLeader();
+      // just promoted: adopt what the last leader left before doing anything
+      if (leading && !this.led) this.needSync = true;
+      this.led = leading;
+      if (this.needSync || (!leading && now - this.syncedAt >= MIRROR_MS)) await this.syncCalls(game, now);
+
       const prev = this.visible;
       const prevPhase = this.state?.rotation?.phase;
       this.visible = game;
@@ -202,10 +325,15 @@ class MatchLoop {
         prevPhase !== this.rotation?.phase;
       const messages: Message[] = [];
 
-      await this.settleCalls(game, now, messages);
-      if (this.kind === "rotation") await this.openRotationCalls(game, now, messages);
-      else await this.openNextCall(game, now, messages);
-      this.setSpeed(this.calls.some((c) => c.status === "open") ? 1 : this.baseSpeed, now);
+      if (leading) {
+        await this.settleCalls(game, now, messages);
+        if (this.kind === "rotation") await this.openRotationCalls(game, now, messages);
+        else await this.openNextCall(game, now, messages);
+        await this.maybeTrivia(game, now, messages);
+        await this.announceGoals(game, messages);
+      }
+      this.setSpeed(this.calls.some((c) => c.status === "open" && !isTrivia(c)) ? 1 : this.baseSpeed, now);
+      await this.countAnswers(now, leading, messages);
 
       if (changed || !this.rendered) {
         const scoreChanged = !prev || prev.goals.length !== game.goals.length || prev.status !== game.status;
@@ -214,7 +342,7 @@ class MatchLoop {
       }
       const fresh = this.rendered.events.filter((e) => !this.seenEvents.has(e.id));
       for (const e of fresh) this.seenEvents.add(e.id);
-      if (!this.board.rows.length || changed) this.board = await renderer.leaderboard(this.matchId);
+      await this.refreshBoard(now, leading, changed, messages);
 
       this.state = this.buildState(game, now);
       // a rotation match nobody is watching (idle) only says so when something changes
@@ -238,8 +366,9 @@ class MatchLoop {
       if (game.status === "final" && prev && prev.status !== "final") {
         messages.push({ event: "game_end", payload: { score: this.state.score, decidedIn: game.decidedIn, serverNow: now } });
       }
-      await publish(this.matchId, messages);
-      if (this.kind === "live" && game.status === "final") {
+      // only the leader speaks on the channel; a follower's view is for its own http answers
+      if (leading) await publish(this.matchId, messages);
+      if (this.kind === "live" && game.status === "final" && leading) {
         this.stop();
         loops.delete(this.matchId);
       }
@@ -254,10 +383,52 @@ class MatchLoop {
     }
   }
 
+  /** the party board: re-read every second on the leader while the match is on (joins on any server, timeouts), broadcast when it changed */
+  private async refreshBoard(now: number, leading: boolean, changed: boolean, messages: Message[]) {
+    const idle = this.rotation?.phase === "idle";
+    const every = leading ? BOARD_LEADER_MS : BOARD_MIRROR_MS;
+    if (!changed && this.board.rows.length && (idle || now - this.boardAt < every)) return;
+    this.boardAt = now;
+    this.board = await renderer!.leaderboard(this.matchId);
+    // a slow read is stamped with when it started: a newer one from another server wins
+    const key = JSON.stringify(this.board);
+    if (key !== this.boardKey && this.boardKey !== "") messages.push({ event: "room", payload: { leaderboard: this.board.rows, watching: this.board.watching, members: this.board.members, at: now } });
+    this.boardKey = key;
+  }
+
+  /** "8 of 12 have answered" for the open your call! question (counts only: no split before the lock) */
+  private async countAnswers(now: number, leading: boolean, messages: Message[]) {
+    const open = this.calls.find((c) => c.status === "open" && !isTrivia(c));
+    if (!open) {
+      this.answered = null;
+      return;
+    }
+    if (this.answered?.callId === open.id && now - this.answeredAt < 1000) return;
+    this.answeredAt = now;
+    const count = (await getDb().answers.listForCall(open.id)).length;
+    const before = this.answered?.callId === open.id ? this.answered.count : 0;
+    this.answered = { callId: open.id, count };
+    if (leading && count !== before) messages.push({ event: "call_count", payload: { callId: open.id, answered: count, serverNow: now } });
+  }
+
+  /** a goal that just happened gets a line in the party feed ("GOAL! Kärpät 2–1 · 11:40"), once */
+  private async announceGoals(game: LiigaGame, messages: Message[]) {
+    for (const g of game.goals) {
+      if (this.announced.has(g.id)) continue;
+      this.announced.add(g.id);
+      const comment = await renderer!.post(this.matchId, this.partyCycle(), { text: renderer!.goalLine(game, g), key: `goal:${this.matchId}:${this.partyCycle()}:${g.id}` });
+      if (comment) messages.push({ event: "comment", payload: { comment } });
+    }
+  }
+
   /** lock calls whose time is up, cancel the ones decided while answers were open, resolve the rest */
   private async settleCalls(game: LiigaGame, now: number, messages: Message[]) {
     const db = getDb();
     for (const c of this.calls) {
+      if (isTrivia(c)) {
+        await this.settleTrivia(c, now, messages);
+        continue;
+      }
       const rule = c.resolvesRule as ResolveRule;
       if (c.status === "open" && now >= Date.parse(c.locksAt)) {
         const answers = await db.answers.listForCall(c.id);
@@ -289,16 +460,95 @@ class MatchLoop {
       await notifyResults(this.matchId, c, correct, answers).catch((err) => console.warn(`live: notifications failed: ${(err as Error).message}`));
       const split = this.splits.get(c.id) ?? splitOf(c.options, answers);
       messages.push({ event: "call_resolved", payload: { callId: c.id, correctOptionId: correct, split, serverNow: now } });
+      // the party hears how it went: "64% called it right"
+      const label = c.options.find((o) => o.id === correct)?.label ?? "";
+      const right = answers.length ? Math.round((100 * answers.filter((a) => a.optionId === correct).length) / answers.length) : 0;
+      const text = answers.length ? `${right}% called it right · ${c.question} ${label}` : `${c.question} ${label}`;
+      const comment = await renderer!.post(this.matchId, this.partyCycle(), { text, key: `result:${c.id}` });
+      if (comment) messages.push({ event: "comment", payload: { comment } });
       this.board = await renderer!.leaderboard(this.matchId);
-      messages.push({ event: "leaderboard", payload: { leaderboard: this.board.rows, watching: this.board.watching } });
+      this.boardKey = JSON.stringify(this.board);
+      messages.push({ event: "leaderboard", payload: { leaderboard: this.board.rows, watching: this.board.watching, members: this.board.members, at: now } });
     }
+  }
+
+  /** trivia's answer is known when it opens: at the lock it resolves at once, +10 for each right answer */
+  private async settleTrivia(c: DbCall, now: number, messages: Message[]) {
+    if (c.status !== "open" || now < Date.parse(c.locksAt)) return;
+    const db = getDb();
+    const correct = String((c.resolvesRule as { answer?: string }).answer ?? "");
+    Object.assign(c, await db.calls.update(c.id, { status: "resolved", correctOptionId: correct, lockGameTime: this.visible?.gameTime ?? 0, resolvedAt: new Date(now).toISOString() }));
+    await db.answers.setCorrect(c.id, correct);
+    const answers = await db.answers.listForCall(c.id);
+    const createdAt = new Date(now).toISOString();
+    const right = answers.filter((a) => a.optionId === correct);
+    await Promise.all(right.map((a) => db.points.award({ userId: a.userId, matchId: this.matchId, callId: c.id, points: TRIVIA_POINTS, reason: `trivia: ${c.question}`, createdAt })));
+    this.splits.set(c.id, splitOf(c.options, answers));
+    messages.push({ event: "trivia", payload: { trivia: this.toLive(c), serverNow: now } });
+    const label = c.options.find((o) => o.id === correct)?.label ?? "";
+    const comment = await renderer!.post(this.matchId, this.partyCycle(), {
+      text: `Trivia: ${right.length} of ${answers.length} got it · ${label} (+${TRIVIA_POINTS} pts)`,
+      key: `trivia-result:${c.id}`,
+    });
+    if (comment) messages.push({ event: "comment", payload: { comment } });
+    if (right.length) {
+      this.board = await renderer!.leaderboard(this.matchId);
+      this.boardKey = JSON.stringify(this.board);
+      messages.push({ event: "leaderboard", payload: { leaderboard: this.board.rows, watching: this.board.watching, members: this.board.members, at: now } });
+    }
+  }
+
+  /**
+   * party trivia in a play gap: the match is live, no your call! question is open, 90 s since the
+   * last question or trivia, and at most one every 2 minutes. built from player and team data
+   */
+  private async maybeTrivia(game: LiigaGame, now: number, messages: Message[]) {
+    // the rotation and real live games (a speed replay is a dev tool: its gaps are seconds long)
+    const live = this.kind === "rotation" ? this.rotation?.phase === "live" && !this.rotation.paused : this.kind === "live" && game.status === "live";
+    if (!live || this.calls.some((c) => c.status === "open")) return;
+    if (now - this.lastQuestionAt < TRIVIA_GAP_MS || now - this.lastTriviaAt < TRIVIA_EVERY_MS) return;
+    // a highlight about to end has no room for a 15 s question
+    const r = this.rotation;
+    if (r && r.videoSec !== null && r.durationSec - r.videoSec < TRIVIA_MS / 1000 + 5) return;
+    const n = this.calls.filter(isTrivia).length;
+    this.lastTriviaAt = now;
+    const draft = await renderer!.trivia(this.matchId, game, n).catch(() => null);
+    if (!draft) return;
+    const call = await getDb().calls.create({
+      matchId: this.matchId,
+      type: "trivia",
+      trigger: `${this.cycle === null ? "" : `${this.cycle}:`}trivia:${n}`,
+      question: draft.question,
+      options: draft.options,
+      stakesLine: null,
+      openedGameTime: game.gameTime,
+      openedAt: new Date(now).toISOString(),
+      locksAt: new Date(now + TRIVIA_MS).toISOString(),
+      lockGameTime: null,
+      // the answer stays on the server until the lock
+      resolvesRule: { kind: "trivia", answer: draft.answer },
+      status: "open",
+      correctOptionId: null,
+      resolvedAt: null,
+      i18n: draft.fi ? { fi: draft.fi } : null,
+    });
+    this.calls.push(call);
+    this.lastQuestionAt = now;
+    messages.push({ event: "trivia", payload: { trivia: this.toLive(call), serverNow: now } });
+    const comment = await renderer!.post(this.matchId, this.partyCycle(), {
+      text: draft.question,
+      key: `trivia:${call.id}`,
+      kind: "trivia",
+      data: { callId: call.id, points: TRIVIA_POINTS },
+    });
+    if (comment) messages.push({ event: "comment", payload: { comment } });
   }
 
   /** a live game or a speed replay: the trigger rules decide the next call on the spot */
   private async openNextCall(game: LiigaGame, now: number, messages: Message[]) {
     const draft = nextCall(game, {
       lastOpenedAt: this.lastOpenedAt,
-      hasOpenCall: this.calls.some((c) => c.status === "open"),
+      hasOpenCall: this.calls.some((c) => c.status === "open" && !isTrivia(c)),
       used: new Set(this.calls.map((c) => c.trigger)),
     });
     if (draft) await this.openCall(draft, game, now, now + ANSWER_MS, messages);
@@ -315,7 +565,10 @@ class MatchLoop {
     const videoMs = rot.videoSec * 1000;
     while (this.planIndex < this.plan.length && this.plan[this.planIndex].videoSec * 1000 <= videoMs) {
       const p = this.plan[this.planIndex++];
-      if (videoMs - p.videoSec * 1000 > PLAN_LATE_MS || this.calls.some((c) => c.status === "open")) continue;
+      const late = videoMs - p.videoSec * 1000 > PLAN_LATE_MS;
+      // a call the last leader opened already (a takeover) is adopted, not opened again
+      const made = this.calls.some((c) => c.trigger === `${this.cycle}:${p.draft.trigger}`);
+      if (late || made || this.calls.some((c) => c.status === "open" && !isTrivia(c))) continue;
       await this.openCall(p.draft, game, now, now + ANSWER_MS, messages);
     }
   }
@@ -347,6 +600,7 @@ class MatchLoop {
     });
     this.calls.push(call);
     this.lastOpenedAt = game.gameTime;
+    this.lastQuestionAt = now;
     messages.push({ event: "call_open", payload: { call: this.toLive(call), serverNow: now } });
   }
 
@@ -358,7 +612,7 @@ class MatchLoop {
       question: c.question,
       options: c.options,
       stakesLine: c.stakesLine,
-      points: CALL_POINTS,
+      points: isTrivia(c) ? TRIVIA_POINTS : CALL_POINTS,
       status: c.status,
       openedAt: Date.parse(c.openedAt),
       locksAt: Date.parse(c.locksAt),
@@ -373,8 +627,10 @@ class MatchLoop {
     const r = this.rendered!;
     const clock = renderer!.clock(game);
     const newestFirst = [...this.calls].reverse();
-    const current = newestFirst.find((c) => c.status === "open" || c.status === "locked") ?? null;
-    const last = newestFirst.find((c) => c.status === "resolved" || c.status === "cancelled") ?? null;
+    const asked = newestFirst.filter((c) => !isTrivia(c));
+    const current = asked.find((c) => c.status === "open" || c.status === "locked") ?? null;
+    const last = asked.find((c) => c.status === "resolved" || c.status === "cancelled") ?? null;
+    const trivia = newestFirst.find(isTrivia) ?? null;
     return {
       matchId: this.matchId,
       serverNow: now,
@@ -387,19 +643,25 @@ class MatchLoop {
       stakes: r.stakes,
       call: current ? this.toLive(current) : null,
       lastCall: last ? this.toLive(last) : null,
+      answered: current && this.answered?.callId === current.id ? this.answered : null,
+      trivia: trivia ? this.toLive(trivia) : null,
       leaderboard: this.board.rows,
       watching: this.board.watching,
+      members: this.board.members,
+      party: { key: this.matchId, cycle: this.partyCycle() },
       rotation: this.rotation,
       me: null,
     };
   }
 
-  /** the watch together room changed (a fan joined, left or timed out): re-read it, tell everyone */
+  /** the party changed (a fan joined, left or timed out): re-read it, tell everyone */
   async refreshRoom() {
     if (!renderer) return;
     this.board = await renderer.leaderboard(this.matchId);
-    if (this.state) this.state = { ...this.state, leaderboard: this.board.rows, watching: this.board.watching };
-    await publish(this.matchId, [{ event: "room", payload: { leaderboard: this.board.rows, watching: this.board.watching } }]);
+    this.boardKey = JSON.stringify(this.board);
+    this.boardAt = Date.now();
+    if (this.state) this.state = { ...this.state, leaderboard: this.board.rows, watching: this.board.watching, members: this.board.members };
+    if (isLeader()) await publish(this.matchId, [{ event: "room", payload: { leaderboard: this.board.rows, watching: this.board.watching, members: this.board.members, at: this.boardAt } }]);
   }
 
   /** host controls for the demo replay */
@@ -434,8 +696,11 @@ class MatchLoop {
         this.calls = [];
         this.splits.clear();
         this.seenEvents.clear();
+        this.announced.clear();
         this.lastOpenedAt = null;
         this.visible = null;
+        this.board = { rows: [], watching: 0, members: [] };
+        this.boardKey = "";
         break;
       }
       default:
@@ -453,8 +718,10 @@ class MatchLoop {
 }
 
 const loops = new Map<string, MatchLoop>();
+let replayWanted: { matchId: string; speed: number; autostart: boolean } | null = null;
 
 async function startReplay(matchId: string, speed: number, autostart: boolean) {
+  if (loops.has(matchId)) return;
   const ids = parseMatchId(matchId);
   if (!ids) return console.warn(`live: DEMO_REPLAY_MATCH_ID "${matchId}" is not a match id like 2027-2701404`);
   const res = await getGame(ids.season, ids.gameId).catch(() => null);
@@ -495,12 +762,27 @@ async function discoverLiveGames() {
   for (const g of today?.data ?? []) if (g.status === "live") await ensureLiveLoop(g.id, g);
 }
 
+/**
+ * the rotation and live games run on every server (mirrors on followers); the demo replay's
+ * clock lives in its leader's memory, so it runs on the leader only and starts on promotion
+ */
 export async function startEngine(r: MatchRenderer) {
   renderer = r;
+  onLeadership((leading) => {
+    if (leading && replayWanted) void startReplay(replayWanted.matchId, replayWanted.speed, replayWanted.autostart);
+    if (!leading) {
+      for (const [id, loop] of loops) {
+        if (loop.kind !== "replay") continue;
+        loop.stop();
+        loops.delete(id);
+      }
+    }
+  });
   // demo mode is the rotation; the league clock is frozen, so there are no real live games
   if (demoMode()) return startRotation();
   const demo = process.env.DEMO_REPLAY_MATCH_ID;
-  if (demo) await startReplay(demo, Number(process.env.DEMO_REPLAY_SPEED ?? 15), process.env.DEMO_REPLAY_AUTOSTART === "true");
+  if (demo) replayWanted = { matchId: demo, speed: Number(process.env.DEMO_REPLAY_SPEED ?? 15), autostart: process.env.DEMO_REPLAY_AUTOSTART === "true" };
+  if (replayWanted && isLeader()) await startReplay(replayWanted.matchId, replayWanted.speed, replayWanted.autostart);
   await discoverLiveGames();
   setInterval(() => void discoverLiveGames(), 60_000).unref();
 }
@@ -521,7 +803,7 @@ export function engineMatch(matchId: string): EngineMatch | null {
   return { state: loop.state, visible: loop.visible, isReplay: loop.kind !== "live", names: loop.names, rotation: loop.state?.rotation ?? null };
 }
 
-/** a fan joined, left or timed out of a match's room: the new count and board, to everyone */
+/** a fan joined, left or timed out of a match's party: the new count and board, to everyone */
 export async function refreshRoom(matchId: string): Promise<void> {
   await loops.get(matchId)?.refreshRoom();
 }
@@ -535,33 +817,37 @@ export function matchSince(matchId: string): string {
   return loop?.kind === "replay" ? loop.runSince : new Date(0).toISOString();
 }
 
-/** the watch together room a match belongs to: its db key, since when it counts, and its matches */
+/** a match's watch party: its key, the run it belongs to (cycle), since when its points count */
 export interface RoomScope {
   key: string;
+  /** a rotation match: the cycle ("<run>:<n>"); a replay: its run; any other match: "" */
+  cycle: string;
   since: string;
   matchIds: string[];
 }
 
 /**
- * the rotation's three matches share one room, counted from the start of the current cycle
- * (so it grows across matches 1-3 and starts over with match 1); any other match is its own room
+ * each match and rotation cycle has one party: a rotation match's starts over every cycle (its
+ * points count from the cycle's start), a replay's with every run, any other match has one
  */
 export function roomScope(matchId: string): RoomScope {
   const r = isRotationMatch(matchId) ? rotationNow() : null;
-  if (r) return { key: "rotation", since: new Date(r.cycleStartedAt).toISOString(), matchIds: rotationConfig()!.matches.map((m) => m.matchId) };
-  return { key: matchId, since: matchSince(matchId), matchIds: [matchId] };
+  if (r) return { key: matchId, cycle: r.cycleKey, since: new Date(r.cycleStartedAt).toISOString(), matchIds: [matchId] };
+  const loop = loops.get(matchId);
+  if (loop?.kind === "replay") return { key: matchId, cycle: loop.partyCycle(), since: loop.runSince, matchIds: [matchId] };
+  return { key: matchId, cycle: "", since: new Date(0).toISOString(), matchIds: [matchId] };
 }
 
-/** the match whose watch together room is on now: the rotation's, else the demo replay */
+/** the match whose watch party is on now: the rotation's, else the demo replay */
 export function roomMatchNow(): string | null {
   return rotationNow()?.current.matchId ?? [...loops.values()].find((l) => l.kind === "replay")?.matchId ?? null;
 }
 
-/** every call taking or waiting on answers right now, across matches */
+/** every call or trivia question taking or waiting on answers right now, across matches */
 export function openCalls(): { id: string; matchId: string }[] {
   return [...loops.values()].flatMap((l) => {
-    const c = l.state?.call;
-    return c ? [{ id: c.id, matchId: l.matchId }] : [];
+    const open = [l.state?.call, l.state?.trivia].filter((c): c is LiveCall => !!c && (c.status === "open" || c.status === "locked"));
+    return open.map((c) => ({ id: c.id, matchId: l.matchId }));
   });
 }
 

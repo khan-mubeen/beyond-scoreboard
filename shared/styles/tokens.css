@@ -53,7 +53,8 @@
   --pp-accent: #d80016;
   --pp-accent-ink: #ffffff;
   --pp-accent-soft: #fdeef0;
-  --pp-good: #0f8d69;
+  /* 5.3:1 on white, 4.7:1 on good-soft: green text stays readable at 14px (was #0f8d69, 4.2:1) */
+  --pp-good: #0c7a5b;
   --pp-good-soft: #e6f5ef;
   --pp-bad: #d80016;
   --pp-highlight: #fff6d6;

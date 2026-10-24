@@ -11,7 +11,8 @@ import { deviceSeconds, pickVoice, sentencesOf } from "../components/device-voic
 import { featuredQuestion } from "../components/featured-question";
 import { applyBroadcast } from "../components/use-match-channel";
 import { withSettings } from "../data";
-import { ACTIVE_MS, expire, heartbeat, leave, resetPresence, watchingCount } from "../server/presence";
+import { createMemoryDb, setDb } from "@/shared/db";
+import { ACTIVE_MS, heartbeat, leave, partyStandings, resetPresence } from "../server/presence";
 
 const call = (status: LiveCall["status"], locksAt: number) => ({ id: "c1", status, locksAt }) as LiveCall;
 const live = (c: LiveCall | null, phase?: "lobby" | "live" | "summary" | "idle") =>
@@ -35,21 +36,33 @@ describe("home card: is a question open right now?", () => {
   });
 });
 
-describe("watch together: active viewers", () => {
-  it("counts heartbeats from the last 90 s, a leave drops at once, timeouts expire", () => {
+describe("watch party: presence in the database", () => {
+  it("opening the match joins the party; active for 90 s; a leave drops the count, the board keeps everyone", async () => {
+    const db = createMemoryDb();
+    setDb(db);
     resetPresence();
-    const t = 5_000_000;
-    expect(heartbeat("m", "a", t)).toBe(true);
-    expect(heartbeat("m", "b", t + 1000)).toBe(true);
-    // a repeat heartbeat is no change
-    expect(heartbeat("m", "a", t + 30_000)).toBe(false);
-    expect(watchingCount("m", t + 31_000)).toBe(2);
-    expect(leave("m", "b", t + 32_000)).toBe(true);
-    expect(watchingCount("m", t + 32_000)).toBe(1);
-    // a only ever joined: gone 90 s after the last heartbeat
-    expect(watchingCount("m", t + 30_000 + ACTIVE_MS)).toBe(0);
-    expect(expire(t + 30_000 + ACTIVE_MS)).toEqual(["m"]);
-    expect(leave("m", "a", t + 200_000)).toBe(false);
+    const a = await db.users.create("anon-a", "Aino");
+    const b = await db.users.create("anon-b", null);
+    const bot = await db.users.create("anon-bot", "Bot", true);
+    expect(await heartbeat("m", a)).toBe(true);
+    expect(await heartbeat("m", b)).toBe(true);
+    // a repeat heartbeat is no change; bots never count
+    expect(await heartbeat("m", a)).toBe(false);
+    expect(await heartbeat("m", bot)).toBe(false);
+    let p = await partyStandings("m");
+    expect(p.watching).toBe(2);
+    // 0 points too, in the order they joined; a guest without a nickname is "Guest"
+    expect(p.ranked.map((e) => [e.name, e.score, e.rank])).toEqual([
+      ["Aino", 0, 1],
+      ["Guest", 0, 1],
+    ]);
+    await leave("m", b);
+    p = await partyStandings("m");
+    expect([p.watching, p.ranked.length, p.members.map((m) => m.name)]).toEqual([1, 2, ["Aino"]]);
+    // seen 91 s ago: timed out
+    await db.presence.beat("m", "", a.id, new Date(Date.now() - ACTIVE_MS - 1000).toISOString());
+    resetPresence();
+    expect((await partyStandings("m")).watching).toBe(0);
   });
 
   it("a room broadcast sets the count and the board for everyone", () => {

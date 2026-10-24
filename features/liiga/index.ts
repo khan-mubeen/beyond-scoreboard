@@ -13,6 +13,7 @@ export {
   normalizeGame,
   normalizeLineups,
   normalizePastAndFuture,
+  normalizeRoster,
   normalizeStandings,
   normalizeStats,
   normalizeTeams,

@@ -2,6 +2,8 @@
 // (or an api outage) still shows a full site. betting fields are stripped before writing.
 // run: npm run snapshot   (needs LIIGA_API_URL and LIIGA_API_KEY)
 //      npm run snapshot -- --games 2701379,2701398   only those games, added to the recording
+//      npm run snapshot -- --season   the details of every finished game not recorded yet (the
+//      season's goals and assists for "ask the match" and trivia), added to the recording
 export {};
 
 try {
@@ -42,6 +44,25 @@ async function saveGame(season: number, gameId: number, scheduled: boolean) {
     await save(`/api/v1/shotmap/${season}/${gameId}`);
     await save(`${base}/players`);
   }
+}
+
+// --season: every finished game's details (goal events and rosters), only the missing ones
+if (process.argv.includes("--season")) {
+  const manifest = readManifest();
+  if (!manifest) {
+    console.log("no recording yet: run npm run snapshot first");
+    process.exit(1);
+  }
+  const { readSnapshot } = await import("../server/snapshots");
+  const schedule = readSnapshot<ScheduleItemDTO[]>(`/api/v1/games/schedule?season=${manifest.season}&serie=RUNKOSARJA`) ?? [];
+  const finished = schedule.map(normalizeFixture).filter((f) => f.status === "final");
+  for (const f of finished) {
+    const path = `/api/v1/games/${f.season}/${f.gameId}`;
+    if (!readSnapshot(path)) await save(path);
+  }
+  writeManifest({ ...manifest, paths: [...new Set([...manifest.paths, ...paths])] });
+  console.log(`\n${paths.length} game details added to features/liiga/snapshots/ (recording of ${manifest.recordedAt} kept)`);
+  process.exit(0);
 }
 
 // --games: add a few games to the existing recording, leave the rest (and its "now") as it is

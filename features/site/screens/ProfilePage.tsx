@@ -56,6 +56,21 @@ export function ProfilePage() {
               <SectionCard title="Your name">
                 <NicknameForm current={me.nickname} />
               </SectionCard>
+              <SectionCard title="Friends" action={<ActionLink href="/friends">{me.friendRequests ? `${me.friendRequests} new request${me.friendRequests === 1 ? "" : "s"}` : "Friends page"}</ActionLink>}>
+                {me.friendCode ? (
+                  <p className="flex flex-wrap items-center gap-3 text-sm text-muted">
+                    <span className="rounded-lg bg-surface-2 px-3 py-1.5 font-mono text-xl font-bold tracking-[0.25em] text-ink" data-testid="profile-friend-code">
+                      {me.friendCode}
+                    </span>
+                    Your friend code: friends add you with it.
+                  </p>
+                ) : (
+                  <p className="text-sm text-muted">Pick a nickname and your friend code appears here.</p>
+                )}
+                <p className="mt-2 text-sm text-muted">
+                  {me.friends?.length ? `${me.friends.length} friend${me.friends.length === 1 ? "" : "s"}` : "No friends yet"} · invite one from any match.
+                </p>
+              </SectionCard>
               <PointsCard user={me.user} />
               <PlansSection />
               <FavoriteTeams teams={me.favorites} />

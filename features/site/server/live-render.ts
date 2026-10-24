@@ -1,7 +1,7 @@
 // what the live engine broadcasts, in ui shapes: built from the same pieces as the match page,
 // so a realtime update and a page load always agree
 import { liigaGameUrl, type LiigaGame } from "@/features/liiga";
-import type { CallDraft, MatchRenderer } from "@/features/live/server";
+import { roomScope, type CallDraft, type MatchRenderer } from "@/features/live/server";
 import { getSeasonContext, ifEndsNow } from "@/features/stakes/server";
 import { whatItMeansText } from "@/features/story/server";
 import { checkText } from "@/shared/guardrails";
@@ -10,7 +10,9 @@ import { clockIn, pct, periodName, whenLabel } from "./labels";
 import { chips, emptyStakes, factsFor, seasonStakesCard, stakesSide } from "./match";
 import { clipOf } from "./highlight";
 import { eventsOf, periodScoresOf } from "./match-parts";
-import { roomSummary } from "./social";
+import { triviaFor } from "./ask";
+import { boardRows, partyStandings } from "./presence";
+import { postLine } from "./social";
 import { teamBook } from "./teams";
 
 async function stakesFor(game: LiigaGame) {
@@ -19,6 +21,8 @@ async function stakesFor(game: LiigaGame) {
   const fixture = ctx.schedule.find((f) => f.id === game.id);
   return fixture ? gameStakes(ctx, fixture) : null;
 }
+
+const roomScopeCycle = (matchId: string) => roomScope(matchId).cycle;
 
 export const siteRenderer: MatchRenderer = {
   async render(_matchId, game, names) {
@@ -97,8 +101,22 @@ export const siteRenderer: MatchRenderer = {
     return checkText(line).length ? null : line;
   },
 
+  // the party as everyone sees it (broadcast: each page marks "you" itself)
   async leaderboard(matchId) {
-    const room = await roomSummary(matchId, null, false, 0, 10);
-    return { rows: room.leaderboard, watching: room.watching };
+    const p = await partyStandings(matchId);
+    return { rows: boardRows(p), watching: p.watching, members: p.members };
+  },
+
+  goalLine(game, goal) {
+    return `GOAL! ${game[goal.side].name} ${goal.homeScore}–${goal.awayScore} · ${clockIn(goal.gameTime, goal.period)}`;
+  },
+
+  async post(matchId, cycle, line) {
+    return (await postLine(matchId, cycle, line)) as unknown as Record<string, unknown> | null;
+  },
+
+  async trivia(matchId, _game, n) {
+    const q = await triviaFor(matchId, `${matchId}:${roomScopeCycle(matchId)}`, n);
+    return q && { question: q.question, options: q.options, answer: q.answer, fi: q.fi };
   },
 };

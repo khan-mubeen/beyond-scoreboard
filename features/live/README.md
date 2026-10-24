@@ -15,17 +15,21 @@ Server only, `@/features/live/server`:
 - watch party: `getRoomState(code, playerId?)`, `store`
 - engine: `startEngine(renderer)`, `engineMatch(id)`, `ensureLiveLoop(id, game)`, `activeReplays()`, `matchSince(id)`, `controlReplay(id, action)`
 - `answerCall(callId, userId, optionId)`, `publish(matchId, messages)`, `recentBroadcasts`, `phraseProblem`, `PHRASE_VARS`, `BUILT_IN`
+- leadership: `startLeadership()`, `stopLeadership()`, `isLeader()`, `leaderInfo()`, `onLeadership(fn)`, `INSTANCE`
+- the party: `roomScope(matchId)` (key, cycle, since), `refreshRoom(matchId)`, `TRIVIA_POINTS`, the renderer's `leaderboard`, `goalLine`, `post` and `trivia`
 
 Route handlers (`server/routes/`): the watch party's create, join, control, state, answers, wired up in `server/api.ts`. The engine's routes are in `features/site/server/routes/site.ts`.
 
 ## Layout
 
 - `engine/`: pure. `replay.ts` (a finished game as it stood at game time t, the replay clock), `rules.ts` (when a call opens, how it resolves, when it is cancelled), `phrases.ts` (call wordings)
-- `server/engine.ts`: one `MatchLoop` per match. A live game ticks every 5 s on the cached api, a replay every 1 s. Each tick locks, cancels or resolves calls, pays points, maybe opens the next call, re-renders on change and broadcasts. The site injects the renderer, so this feature never imports site
+- `server/engine.ts`: one `MatchLoop` per match. A live game ticks every 5 s on the cached api, a replay every 1 s, the rotation every 0.5 s. On the leader, each tick locks, cancels or resolves calls, pays points, maybe opens the next call or a trivia question (a play gap: no call open, 90 s since the last question, at most one per 2 minutes), posts goal and result lines to the party feed, re-reads the party every second, re-renders on change and broadcasts. On a follower the same loops are mirrors: they read the leader's calls from the database for their pages and never open, settle, pay or broadcast; a promoted follower adopts the calls it mirrored. The site injects the renderer, so this feature never imports site
+- `server/leader.ts`: the engine leader lease (`claim_engine_leader` in Postgres, renew 5 s, TTL 15 s, followers try every 2 s; memory db: always the leader)
 - `server/realtime.ts`: Supabase Realtime broadcast over REST on private `match:{id}` channels
 - `server/calls.ts`: answering a call
 - `replay/`, `calls/`, `components/`, `screens/`, `server/store.ts`: the watch party (in memory)
 - `scripts/fake-players.ts`: fans over http only, each with its own cookie
+- `scripts/demo-tunnel.ts`: `npm run demo:tunnel`, a cloudflare quick tunnel to the local server; tells the server its public address
 
 ## Rules that must hold
 

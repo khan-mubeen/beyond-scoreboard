@@ -6,25 +6,35 @@ import {
   type DbAnswer,
   type DbCall,
   type DbComment,
+  type DbFriendship,
+  type DbGuestPass,
+  type DbInvite,
   type DbNotification,
   type DbPoints,
+  type DbPresence,
   type DbRedemption,
   type DbRoom,
   type DbSubscription,
   type DbUser,
+  type NewComment,
 } from "./types";
 
 const now = () => new Date().toISOString();
+/** active presence: seen in the last 90 s (features/site/server/presence.ts) */
+const ACTIVE_MS = 90_000;
+const pairOf = (a: string, b: string): [string, string] => (a < b ? [a, b] : [b, a]);
 
 export function createMemoryDb(): Db {
   const users = new Map<string, DbUser>();
+  const friendCodes = new Map<string, string>();
   const rooms = new Map<string, DbRoom>();
   const members = new Map<string, Set<string>>();
   const calls = new Map<string, DbCall>();
   const answers: DbAnswer[] = [];
   const points: DbPoints[] = [];
-  const comments: DbComment[] = [];
+  const comments: (DbComment & { dedupeKey?: string })[] = [];
   const likes = new Set<string>();
+  const reactions: { commentId: string; userId: string; emoji: string }[] = [];
   const reminders = new Set<string>();
   const content = new Map<string, { content: unknown; source: "template" | "llm" }>();
   const phrases: { callType: string; lang: string; template: string; approved: boolean }[] = [];
@@ -33,6 +43,10 @@ export function createMemoryDb(): Db {
   const favorites = new Map<string, Set<string>>();
   const subscriptions: DbSubscription[] = [];
   const redemptions: DbRedemption[] = [];
+  const presence: DbPresence[] = [];
+  const friendships: DbFriendship[] = [];
+  const invites: DbInvite[] = [];
+  const passes: DbGuestPass[] = [];
 
   // the per-fan lock: spends of one fan run one after another (like pg_advisory_xact_lock)
   const queues = new Map<string, Promise<unknown>>();
@@ -49,6 +63,34 @@ export function createMemoryDb(): Db {
   // a real database answers later: without the lock, two spends would both pass the check here
   const io = () => new Promise((r) => setTimeout(r, 1));
   const readSub = (sub: DbSubscription): DbSubscription => ({ ...sub, status: sub.status !== "expired" && sub.expiresAt <= now() ? "expired" : sub.status });
+  const feedRow = (c: NewComment): DbComment & { dedupeKey?: string } => ({
+    id: randomUUID(),
+    matchId: c.matchId,
+    userId: c.userId,
+    text: c.text,
+    createdAt: now(),
+    hidden: false,
+    likes: 0,
+    kind: c.kind ?? "chat",
+    cycle: c.cycle ?? "",
+    data: c.data ?? null,
+  });
+  const copy = ({ dedupeKey: _k, ...c }: DbComment & { dedupeKey?: string }): DbComment => ({ ...c });
+  /** drops every row of the fans in `gone` from the lists that hold user ids */
+  function dropFans(gone: Set<string>) {
+    const keep = <T>(list: T[], has: (x: T) => boolean) => list.splice(0, list.length, ...list.filter((x) => !has(x)));
+    for (const list of [answers, points, notifications, subscriptions, redemptions, presence, reactions] as { userId: string }[][]) keep(list, (x) => gone.has(x.userId));
+    keep(comments, (c) => c.userId !== null && gone.has(c.userId));
+    keep(friendships, (f) => gone.has(f.userA) || gone.has(f.userB));
+    keep(invites, (i) => gone.has(i.inviterId) || (i.usedBy !== null && gone.has(i.usedBy)));
+    keep(passes, (p) => gone.has(p.userId));
+    for (const p of passes) if (p.grantedBy && gone.has(p.grantedBy)) p.grantedBy = null;
+    for (const id of gone) {
+      favorites.delete(id);
+      friendCodes.delete(id);
+    }
+    for (const set of members.values()) for (const id of gone) set.delete(id);
+  }
 
   return {
     mode: "memory",
@@ -76,15 +118,22 @@ export function createMemoryDb(): Db {
       },
       async remove(id) {
         users.delete(id);
-        favorites.delete(id);
-        for (const list of [answers, points, comments, notifications, subscriptions, redemptions] as { userId: string }[][]) {
-          const kept = list.filter((x) => x.userId !== id);
-          list.splice(0, list.length, ...kept);
-        }
-        for (const set of members.values()) set.delete(id);
+        dropFans(new Set([id]));
       },
       async getMany(ids) {
         return ids.map((id) => users.get(id)).filter((u): u is DbUser => !!u);
+      },
+      async getByFriendCode(code) {
+        const id = [...friendCodes.entries()].find(([, c]) => c === code)?.[0];
+        return id ? (users.get(id) ?? null) : null;
+      },
+      async setFriendCode(id, code) {
+        if ([...friendCodes.entries()].some(([other, c]) => c === code && other !== id)) return false;
+        friendCodes.set(id, code);
+        return true;
+      },
+      async friendCode(id) {
+        return friendCodes.get(id) ?? null;
       },
     },
     favorites: {
@@ -136,7 +185,10 @@ export function createMemoryDb(): Db {
         return ids.map((id) => calls.get(id)).filter((c): c is DbCall => !!c).map((c) => ({ ...c }));
       },
       async listForMatch(matchId) {
-        return [...calls.values()].filter((c) => c.matchId === matchId).sort((a, b) => a.openedAt.localeCompare(b.openedAt));
+        return [...calls.values()]
+          .filter((c) => c.matchId === matchId)
+          .sort((a, b) => a.openedAt.localeCompare(b.openedAt))
+          .map((c) => ({ ...c }));
       },
     },
     answers: {
@@ -243,19 +295,33 @@ export function createMemoryDb(): Db {
     },
     comments: {
       async create(c) {
-        const row: DbComment = { ...c, id: randomUUID(), createdAt: now(), hidden: false, likes: 0 };
+        const row = feedRow(c);
         comments.push(row);
-        return { ...row };
+        return copy(row);
+      },
+      async createOnce(c, dedupeKey) {
+        if (comments.some((x) => x.dedupeKey === dedupeKey)) return null;
+        const row = { ...feedRow(c), dedupeKey };
+        comments.push(row);
+        return copy(row);
       },
       async get(id) {
-        return comments.find((c) => c.id === id) ?? null;
+        const c = comments.find((x) => x.id === id);
+        return c ? copy(c) : null;
       },
-      async list(matchId, limit) {
+      async list(matchId, limit, opts = {}) {
+        const kinds = opts.kinds ?? ["chat", "system", "fact", "trivia"];
         return comments
-          .filter((c) => c.matchId === matchId && !c.hidden)
+          .filter((c) => c.matchId === matchId && !c.hidden && kinds.includes(c.kind) && (opts.cycle === undefined || c.cycle === opts.cycle))
           .sort((a, b) => b.createdAt.localeCompare(a.createdAt))
           .slice(0, limit)
-          .map((c) => ({ ...c }));
+          .map(copy);
+      },
+      async since(matchId, cycle, iso, kinds) {
+        return comments
+          .filter((c) => c.matchId === matchId && c.cycle === cycle && c.createdAt >= iso && kinds.includes(c.kind))
+          .sort((a, b) => a.createdAt.localeCompare(b.createdAt))
+          .map(copy);
       },
       async like(commentId, userId) {
         const k = `${commentId}:${userId}`;
@@ -265,6 +331,109 @@ export function createMemoryDb(): Db {
         if (c) c.likes++;
         return "ok";
       },
+      async react(commentId, userId, emoji) {
+        if (reactions.some((r) => r.commentId === commentId && r.userId === userId && r.emoji === emoji)) return "duplicate";
+        reactions.push({ commentId, userId, emoji });
+        return "ok";
+      },
+      async reactions(commentIds) {
+        return reactions.filter((r) => commentIds.includes(r.commentId)).map((r) => ({ ...r }));
+      },
+    },
+    presence: {
+      async beat(matchId, cycle, userId, at = now()) {
+        const row = presence.find((p) => p.matchId === matchId && p.cycle === cycle && p.userId === userId);
+        const fresh = !row || Date.parse(at) - Date.parse(row.lastSeen) >= ACTIVE_MS;
+        if (row) row.lastSeen = at;
+        else presence.push({ matchId, cycle, userId, joinedAt: at, lastSeen: at });
+        return { fresh };
+      },
+      async leave(matchId, cycle, userId) {
+        const row = presence.find((p) => p.matchId === matchId && p.cycle === cycle && p.userId === userId);
+        if (row) row.lastSeen = new Date(0).toISOString();
+      },
+      async list(matchId, cycle) {
+        return presence.filter((p) => p.matchId === matchId && p.cycle === cycle).map((p) => ({ ...p }));
+      },
+      async seenSince(userIds, iso) {
+        return presence
+          .filter((p) => userIds.includes(p.userId) && p.lastSeen >= iso)
+          .sort((a, b) => b.lastSeen.localeCompare(a.lastSeen))
+          .map((p) => ({ ...p }));
+      },
+    },
+    friends: {
+      async list(userId) {
+        return friendships.filter((f) => f.userA === userId || f.userB === userId).map((f) => ({ ...f }));
+      },
+      async request(from, to) {
+        const [a, b] = pairOf(from, to);
+        if (friendships.some((f) => f.userA === a && f.userB === b)) return "exists";
+        friendships.push({ userA: a, userB: b, status: "pending", requestedBy: from, createdAt: now() });
+        return "requested";
+      },
+      async accept(userId, otherId) {
+        const [a, b] = pairOf(userId, otherId);
+        const f = friendships.find((x) => x.userA === a && x.userB === b && x.status === "pending" && x.requestedBy === otherId);
+        if (!f) return false;
+        f.status = "accepted";
+        return true;
+      },
+      async connect(x, y, requestedBy) {
+        const [a, b] = pairOf(x, y);
+        const f = friendships.find((r) => r.userA === a && r.userB === b);
+        if (f) f.status = "accepted";
+        else friendships.push({ userA: a, userB: b, status: "accepted", requestedBy, createdAt: now() });
+      },
+      async remove(userId, otherId) {
+        const [a, b] = pairOf(userId, otherId);
+        const i = friendships.findIndex((f) => f.userA === a && f.userB === b);
+        if (i >= 0) friendships.splice(i, 1);
+      },
+    },
+    invites: {
+      async create(i) {
+        const row: DbInvite = { ...i, createdAt: now(), usedBy: null, usedAt: null };
+        invites.push(row);
+        return { ...row };
+      },
+      async get(code) {
+        const i = invites.find((x) => x.code === code);
+        return i ? { ...i } : null;
+      },
+      async openCount(inviterId) {
+        return invites.filter((i) => i.inviterId === inviterId && !i.usedBy).length;
+      },
+      async use(code, userId) {
+        const i = invites.find((x) => x.code === code && !x.usedBy);
+        if (!i) return null;
+        Object.assign(i, { usedBy: userId, usedAt: now() });
+        return { ...i };
+      },
+    },
+    passes: {
+      async get(userId) {
+        const p = passes.find((x) => x.userId === userId);
+        return p ? { ...p } : null;
+      },
+      async grant(userId, grantedBy) {
+        if (passes.some((p) => p.userId === userId)) return false;
+        passes.push({ userId, grantedBy, grantedAt: now(), usedAt: null, consumedMatchId: null, consumedCycle: null });
+        return true;
+      },
+      async consume(userId, matchId, cycle) {
+        const p = passes.find((x) => x.userId === userId && !x.usedAt);
+        if (!p) return null;
+        Object.assign(p, { usedAt: now(), consumedMatchId: matchId, consumedCycle: cycle });
+        return { ...p };
+      },
+    },
+    leader: {
+      // one process holds the memory store: it is always the leader
+      async claim(instance, ttlSeconds) {
+        return { leader: true, holder: instance, expiresAt: new Date(Date.now() + ttlSeconds * 1000).toISOString() };
+      },
+      async release() {},
     },
     reminders: {
       async set(userId, matchId) {
@@ -334,11 +503,9 @@ export function createMemoryDb(): Db {
         };
         // bots, and every fan who isn't seeded (created since `since`): with everything of theirs
         const bots = [...users.values()].filter((u) => u.isBot || (!seeded.has(u.id) && u.createdAt >= since));
-        for (const b of bots) {
-          users.delete(b.id);
-          favorites.delete(b.id);
-        }
         const gone = new Set(bots.map((b) => b.id));
+        const before = { friendships: friendships.length, invites: invites.length, passes: passes.length };
+        for (const b of bots) users.delete(b.id);
         const out = {
           users: bots.length,
           subscriptions: drop(subscriptions, (x) => gone.has(x.userId) || !keep(x.userId, x.createdAt)),
@@ -346,10 +513,16 @@ export function createMemoryDb(): Db {
           answers: drop(answers, (a) => gone.has(a.userId) || !keep(a.userId, a.answeredAt)),
           points: drop(points, (p) => gone.has(p.userId) || !keep(p.userId, p.createdAt)),
           notifications: drop(notifications, (n) => gone.has(n.userId) || n.createdAt >= since),
-          comments: drop(comments, (c) => gone.has(c.userId) || !keep(c.userId, c.createdAt)),
+          comments: drop(comments, (c) => (c.userId === null ? c.createdAt >= since : gone.has(c.userId) || !keep(c.userId, c.createdAt))),
           calls: 0,
           roomMembers: 0,
+          presence: drop(presence, () => true),
+          friendships: 0,
+          invites: 0,
+          guestPasses: 0,
         };
+        dropFans(gone);
+        Object.assign(out, { friendships: before.friendships - friendships.length, invites: before.invites - invites.length, guestPasses: before.passes - passes.length });
         for (const [id, c] of calls) {
           if (c.openedAt < since) continue;
           calls.delete(id);

@@ -135,6 +135,7 @@ const FILLERS_EN = (m: MatchFactsInput, l: MatchLedger) => {
     ...(d.oneGoal ? [`It was a tight game, and ${ph(d.winner)} won it by one goal.`] : []),
     `For ${ph(l.ids.team)}, every point counts in the race for the playoffs.`,
     `${ph(l.ids.home)} and ${ph(l.ids.away)} both had plenty on the line.`,
+    `${ph(l.ids.home)} played at home, ${ph(l.ids.away)} on the road, and the result moves the table for both.`,
   ];
 };
 
@@ -207,6 +208,7 @@ const FILLERS_FI = (m: MatchFactsInput, l: MatchLedger) => {
     ...(d.oneGoal ? [`${ph(d.winner)} voitti tiukan ottelun.`] : []),
     `${ph(l.ids.team, "all")} jokainen piste on tärkeä pudotuspelikilvassa.`,
     `Sekä ${ph(l.ids.home, "all")} että ${ph(l.ids.away, "all")} pelissä oli paljon.`,
+    `${ph(l.ids.home)} pelasi kotonaan, ja tulos vaikuttaa sarjataulukkoon sekä ${ph(l.ids.home, "all")} että ${ph(l.ids.away, "all")}.`,
   ];
 };
 

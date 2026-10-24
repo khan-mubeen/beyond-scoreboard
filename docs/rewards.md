@@ -47,7 +47,17 @@ On a live match the live stream is our hosted video (the demo rotation's highlig
 
 This is enforced on the server: for a fan without the plan, the match payload carries no video URL at all (`highlight: null`, `streamLock` instead), and goal clips link to liiga.fi. Rendered events are broadcast to everyone, so while the match is on they never carry the hosted URL.
 
-The host's TV (`?tv=1` with the host token) is never locked. A finished match's highlights are free for everyone. Your Call!, season stakes, events, stats, discussion, Watch Together and earning points are always free.
+The host's TV (`?tv=1` with the host token) is never locked. A finished match's highlights are free for everyone. Your Call!, season stakes, events, stats, the Watch Party (chat, trivia, ask the match) and earning points are always free.
+
+## The guest pass: a first live match free
+
+When a fan with a plan that includes the live stream invites someone (`/i/<code>`), the new fan gets one guest pass (`guest_passes`, one per fan, ever). It is checked in the same place as the live lock:
+
+- unused: the lock says "1 free live match from <inviter>" with "Watch free" (`POST /api/site/matches/:id/pass`), and still carries no video url;
+- used here: bound to that match and rotation cycle when first played, the stream plays until that match's summary ends;
+- used elsewhere (another match, or the same match in a later cycle): the lock says "Your free match is used — get Kaleva Sports Pass".
+
+A fan's invite without such a plan gives no pass. The inviter sees "Your friend gets their first live match free" on the invite. Trivia pays a fixed 10 points into the same ledger (reason `trivia: …`, once per fan per question).
 
 ## Partner offers
 

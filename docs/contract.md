@@ -75,7 +75,10 @@ Percentages are whole numbers 0-100. Changes are percentage points.
 - `SeasonStakes`: teamName, source, chance, change, before, now, nowLabel, steps, tableTitle, tableBadge, rows, worth `Record<GameOutcome, number>`
 - `Comment`: id, author, text
 - `CallItState`: call `PublicCall`, points, subtitle, secondsLeft, result `{ correctOptionId, split }`, lastCall (mock only: the real api sends result after the call locks)
-- `RoomLeaderboardRow`: rank, name, score, isYou? · `RoomSummary`: code, watching, subtitle, avatars, extraCount, leaderboardTitle, leaderboardNote, leaderboard, footnote?
+- `RoomLeaderboardRow`: userId?, rank, name, score, isYou? · `RoomSummary`: code, watching, subtitle, avatars, extraCount, leaderboardTitle, leaderboardNote, leaderboard (every participant, 0 points too), members?, footnote?
+- `Comment` (a party feed item): id, author, text, likes?, createdAt?, kind? `chat | system | fact | trivia`, userId?, reactions? (emoji → count), fact? `FactCard`, trivia? `{ callId, points }`
+- `FactCard`: question, answer, subject `{ name, photo, initials, team } | null`, source `"Liiga data"` · `Burst`: id, emoji, name, at · `PartyMember`: userId, name, active
+- `GuestPassInfo`: from, status `unused | active | used`, matchId · `FriendsPageData`: friendCode, friends, incoming, outgoing (`FriendItem`: userId, name, watching) · `InviteInfo`: code, inviter, match, freeMatch, used, yours · `InviteCreated`: code, url, freeMatch
 - `LiveMatchDetail` / `FinishedMatchDetail`, joined as `MatchDetail` by `status`. Shared fields: breadcrumbs, match, venue, dateLabel, spectators, stakesSummary, video, seasonStakes, events, eventsNote, stats, statsSource, statsNote. Live adds whatItMeans, discussion, guidelinesHref, callIt, room. Final adds whatItMeant (story is a `Content`), goalOfTheGame, yourNight, room, discussionHighlights, nextUp
 - `Subscription`: id, tag, title, description, priceLabel, included
 - `RewardOffer`: id, tag, title, description, costPoints (`null` = members only)
@@ -89,7 +92,8 @@ Percentages are whole numbers 0-100. Changes are percentage points.
 - `LiveCallStatus`: `open | locked | resolved | cancelled`
 - `LiveCall`: id, type, question, options, stakesLine, points (20), status, openedAt, locksAt (ms, server time), split (`%` per option, from the lock), correctOptionId (**only once resolved**), reason (why cancelled)
 - `LiveStakes`: chips, seasonStakes, whatItMeans
-- `LiveState`: matchId, serverNow, isReplay, status, clock `{ period, gameTime, label, clock }`, score, periodScores, events (newest first), stakes, call (open or locked), lastCall (resolved or cancelled), leaderboard, watching, me `{ userId, nickname, matchPoints, answers, rank, of }` (from the cookie, null for guests; "You're #rank of of"), rotation (demo mode: phase, phaseEndsAt, liveStartedAt, videoSec, durationSec, paused, next)
+- `LiveState`: matchId, serverNow, isReplay, status, clock `{ period, gameTime, label, clock }`, score, periodScores, events (newest first), stakes, call (open or locked), lastCall (resolved or cancelled), leaderboard (the party: every participant), watching, members, party `{ key, cycle }`, answered `{ callId, count }` (the open call's answer count, never a split before the lock), trivia (a `LiveCall` of type `trivia`, 10 points), feed and bursts (the polling fallback carries the party feed), server `{ role, instance }` (leader or follower), me `{ userId, nickname, matchPoints, answers, rank, of }` (from the cookie, null without a fan row), rotation (demo mode: phase, phaseEndsAt, liveStartedAt, videoSec, durationSec, paused, next)
+- `MeResponse` adds publicUrl, friendCode, friends (accepted ids), friendRequests, guestPass; `streamLock` adds guestPass `{ from }` and passUsed
 
 ## Call it! rules (`features/live/engine/rules.ts`)
 
@@ -202,16 +206,30 @@ Every request is validated with zod (400 with the reason). Every response has `a
 | `/api/site/profile`                | GET    |                                    | 200 `ProfileData` (call stats, achievements)                   |
 | `/api/site/calls`                  | GET    | `?view=recent\|history&match=`     | 200 `MyCallsData`                                              |
 | `/api/site/whatif`                 | POST   | `{ matchId, overrides: [{ gameId, outcome }] }` (≤ 4, home view) | 200 `WhatIfResult`, 400 played / unknown / repeat, 429 > 30/min ([what-if.md](what-if.md)) |
-| `/api/site/matches/:id/presence`   | POST   | `{ leave? }` (every 30 s while the page is visible) | 200 `{ watching }`, 409 not started; joins, leaves and timeouts broadcast `room` |
+| `/api/site/matches/:id/presence`   | POST   | `{ leave? }` (every 30 s while the page is visible) | 200 `{ watching, userId, party }`, 409 not started. Joins the match's party (a guest fan row on first visit); upserts `party_presence`; joins and leaves broadcast `room` |
 | `/api/site/rotation`               | GET    |                                    | 200 `RotationInfo` (phase, ends at, current, next), 404 when `DEMO_MODE` is off |
 | `/api/site/rotation/control`       | POST   | `{ action: restart\|skip\|pause\|resume }`, header `x-host-token` | 200, 403, 503                      |
 | `/api/site/matches/:id`            | GET    | id `2027-2701404`                  | 200 `MatchDetail` (`status: "preview"` before the game or its rotation lobby starts), 400, 404 |
 | `/api/site/matches/:id/state`      | GET    |                                    | 200 `LiveState`, 404, 409 not started                          |
-| `/api/site/matches/:id/join`       | POST   | `{ nickname?, roomCode?, bot? }` (`bot` needs `x-host-token`) | 200 `{ user, nickname, room }`, 404 unknown room code |
+| `/api/site/matches/:id/join`       | POST   | `{ nickname?, roomCode?, bot? }` (`bot` needs `x-host-token`) | 200 `{ user, nickname, room }`. Every fan is in the match's one public party; an old room code lands there too |
 | `/api/site/matches/:id/control`    | POST   | `{ action }`, header `x-host-token`| 200, 400, 403 wrong token, 409 no replay, 503 no `HOST_TOKEN`  |
 | `/api/site/calls/:callId/answer`   | POST   | `{ optionId }`                     | 201, 400, 404, 409 locked / cancelled / already answered       |
 | `/api/site/matches/:id/comments`   | GET    |                                    | 200 `{ comments }`                                             |
-| `/api/site/matches/:id/comments`   | POST   | `{ text }`, 1–280 characters       | 201 `{ comment }`, 401 no nickname, 422 too long or guardrails, 429 within 5 s |
+| `/api/site/matches/:id/comments`   | POST   | `{ text }`, 1–280 characters       | 201 `{ comment }`, 401 no nickname, 422 too long or guardrails, 429 within 5 s. A text starting with "?" goes to `/ask` |
+| `/api/site/matches/:id/bursts`     | POST   | `{ emoji }` (🔥 👏 😱 🏒)            | 201 `{ burst }`, 401 no nickname, 422 unknown, 429 within 2 s; broadcasts `burst` |
+| `/api/site/matches/:id/ask`        | POST   | `{ text }` (English or simple Finnish) | 201 `{ card, comment, posted: true }` (a fact card for the party), 200 `{ card, posted: false }` (not in the data, only to the asker), 401, 429 within 5 s |
+| `/api/site/matches/:id/pass`       | POST   |                                    | 200 (the guest pass is bound to this match and cycle), 404 no pass, 409 used elsewhere or not live |
+| `/api/site/comments/:id/react`     | POST   | `{ emoji }`                        | 201 `{ reactions }`, 401, 404, 409 already, 422; broadcasts `reaction` |
+| `/api/site/friends`                | GET    |                                    | 200 `FriendsPageData` |
+| `/api/site/friends/watching`       | GET    | `?match=`                          | 200 `{ friends: [{ userId, name, matchId, title }] }` (in a party now) |
+| `/api/site/friends/add`            | POST   | `{ code }`                         | 200 `{ status: requested \| friends }`, 400 own code, 401, 404 |
+| `/api/site/friends/:userId/accept` | POST   |                                    | 200, 404 no request |
+| `/api/site/friends/:userId/remove` | POST   |                                    | 200 (declines, cancels or unfriends) |
+| `/api/site/invites`                | POST   | `{ matchId? }`                     | 201 `InviteCreated` (`PUBLIC_BASE_URL/i/<code>`), 401, 409 ten open, 429 within 3 s |
+| `/api/site/invites/:code`          | GET    |                                    | 200 `InviteInfo`, 404 |
+| `/api/site/invites/:code/accept`   | POST   | `{ nickname? }`                    | 200 `{ matchId, friend, pass }` (friends, the party, a guest pass from a member), 401 no nickname, 404, 409 used |
+| `/api/site/public-url`             | POST   | `{ url }`, header `x-host-token`   | 200 (npm run demo:tunnel), 403, 503 |
+| `/healthz`                         | GET    |                                    | 200 `{ ok, role: leader \| follower, instance, db, uptimeSec }` |
 | `/api/site/comments/:id/like`      | POST   |                                    | 201, 404, 409 already liked                                    |
 | `/api/site/reminders`              | GET    |                                    | 200 `{ reminders }`                                            |
 | `/api/site/reminders`              | POST   | `{ matchId, on }`                  | 200 `{ matchId, on, reminders }`                               |
@@ -233,14 +251,20 @@ Sent by the server only (REST, secret key). Browsers subscribe with the publisha
 | `call_locked`    | callId, split, serverNow                                                |
 | `call_resolved`  | callId, correctOptionId, split, serverNow                               |
 | `call_cancelled` | callId, reason, serverNow                                               |
-| `leaderboard`    | leaderboard, watching                                                   |
-| `room`           | leaderboard, watching (active viewers: a heartbeat in the last 90 s, bots excluded), on every join, leave and timeout |
-| `comment`        | comment                                                                 |
+| `leaderboard`    | leaderboard, watching, members, at                                      |
+| `room`           | leaderboard (every participant), watching (active: a heartbeat in the last 90 s, bots excluded), members, at (when it was read: pages keep the newest), on every join, leave and timeout |
+| `comment`        | comment (chat, a goal or result line, a fact card, a trivia card)        |
 | `game_end`       | score, decidedIn, serverNow                                             |
+| `call_count`     | callId, answered (counts only; pages keep the highest)                  |
+| `trivia`         | trivia (`LiveCall`; the answer only once resolved), serverNow           |
+| `burst`          | burst `{ id, emoji, name, at }`                                         |
+| `reaction`       | commentId, reactions (emoji → count)                                    |
+
+Engine events (`state`, `stakes`, `call_*`, `trivia`, timeouts) come from the engine leader only. Request events (`comment`, `burst`, `reaction`, a join's `room`, an answer's `call_count`) come from the server that took the request; they are read from the database and stamped or monotonic, so two servers never conflict.
 
 ## Database (`supabase/migrations/`)
 
-`users` (+ `is_bot`, `language`, `notification_prefs`), `match_rooms`, `room_members`, `calls` (+ `i18n`: the Finnish wording), `answers` (unique per call and user), `points_ledger` (unique per user and call), `comments`, `comment_likes`, `reminders`, `content_cache`, `phrase_bank`, `notifications` (unique `dedupe_key`), `settings` (key → jsonb: the rotation clock), `user_favorites`, `user_subscriptions` (demo money + points; unique `idempotency_key`), `offer_redemptions` (unique per fan and offer). `points_ledger` has a `ref` and negative rows for spending (reasons `subscription`, `offer`). Functions: `purchase_subscription` and `redeem_offer`, one transaction each behind `pg_advisory_xact_lock` per fan, executable by the service role only. Storage: public buckets `highlights` (rotation videos and posters) and `match-audio` (summary MP3s). RLS is on for every table with no policies: only the server's secret key reads or writes. Repositories: `shared/db` (`Db` interface, Supabase and memory implementations).
+`users` (+ `is_bot`, `language`, `notification_prefs`, `friend_code` unique), `match_rooms`, `room_members`, `calls` (+ `i18n`: the Finnish wording; type `trivia` for party trivia, its answer in `resolves_rule` until the lock), `answers` (unique per call and user), `points_ledger` (unique per user and call), `comments` (the party feed: + `kind` chat / system / fact / trivia / burst, `cycle`, `data`, `dedupe_key` unique; `user_id` null for a system line), `comment_likes`, `comment_reactions` (one per fan, item and emoji), `reminders`, `content_cache`, `phrase_bank`, `notifications` (unique `dedupe_key`), `settings` (key → jsonb: the rotation clock, `engine_leader`, `public_base_url`), `user_favorites`, `user_subscriptions` (demo money + points; unique `idempotency_key`), `offer_redemptions` (unique per fan and offer), `party_presence` (match, cycle, user → joined_at, last_seen), `friendships` (user_a < user_b, pending / accepted, requested_by), `invites` (code, inviter, match, used_by once), `guest_passes` (one per fan: granted_by, used_at, consumed match and cycle). `points_ledger` has a `ref` and negative rows for spending (reasons `subscription`, `offer`). Functions: `purchase_subscription` and `redeem_offer`, one transaction each behind `pg_advisory_xact_lock` per fan; `claim_engine_leader(instance, ttl)` (one compare-and-set on the lease row) and `release_engine_leader(instance)`; all executable by the service role only. Storage: public buckets `highlights` (rotation videos and posters) and `match-audio` (summary MP3s). RLS is on for every table with no policies: only the server's secret key reads or writes. Repositories: `shared/db` (`Db` interface, Supabase and memory implementations).
 
 ## Mock data (`shared/mock/`)
 

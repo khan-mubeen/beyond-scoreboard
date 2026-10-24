@@ -1,21 +1,19 @@
-import { QRCodeSVG } from "qrcode.react";
-import type { LiveRotation, MatchSummary } from "@/shared/types";
+import type { LiveRotation, MatchSummary, MeResponse } from "@/shared/types";
 import { fmtCountdown, useServerNow } from "../data";
+import { joinUrl } from "./JoinAt";
 import { TeamLogo } from "./TeamLogo";
-import { roomUrl } from "./WatchTogetherCard";
 
-/** the rotation's lobby: who plays, "Starting soon" with a countdown, and the room's qr code */
-export function LobbyStage({ match, rotation, roomCode, tv = false }: { match: MatchSummary; rotation: LiveRotation; roomCode: string; tv?: boolean }) {
+/** the rotation's lobby: who plays, "Starting soon" with a countdown; the tv adds "Join at …" in big type */
+export function LobbyStage({ match, rotation, tv = false, me = null }: { match: MatchSummary; rotation: LiveRotation; tv?: boolean; me?: MeResponse | null }) {
   const now = useServerNow(500);
-  const url = roomUrl(roomCode, match.id);
   return (
     <section
       aria-label="Starting soon"
-      className={`grid items-center gap-6 rounded-card bg-dark p-6 text-dark-ink shadow-card md:grid-cols-[1fr_auto] ${tv ? "min-h-[60vh] p-10" : ""}`}
+      className={`grid items-center gap-6 rounded-card bg-dark p-6 text-dark-ink shadow-card ${tv ? "min-h-[60vh] p-10" : ""}`}
     >
       <div>
         <p className={`font-bold tracking-wider text-accent uppercase ${tv ? "text-2xl" : "text-sm"}`}>Starting soon</p>
-        <div className={`mt-3 flex items-center gap-4 font-bold ${tv ? "text-5xl" : "text-2xl"}`}>
+        <div className={`mt-3 flex flex-wrap items-center gap-4 font-bold ${tv ? "text-5xl" : "text-2xl"}`}>
           <TeamLogo team={match.home} size={tv ? 96 : 48} />
           <span>
             {match.home.name} <span className="opacity-60">vs</span> {match.away.name}
@@ -26,13 +24,11 @@ export function LobbyStage({ match, rotation, roomCode, tv = false }: { match: M
           {rotation.paused ? "Paused" : fmtCountdown(rotation.phaseEndsAt - now)}
         </p>
         <p className={`mt-2 opacity-90 ${tv ? "text-2xl" : "text-sm"}`}>Make your first call now: who wins? Answers close when the game starts.</p>
-      </div>
-      <div className="flex flex-col items-center gap-2">
-        <div className="rounded-lg bg-surface p-3">
-          <QRCodeSVG value={url} size={tv ? 320 : 160} title={`QR code for ${url}`} />
-        </div>
-        <p className={`font-semibold ${tv ? "text-2xl" : "text-sm"}`}>Scan to play along</p>
-        <p className="font-mono text-xs opacity-80">Room {roomCode}</p>
+        {tv && (
+          <p className="mt-8 text-5xl font-bold break-all" data-testid="join-at">
+            Join at <span className="font-mono text-accent">{joinUrl(me)}</span>
+          </p>
+        )}
       </div>
     </section>
   );

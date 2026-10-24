@@ -327,7 +327,7 @@ export interface NavLink {
   hasMenu?: boolean;
 }
 
-export type QuickLinkIcon = "home" | "calls" | "history" | "rewards" | "achievements" | "settings" | "leaderboard" | "teams" | "profile";
+export type QuickLinkIcon = "home" | "calls" | "history" | "rewards" | "achievements" | "settings" | "leaderboard" | "teams" | "profile" | "friends";
 
 export interface QuickLink {
   id: string;
@@ -607,7 +607,45 @@ export interface WhatIfResult extends ApiMeta {
 }
 
 /** someone's comment in the match discussion */
+/** what a party feed item is (bursts float over the page and never sit in the feed) */
+export type FeedItemKind = "chat" | "system" | "fact" | "trivia";
+
+/** "ask the match": an answer from liiga data, shown as a card in the party feed */
+export interface FactCard {
+  /** what the fan asked */
+  question: string;
+  answer: string;
+  /** the player (or team) it is about: their photo when the api has one, else initials */
+  subject: { name: string; photo: string | null; initials: string; team: string | null } | null;
+  source: "Liiga data";
+}
+
+/** a reaction that floats over everyone's screen for a moment */
+export interface Burst {
+  id: string;
+  emoji: string;
+  name: string;
+  /** ms epoch */
+  at: number;
+}
+
+/** someone in a match's watch party */
+export interface PartyMember {
+  userId: string;
+  name: string;
+  /** seen in the last 90 s */
+  active: boolean;
+}
+
 export interface Comment {
+  /** chat (default), system (a goal, a result), fact (an answer card), trivia (a question card) */
+  kind?: FeedItemKind;
+  /** the author's user id (null for a system line) */
+  userId?: string | null;
+  /** emoji -> how many reacted */
+  reactions?: Record<string, number>;
+  fact?: FactCard | null;
+  trivia?: { callId: string; points: number } | null;
   id: string;
   author: string;
   text: string;
@@ -627,6 +665,8 @@ export interface CallItState {
 }
 
 export interface RoomLeaderboardRow {
+  /** the fan (for the friends filter); absent on the design's mock rows */
+  userId?: string;
   rank: number | null;
   name: string;
   score: number | null;
@@ -643,6 +683,8 @@ export interface RoomSummary {
   leaderboardTitle: string;
   leaderboardNote: string;
   leaderboard: RoomLeaderboardRow[];
+  /** who is here now */
+  members?: PartyMember[];
   /** small print under the leaderboard */
   footnote?: string;
 }
@@ -673,7 +715,16 @@ interface MatchDetailBase {
   /** the match on liiga.fi ("Watch on liiga.fi", "Video not playing?") */
   liigaUrl?: string;
   /** the live stream needs a plan: the poster and the plan to offer (the video itself isn't sent) */
-  streamLock?: { planId: string; planName: string; priceLabel: string; poster: string | null } | null;
+  streamLock?: {
+    planId: string;
+    planName: string;
+    priceLabel: string;
+    poster: string | null;
+    /** an unused guest pass from a friend's invite: "Watch free" binds it to this match */
+    guestPass?: { from: string } | null;
+    /** the fan's free match was used on another match */
+    passUsed?: boolean;
+  } | null;
 }
 
 export interface LiveMatchDetail extends MatchDetailBase {
@@ -843,6 +894,21 @@ export interface LiveState {
   lastCall: LiveCall | null;
   leaderboard: RoomLeaderboardRow[];
   watching: number;
+  /** who is in the party now (active in the last 90 s) */
+  members?: PartyMember[];
+  /** the party this state is for: the match, and its rotation cycle ("" outside the rotation) */
+  party?: { key: string; cycle: string };
+  /** the open your call! question's answer count ("8 of 12 have answered"); no split before the lock */
+  answered?: { callId: string; count: number } | null;
+  /** the party trivia question (open, or the last one with its answer) */
+  trivia?: LiveCall | null;
+  /** polling carries what the channel does: the latest feed items (oldest first) and reaction bursts */
+  feed?: Comment[];
+  bursts?: Burst[];
+  /** which server answered and whether it runs the live engine (the ?debug=1 view) */
+  server?: { role: "leader" | "follower"; instance: string };
+  /** the browser's own: when the party data on screen was read on the server (the newest wins) */
+  roomAt?: number;
   /** demo rotation matches only: this match's phase and the video clock */
   rotation?: LiveRotation | null;
   /** the viewer (from the cookie): their answer to the current and last call, points, and room rank */
@@ -1070,6 +1136,62 @@ export interface MeResponse extends ApiMeta {
   wallet: { balance: number };
   /** running plans, one per plan */
   plans: { planId: string; name: string; until: string; cancelled: boolean; includesLiveStream: boolean }[];
+  /** where links to this site start (invites, "Join at …"): PUBLIC_BASE_URL, else this request's origin */
+  publicUrl?: string;
+  /** the fan's short code for "add friend" (null for a guest) */
+  friendCode?: string | null;
+  /** accepted friends' user ids */
+  friends?: string[];
+  /** pending friend requests to this fan */
+  friendRequests?: number;
+  /** one free live match from a member's invite */
+  guestPass?: GuestPassInfo | null;
+}
+
+export interface GuestPassInfo {
+  /** who invited the fan */
+  from: string;
+  /** unused: not played yet; active: bound to this match while it is on; used: spent */
+  status: "unused" | "active" | "used";
+  matchId: string | null;
+}
+
+/** GET /api/site/friends */
+export interface FriendsPageData extends ApiMeta {
+  friendCode: string | null;
+  friends: FriendItem[];
+  /** requests waiting for this fan's answer */
+  incoming: FriendItem[];
+  /** requests this fan sent */
+  outgoing: FriendItem[];
+}
+
+export interface FriendItem {
+  userId: string;
+  name: string;
+  /** in a watch party right now */
+  watching: { matchId: string; title: string } | null;
+}
+
+/** GET /api/site/invites/:code */
+export interface InviteInfo extends ApiMeta {
+  code: string;
+  inviter: string;
+  match: { id: string; title: string } | null;
+  /** the inviter has a plan with the live stream: the new fan's first live match is free */
+  freeMatch: boolean;
+  /** used by someone else already */
+  used: boolean;
+  /** you sent it */
+  yours: boolean;
+}
+
+/** POST /api/site/invites */
+export interface InviteCreated extends ApiMeta {
+  code: string;
+  url: string;
+  /** "Your friend gets their first live match free" */
+  freeMatch: boolean;
 }
 
 export interface NotificationItem {

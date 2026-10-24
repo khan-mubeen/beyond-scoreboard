@@ -18,7 +18,6 @@ Object.assign(process.env, {
   DEMO_REPLAY_SPEED: "600",
   DEMO_REPLAY_AUTOSTART: "false",
   CALL_ANSWER_SECONDS: "2",
-  DEMO_PROFILE: "false",
   LLM_ENABLED: "false",
 });
 for (const k of ["LIIGA_API_URL", "LIIGA_API_KEY", "SUPABASE_URL", "SUPABASE_SECRET_KEY", "SUPABASE_SERVICE_ROLE_KEY"]) delete process.env[k];

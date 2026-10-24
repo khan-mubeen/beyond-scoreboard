@@ -1,11 +1,11 @@
 // what the server checks when it starts: the liiga ping, the database, our zone lines vs the api.
-// then the live engine: the demo replay (DEMO_REPLAY_MATCH_ID) and any real game live now
+// then who runs the live engine: one server holds the leader lease (the others are followers that
+// serve http), and the engine: the demo rotation or replay and any real game live now
 import { initLiiga } from "@/features/liiga/server";
-import { startEngine } from "@/features/live/server";
+import { startEngine, startLeadership, stopLeadership } from "@/features/live/server";
 import { checkRulesAgainstApi } from "@/features/stakes/server";
 import { checkDb } from "@/shared/db";
 import { siteRenderer } from "../live-render";
-import { startPresenceSweep } from "../presence";
 import { assertPlans } from "../wallet";
 
 export async function startup() {
@@ -13,6 +13,17 @@ export async function startup() {
   assertPlans();
   await Promise.all([initLiiga(), checkDb()]);
   await checkRulesAgainstApi();
+  await startLeadership();
   await startEngine(siteRenderer).catch((err) => console.error(`live: engine did not start: ${(err as Error).message}`));
-  startPresenceSweep();
+}
+
+/** a clean stop (ctrl-c, a deploy): the lease goes at once, so another server takes over on its next try */
+export function stopOnSignals() {
+  for (const signal of ["SIGINT", "SIGTERM"] as const) {
+    process.once(signal, () => {
+      void stopLeadership().finally(() => process.exit(0));
+      // never hang on a slow database
+      setTimeout(() => process.exit(0), 1500).unref();
+    });
+  }
 }

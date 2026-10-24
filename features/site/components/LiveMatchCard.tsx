@@ -1,6 +1,6 @@
 import { NAMES } from "@/shared/copy/names";
 import type { FeaturedMatch, TeamRef } from "@/shared/types";
-import { fmtCountdown, useServerNow } from "../data";
+import { fmtCountdown, useFriendsWatching, useServerNow } from "../data";
 import { periodScoresText } from "../format";
 import { featuredQuestion } from "./featured-question";
 import { Icon } from "./Icon";
@@ -41,6 +41,8 @@ export function LiveMatchCard({ featured }: { featured: FeaturedMatch }) {
       ? { ...featured.match, status: state.status, score: state.score, periodScores: state.periodScores, periodLabel: state.clock.label, clock: state.clock.clock }
       : featured.match;
   const question = featuredQuestion(state, now);
+  // friends in this match's party right now (from the database presence)
+  const friends = useFriendsWatching(featured.match.id, featured.channel ?? false).data?.friends ?? [];
   return (
     <article
       aria-label={`${live ? "Live" : match.status === "final" ? "Final" : match.whenLabel}: ${match.home.name} against ${match.away.name}`}
@@ -73,6 +75,12 @@ export function LiveMatchCard({ featured }: { featured: FeaturedMatch }) {
           <Side team={match.away} />
         </div>
 
+        {friends.length > 0 && (
+          <p className="mx-auto mt-3 flex w-fit items-center gap-2 rounded-full bg-dark/80 px-3 py-1.5 text-sm font-semibold" data-testid="home-friends-watching">
+            <span aria-hidden className="size-2 animate-pulse rounded-full bg-good" />
+            {friends.length === 1 ? `${friends[0].name} is watching` : `${friends[0].name} and ${friends.length - 1} more friend${friends.length > 2 ? "s" : ""} are watching`}
+          </p>
+        )}
         <div className="mt-4 rounded-lg bg-dark/80 p-4">
           <div className="grid gap-4 lg:grid-cols-[1fr_auto]">
             <div>

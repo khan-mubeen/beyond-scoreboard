@@ -2,7 +2,9 @@
 export const NAMES = {
   /** the live prediction questions (was "Call It!") */
   call: "Your Call!",
-  /** the shared room board for a match */
-  watchTogether: "Watch Together",
+  /** a match's watch party: who's here, the chat, the board (was "Watch Together") */
+  party: "Watch Party",
+  /** kept for older screens: the same feature */
+  watchTogether: "Watch Party",
   rewards: "Kaleva Rewards",
 } as const;

@@ -26,7 +26,8 @@ export function toast(message: string, opts: ToastOptions = {}) {
   }, opts.ms ?? 2600);
 }
 
-const TONE = { neutral: "bg-dark text-dark-ink", good: "bg-good text-surface", bad: "bg-dark text-dark-ink ring-2 ring-accent" };
+// good is a green ring on dark: white text on the green itself is under 4.5:1
+const TONE = { neutral: "bg-dark text-dark-ink", good: "bg-dark text-dark-ink ring-2 ring-good", bad: "bg-dark text-dark-ink ring-2 ring-accent" };
 
 /** renders the toast, bottom centre, announced to screen readers */
 export function ToastProvider({ children }: { children: ReactNode }) {

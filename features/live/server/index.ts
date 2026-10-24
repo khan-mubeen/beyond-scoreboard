@@ -30,10 +30,16 @@ export {
   roomMatchNow,
   roomScope,
   startEngine,
+  TRIVIA_POINTS,
+  type PartyBoard,
+  type PartyLine,
   type RoomScope,
   type MatchRenderer,
   type RenderedMatch,
+  type TriviaDraft,
 } from "./engine";
+// one server runs the engine (a lease in the database); the others serve http
+export { INSTANCE, isLeader, leaderInfo, onLeadership, startLeadership, stopLeadership } from "./leader";
 // the demo rotation (DEMO_MODE=true)
 export { controlRotation, isRotationMatch, phaseOf, ROTATION_KEY, rotationConfig, rotationMatch, rotationNow } from "./rotation";
 export type { RotationAction, RotationNow } from "../engine/rotation";

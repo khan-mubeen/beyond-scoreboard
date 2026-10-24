@@ -37,7 +37,10 @@ export interface LiigaGoal {
   gameTime: number;
   period: number;
   scorer: string | null;
+  /** the scorer's player id, when the feed has it */
+  scorerId: number | null;
   assists: string[];
+  assistIds: number[];
   /** raw goalTypes codes, see docs/api/goal-types.md */
   types: string[];
   homeScore: number;
@@ -161,6 +164,43 @@ export interface LineupPlayer {
 export interface LiigaLineups {
   home: LineupPlayer[];
   away: LineupPlayer[];
+}
+
+/** a player in a game's roster, with what the feed says about them ("ask the match", trivia) */
+export interface RosterPlayer {
+  id: number;
+  teamId: string;
+  side: Side;
+  name: string;
+  firstName: string;
+  lastName: string;
+  jersey: number | null;
+  /** "LEFT_WING", "GOALKEEPER" */
+  role: string | null;
+  line: number | null;
+  /** "2000-04-16" */
+  birthDate: string | null;
+  birthPlace: string | null;
+  /** "FIN" */
+  birthCountry: string | null;
+  nationality: string | null;
+  /** cm, kg */
+  height: number | null;
+  weight: number | null;
+  captain: boolean;
+  pictureUrl: string | null;
+}
+
+export interface LiigaRoster {
+  home: RosterPlayer[];
+  away: RosterPlayer[];
+}
+
+/** a player's season so far (regular season, as of the league clock) */
+export interface PlayerSeasonStats {
+  games: number;
+  goals: number;
+  assists: number;
 }
 
 export interface LiigaGameSummary {

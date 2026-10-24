@@ -31,7 +31,6 @@ Object.assign(process.env, {
   SIM_RUNS: "300",
   HOST_TOKEN: HOST,
   CALL_ANSWER_SECONDS: "2",
-  DEMO_PROFILE: "false",
   LLM_ENABLED: "false",
 });
 for (const k of ["LIIGA_API_URL", "LIIGA_API_KEY", "SUPABASE_URL", "SUPABASE_SECRET_KEY", "SUPABASE_SERVICE_ROLE_KEY", "DEMO_REPLAY_MATCH_ID"]) delete process.env[k];
@@ -202,27 +201,34 @@ describe("rotation", () => {
     expect(page.status).toBe("final");
   }, 40_000);
 
-  it("the watch together board grows across the cycle's matches and starts over with match 1", async () => {
-    const board = async () => (await http("/leaderboard?scope=room")).body.entries.map((e: { nickname: string; score: number }) => [e.nickname, e.score]);
-    expect(await board()).toEqual([["Ada", 20]]);
-    // on to match 2: Ada's points from match 1 still count in the room
+  it("each match and cycle has its own party: everyone in it is on the board (0 points too), and it starts over", async () => {
+    const board = async (id: string) => ((await http(`/matches/${id}/state`)).body as LiveState).leaderboard.map((r) => [r.name, r.score]);
+    await control("restart");
+    await control("pause");
+    // Ada joins match 1's party: on the board at once, with 0 points
+    await http(`/matches/${ROTATION[0]}/join`, { method: "POST", body: { nickname: "Ada" } });
+    expect(await board(ROTATION[0])).toEqual([["Ada", 0]]);
+    expect((await http("/leaderboard?scope=room")).body.entries.map((e: { nickname: string }) => e.nickname)).toEqual(["Ada"]);
+    // on to match 2: its own party, nobody in it yet
+    await control("resume");
     await until("match 2", async () => {
       const r = await rotation();
       if (r.current.matchId === ROTATION[1]) return r;
       await control("skip");
       return null;
     });
-    expect(await board()).toEqual([["Ada", 20]]);
+    await control("pause");
+    expect(await board(ROTATION[1])).toEqual([]);
     // after match 1 is over, its page is back to "not played" (no result outside its own turn)
     expect(((await http(`/matches/${ROTATION[0]}`)).body as MatchDetail).match.score).toBeNull();
-    // a new cycle: the room board is empty again; season points stay
+    // a new cycle: match 1's party starts over; season points stay
     await control("restart");
-    expect((await rotation()).cycle).toBeGreaterThanOrEqual(0);
-    expect(await board()).toEqual([]);
+    expect(await board(ROTATION[0])).toEqual([]);
     // the balance is the welcome balance plus what was earned; the season board counts earned points only
     expect(((await http("/me")).body as MeResponse).user.points).toBe(WELCOME_POINTS_DEFAULT + 20);
     const season = (await http("/leaderboard?scope=season")).body.entries.find((e: { nickname: string }) => e.nickname === "Ada");
     expect(season.score).toBe(20);
+    await control("resume");
   }, 40_000);
 
   it("pause holds the phase, and the controls need the host token", async () => {

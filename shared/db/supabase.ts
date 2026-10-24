@@ -6,12 +6,18 @@ import {
   type DbAnswer,
   type DbCall,
   type DbComment,
+  type DbFriendship,
+  type DbGuestPass,
+  type DbInvite,
   type DbNotification,
   type DbPoints,
+  type DbPresence,
   type DbRedemption,
   type DbRoom,
   type DbSubscription,
   type DbUser,
+  type FeedKind,
+  type NewComment,
   type SpendResult,
 } from "./types";
 
@@ -129,12 +135,49 @@ function spendResult<T>(raw: unknown, key: "subscription" | "redemption", map: (
 const comment = (r: Row): DbComment => ({
   id: r.id as string,
   matchId: r.match_id as string,
-  userId: r.user_id as string,
+  userId: (r.user_id as string) ?? null,
   text: r.text as string,
-  createdAt: r.created_at as string,
+  createdAt: new Date(r.created_at as string).toISOString(),
   hidden: r.hidden as boolean,
   likes: ((r.comment_likes as { count: number }[] | undefined)?.[0]?.count as number) ?? 0,
+  kind: ((r.kind as FeedKind) ?? "chat") as FeedKind,
+  cycle: (r.cycle as string) ?? "",
+  data: (r.data as Record<string, unknown> | null) ?? null,
 });
+const commentRow = (c: NewComment) => ({ match_id: c.matchId, user_id: c.userId, text: c.text, kind: c.kind ?? "chat", cycle: c.cycle ?? "", data: c.data ?? null });
+const presenceOf = (r: Row): DbPresence => ({
+  matchId: r.match_id as string,
+  cycle: r.cycle as string,
+  userId: r.user_id as string,
+  joinedAt: new Date(r.joined_at as string).toISOString(),
+  lastSeen: new Date(r.last_seen as string).toISOString(),
+});
+const friendship = (r: Row): DbFriendship => ({
+  userA: r.user_a as string,
+  userB: r.user_b as string,
+  status: r.status as DbFriendship["status"],
+  requestedBy: r.requested_by as string,
+  createdAt: r.created_at as string,
+});
+const invite = (r: Row): DbInvite => ({
+  code: r.code as string,
+  inviterId: r.inviter_id as string,
+  matchId: (r.match_id as string) ?? null,
+  createdAt: r.created_at as string,
+  usedBy: (r.used_by as string) ?? null,
+  usedAt: (r.used_at as string) ?? null,
+});
+const pass = (r: Row): DbGuestPass => ({
+  userId: r.user_id as string,
+  grantedBy: (r.granted_by as string) ?? null,
+  grantedAt: r.granted_at as string,
+  usedAt: (r.used_at as string) ?? null,
+  consumedMatchId: (r.consumed_match_id as string) ?? null,
+  consumedCycle: (r.consumed_cycle as string) ?? null,
+});
+const pairOf = (a: string, b: string): [string, string] => (a < b ? [a, b] : [b, a]);
+/** a presence row this new was made by this heartbeat (the database clock runs a little apart from ours) */
+const JUST_JOINED_MS = 5000;
 
 const UNIQUE_VIOLATION = "23505";
 
@@ -184,6 +227,20 @@ export function createSupabaseDb(sb: SupabaseClient): Db {
       async getMany(ids) {
         if (!ids.length) return [];
         return must(await sb.from("users").select("*").in("id", ids)).map(user);
+      },
+      async getByFriendCode(code) {
+        const r = must(await sb.from("users").select("*").eq("friend_code", code).maybeSingle());
+        return r ? user(r) : null;
+      },
+      async setFriendCode(id, code) {
+        const res = await sb.from("users").update({ friend_code: code }).eq("id", id);
+        if (res.error?.code === UNIQUE_VIOLATION) return false;
+        must(res);
+        return true;
+      },
+      async friendCode(id) {
+        const r = must(await sb.from("users").select("friend_code").eq("id", id).maybeSingle()) as Row | null;
+        return (r?.friend_code as string) ?? null;
       },
     },
     favorites: {
@@ -320,21 +377,30 @@ export function createSupabaseDb(sb: SupabaseClient): Db {
     },
     comments: {
       async create(c) {
-        return comment(must(await sb.from("comments").insert({ match_id: c.matchId, user_id: c.userId, text: c.text }).select().single()));
+        return comment(must(await sb.from("comments").insert(commentRow(c)).select().single()));
+      },
+      async createOnce(c, dedupeKey) {
+        const res = await sb.from("comments").insert({ ...commentRow(c), dedupe_key: dedupeKey }).select().single();
+        if (res.error?.code === UNIQUE_VIOLATION) return null;
+        return comment(must(res));
       },
       async get(id) {
         const r = must(await sb.from("comments").select("*, comment_likes(count)").eq("id", id).maybeSingle());
         return r ? comment(r) : null;
       },
-      async list(matchId, limit) {
+      async list(matchId, limit, opts = {}) {
+        let q = sb
+          .from("comments")
+          .select("*, comment_likes(count)")
+          .eq("match_id", matchId)
+          .eq("hidden", false)
+          .in("kind", opts.kinds ?? ["chat", "system", "fact", "trivia"]);
+        if (opts.cycle !== undefined) q = q.eq("cycle", opts.cycle);
+        return must(await q.order("created_at", { ascending: false }).limit(limit)).map(comment);
+      },
+      async since(matchId, cycle, iso, kinds) {
         return must(
-          await sb
-            .from("comments")
-            .select("*, comment_likes(count)")
-            .eq("match_id", matchId)
-            .eq("hidden", false)
-            .order("created_at", { ascending: false })
-            .limit(limit),
+          await sb.from("comments").select("*").eq("match_id", matchId).eq("cycle", cycle).in("kind", kinds).gte("created_at", iso).order("created_at").limit(100),
         ).map(comment);
       },
       async like(commentId, userId) {
@@ -342,6 +408,119 @@ export function createSupabaseDb(sb: SupabaseClient): Db {
         if (res.error?.code === UNIQUE_VIOLATION) return "duplicate";
         must(res);
         return "ok";
+      },
+      async react(commentId, userId, emoji) {
+        const res = await sb.from("comment_reactions").insert({ comment_id: commentId, user_id: userId, emoji });
+        if (res.error?.code === UNIQUE_VIOLATION) return "duplicate";
+        must(res);
+        return "ok";
+      },
+      async reactions(commentIds) {
+        if (!commentIds.length) return [];
+        return must(await sb.from("comment_reactions").select("comment_id, user_id, emoji").in("comment_id", commentIds)).map((r) => ({
+          commentId: r.comment_id as string,
+          userId: r.user_id as string,
+          emoji: r.emoji as string,
+        }));
+      },
+    },
+    presence: {
+      // one round trip: the upsert says when the fan joined. a row made just now is a new fan in
+      // the party (fresh); one back after a timeout reaches the board on the leader's next read
+      async beat(matchId, cycle, userId, at = new Date().toISOString()) {
+        const r = must(
+          await sb.from("party_presence").upsert({ match_id: matchId, cycle, user_id: userId, last_seen: at }, { onConflict: "match_id,cycle,user_id" }).select("joined_at").single(),
+        ) as Row;
+        return { fresh: Math.abs(Date.parse(at) - Date.parse(r.joined_at as string)) < JUST_JOINED_MS };
+      },
+      async leave(matchId, cycle, userId) {
+        must(await sb.from("party_presence").update({ last_seen: new Date(0).toISOString() }).eq("match_id", matchId).eq("cycle", cycle).eq("user_id", userId));
+      },
+      async list(matchId, cycle) {
+        return must(await sb.from("party_presence").select("*").eq("match_id", matchId).eq("cycle", cycle).limit(2000)).map(presenceOf);
+      },
+      async seenSince(userIds, iso) {
+        if (!userIds.length) return [];
+        return must(await sb.from("party_presence").select("*").in("user_id", userIds).gte("last_seen", iso).order("last_seen", { ascending: false })).map(presenceOf);
+      },
+    },
+    friends: {
+      async list(userId) {
+        return must(await sb.from("friendships").select("*").or(`user_a.eq.${userId},user_b.eq.${userId}`)).map(friendship);
+      },
+      async request(from, to) {
+        const [a, b] = pairOf(from, to);
+        const res = await sb.from("friendships").insert({ user_a: a, user_b: b, status: "pending", requested_by: from });
+        if (res.error?.code === UNIQUE_VIOLATION) return "exists";
+        must(res);
+        return "requested";
+      },
+      async accept(userId, otherId) {
+        const [a, b] = pairOf(userId, otherId);
+        const rows = must(
+          await sb.from("friendships").update({ status: "accepted" }).eq("user_a", a).eq("user_b", b).eq("status", "pending").eq("requested_by", otherId).select(),
+        );
+        return rows.length > 0;
+      },
+      async connect(x, y, requestedBy) {
+        const [a, b] = pairOf(x, y);
+        must(await sb.from("friendships").upsert({ user_a: a, user_b: b, status: "accepted", requested_by: requestedBy }, { onConflict: "user_a,user_b" }));
+      },
+      async remove(userId, otherId) {
+        const [a, b] = pairOf(userId, otherId);
+        must(await sb.from("friendships").delete().eq("user_a", a).eq("user_b", b));
+      },
+    },
+    invites: {
+      async create(i) {
+        return invite(must(await sb.from("invites").insert({ code: i.code, inviter_id: i.inviterId, match_id: i.matchId }).select().single()));
+      },
+      async get(code) {
+        const r = must(await sb.from("invites").select("*").eq("code", code).maybeSingle());
+        return r ? invite(r) : null;
+      },
+      async openCount(inviterId) {
+        const res = await sb.from("invites").select("code", { count: "exact", head: true }).eq("inviter_id", inviterId).is("used_by", null);
+        if (res.error) throw new Error(`supabase: ${res.error.message}`);
+        return res.count ?? 0;
+      },
+      async use(code, userId) {
+        // one statement: only an unused invite is marked, so two visitors can't both use it
+        const rows = must(await sb.from("invites").update({ used_by: userId, used_at: new Date().toISOString() }).eq("code", code).is("used_by", null).select());
+        return rows.length ? invite(rows[0]) : null;
+      },
+    },
+    passes: {
+      async get(userId) {
+        const r = must(await sb.from("guest_passes").select("*").eq("user_id", userId).maybeSingle());
+        return r ? pass(r) : null;
+      },
+      async grant(userId, grantedBy) {
+        const res = await sb.from("guest_passes").insert({ user_id: userId, granted_by: grantedBy });
+        if (res.error?.code === UNIQUE_VIOLATION) return false;
+        must(res);
+        return true;
+      },
+      async consume(userId, matchId, cycle) {
+        const rows = must(
+          await sb
+            .from("guest_passes")
+            .update({ used_at: new Date().toISOString(), consumed_match_id: matchId, consumed_cycle: cycle })
+            .eq("user_id", userId)
+            .is("used_at", null)
+            .select(),
+        );
+        return rows.length ? pass(rows[0]) : null;
+      },
+    },
+    leader: {
+      // claim_engine_leader: one atomic compare-and-set on the settings row (see the migration)
+      async claim(instance, ttlSeconds) {
+        const r = must(await sb.rpc("claim_engine_leader", { p_instance: instance, p_ttl_seconds: ttlSeconds })) as Row;
+        return { leader: !!r.leader, holder: (r.instance as string) ?? null, expiresAt: (r.expiresAt as string) ?? null };
+      },
+      async release(instance) {
+        must(await sb.rpc("release_engine_leader", { p_instance: instance }));
       },
     },
     reminders: {
@@ -428,6 +607,11 @@ export function createSupabaseDb(sb: SupabaseClient): Db {
         out.comments = await count(unseeded(sb.from("comments").delete({ count: "exact" }).gte("created_at", since)));
         out.calls = await count(sb.from("calls").delete({ count: "exact" }).gte("opened_at", since));
         out.roomMembers = await count(unseeded(sb.from("room_members").delete({ count: "exact" }).gte("joined_at", "1970-01-01T00:00:00Z")));
+        // system lines (goals, results) have no author: they go with the rest of the feed
+        out.comments += await count(sb.from("comments").delete({ count: "exact" }).is("user_id", null).gte("created_at", since));
+        // a fresh party: nobody is in one. friendships, invites and passes of the fans above went
+        // with them (on delete cascade)
+        out.presence = await count(sb.from("party_presence").delete({ count: "exact" }).gte("joined_at", "1970-01-01T00:00:00Z"));
         return out;
       },
     },

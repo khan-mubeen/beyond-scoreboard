@@ -5,8 +5,8 @@ import { getDb } from "@/shared/db";
 import type { LeaderboardPageData, LeaderboardScope, SiteLeaderboardEntry } from "@/shared/types";
 import type { Viewer } from "./identity";
 import { weekStart } from "./labels";
-import { rankPoints } from "./points";
-import { roomStandings } from "./social";
+import { avatarFor, rankPoints } from "./points";
+import { partyStandings } from "./presence";
 import { NAMES } from "@/shared/copy/names";
 
 const TOP = 20;
@@ -14,7 +14,7 @@ const TOP = 20;
 const TITLES: Record<LeaderboardScope, { title: string; note: string }> = {
   weekly: { title: "Weekly Leaderboard", note: `Points from ${NAMES.call} this week, Monday to Sunday (Finnish time).` },
   season: { title: "Season Leaderboard", note: "Every point this season." },
-  room: { title: "Watch Together", note: "This room's points for tonight's matches." },
+  room: { title: "Watch Party", note: "Everyone in the match's party now, by points this match (0 points too)." },
 };
 
 export async function leaderboardPage(viewer: Viewer, scope: LeaderboardScope, now = new Date()): Promise<LeaderboardPageData> {
@@ -22,7 +22,15 @@ export async function leaderboardPage(viewer: Viewer, scope: LeaderboardScope, n
   let ranked: SiteLeaderboardEntry[] = [];
   if (scope === "room") {
     const matchId = roomMatchNow();
-    if (matchId) ranked = (await roomStandings(matchId, youId)).ranked;
+    if (matchId)
+      ranked = (await partyStandings(matchId)).ranked.map((e) => ({
+        playerId: e.userId,
+        nickname: e.name,
+        score: e.score,
+        rank: e.rank,
+        avatar: avatarFor(e.name),
+        ...(e.userId === youId && { isYou: true }),
+      }));
   } else {
     const since = scope === "weekly" ? weekStart(now).toISOString() : new Date(0).toISOString();
     ranked = await rankPoints(await getDb().points.listSince(since), Number.MAX_SAFE_INTEGER, youId);

@@ -1,0 +1,53 @@
+# render.com blueprint: one long-running web service (the api, the live engine and the built app in
+# one node process). render → new → blueprint → this repo. secrets are "sync: false": render asks
+# for them when the blueprint is applied; nothing secret is in this file. see docs/deploy.md
+services:
+  - type: web
+    name: kaleva-sports
+    runtime: node
+    # starter or above: a free service sleeps after 15 idle minutes, and the live engine with it
+    plan: starter
+    region: frankfurt
+    # dev dependencies too: vite and tailwind build the app
+    buildCommand: npm ci --include=dev && npm run build
+    startCommand: npm start
+    healthCheckPath: /healthz
+    # one instance. during a deploy render briefly runs the new one next to the old: the engine
+    # leader lease keeps exactly one of them running the live engine (the old one lets go on stop)
+    numInstances: 1
+    autoDeploy: false
+    envVars:
+      - key: NODE_VERSION
+        value: "22"
+      # the demo night: the pinned league clock, the highlight rotation, offline liiga data
+      - key: DEMO_MODE
+        value: "true"
+      - key: USE_SNAPSHOT
+        value: "true"
+      - key: LLM_ENABLED
+        value: "false"
+      - key: TTS_ENABLED
+        value: "false"
+      - key: WELCOME_POINTS
+        value: "1250"
+      - key: CALL_ANSWER_SECONDS
+        value: "20"
+      # https://<service>.onrender.com, or a custom domain. empty: the address the page came in on
+      - key: PUBLIC_BASE_URL
+        sync: false
+      # server only
+      - key: SUPABASE_URL
+        sync: false
+      - key: SUPABASE_SECRET_KEY
+        sync: false
+      - key: HOST_TOKEN
+        sync: false
+      - key: LIIGA_API_URL
+        sync: false
+      - key: LIIGA_API_KEY
+        sync: false
+      # browser-safe, read at build time (vite puts them in the bundle)
+      - key: VITE_SUPABASE_URL
+        sync: false
+      - key: VITE_SUPABASE_PUBLISHABLE_KEY
+        sync: false

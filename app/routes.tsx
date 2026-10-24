@@ -19,6 +19,9 @@ const LeaderboardPage = page(() => import("@/features/site/screens/LeaderboardPa
 const Guidelines = page(() => import("@/features/site/screens/Guidelines"), "Guidelines");
 const DemoControl = page(() => import("@/features/site/screens/DemoControl"), "DemoControl");
 const TvNow = page(() => import("@/features/site/screens/TvMatch"), "TvNow");
+const JoinNow = page(() => import("@/features/site/screens/TvMatch"), "JoinNow");
+const FriendsPage = page(() => import("@/features/site/screens/FriendsPage"), "FriendsPage");
+const InvitePage = page<{ code: string }>(() => import("@/features/site/screens/FriendsPage"), "InvitePage");
 const TeamsPage = page(() => import("@/features/site/screens/TeamsPage"), "TeamsPage");
 const TeamPage = page<{ slug: string }>(() => import("@/features/site/screens/TeamPage"), "TeamPage");
 const ProfilePage = page(() => import("@/features/site/screens/ProfilePage"), "ProfilePage");
@@ -50,6 +53,10 @@ const ROUTES: [RegExp, (params: string[]) => ReactNode, Theme][] = [
   [/^\/guidelines$/, () => <Guidelines />, "site"],
   [/^\/demo\/control$/, () => <DemoControl />, "site"],
   [/^\/tv$/, () => <TvNow />, "site"],
+  // the watch party: the short address on the tv, friends, invite links
+  [/^\/join$/, () => <JoinNow />, "site"],
+  [/^\/friends$/, () => <FriendsPage />, "site"],
+  [/^\/i\/([A-Za-z0-9]{6,12})$/, ([code]) => <InvitePage code={code} />, "site"],
   [/^\/calls$/, () => <MyCalls />, "site"],
   [/^\/calls\/history$/, () => <CallHistory />, "site"],
   [/^\/teams$/, () => <TeamsPage />, "site"],

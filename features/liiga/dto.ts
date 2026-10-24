@@ -13,13 +13,16 @@ export interface TeamLogosDTO {
 }
 
 export interface SimplePlayerDTO {
+  playerId?: number | null;
   firstName?: string | null;
   lastName?: string | null;
   jersey?: number | null;
 }
 
 export interface GoalEventDTO {
+  scorerPlayerId?: number | null;
   scorerPlayer?: SimplePlayerDTO | null;
+  assistantPlayerIds?: number[] | null;
   winningGoal?: boolean | null;
   gameTime: number;
   period: number;
@@ -173,11 +176,30 @@ export type TeamsDTO = Record<string, TeamDTO[]>;
 export interface PlayerDTO {
   id?: number | null;
   teamId?: string | null;
+  teamName?: string | null;
   line?: number | null;
   firstName?: string | null;
   lastName?: string | null;
   role?: string | null;
+  /** "VL", "KH", "MV" (finnish position codes) */
+  roleCode?: string | null;
   jersey?: number | null;
+  /** "2000-04-16" */
+  dateOfBirth?: string | null;
+  placeOfBirth?: string | null;
+  /** iso 3166 alpha-3, "FIN" */
+  countryOfBirth?: string | null;
+  nationality?: string | null;
+  handedness?: string | null;
+  /** cm */
+  height?: number | null;
+  /** kg */
+  weight?: number | null;
+  captain?: boolean | null;
+  alternateCaptain?: boolean | null;
+  rookie?: boolean | null;
+  pictureUrl?: string | null;
+  removed?: boolean | null;
 }
 
 export interface GameDetailsDTO {

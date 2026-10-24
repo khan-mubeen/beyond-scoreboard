@@ -22,8 +22,6 @@ export const SITE = {
   /** points needed for each level, level 1 starts at 0 */
   levels: [0, 50, 150, 300, 500, 750, 1000, 1500, 2000, 2750, 3500, 4500],
   callPoints: 20,
-  /** guests see this seeded profile in the sidebar until they join (DEMO_PROFILE=false turns it off) */
-  demoAnonId: "seed:mikko-korhonen",
 } as const;
 
 /** subscriptions come from shared/config/plans.ts, the history from the db */

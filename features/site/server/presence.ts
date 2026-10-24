@@ -1,67 +1,121 @@
-// who is watching a match right now, for the watch together count: every match page sends a
-// heartbeat every 30 s while it is visible, and a leave when it is hidden or closed. a viewer
-// counts while seen in the last 90 s; bots never count. in memory (one server process)
-import { refreshRoom } from "@/features/live/server";
+// who is in a match's watch party. every match page sends a heartbeat every 30 s while it is
+// visible (and a leave when it is hidden or closed); each one upserts the fan's party_presence
+// row, so every server agrees on who is here. a fan is active (watching) while seen in the last
+// 90 s; bots never count. the party is the match plus its rotation cycle (roomScope): everyone
+// who opens the match joins it, and its board lists every participant, 0 points included.
+// the leader's engine re-reads the party every second and broadcasts "room" when it changes
+import { publish, roomScope } from "@/features/live/server";
+import { getDb, type DbUser } from "@/shared/db";
+import { isEarned } from "@/shared/points";
+import type { PartyMember, RoomLeaderboardRow } from "@/shared/types";
+import { displayName } from "./identity";
+import { botIds } from "./points";
 
 export const ACTIVE_MS = 90_000;
-/** how often timed-out viewers are swept (and the count re-broadcast) */
-const SWEEP_MS = 15_000;
 
-/** match -> viewer (the anonymous cookie id) -> last seen */
-const seen = new Map<string, Map<string, number>>();
-
-/** a heartbeat; true when the viewer wasn't counted before (the count went up) */
-export function heartbeat(matchId: string, viewer: string, now = Date.now()): boolean {
-  const m = seen.get(matchId) ?? new Map<string, number>();
-  seen.set(matchId, m);
-  const was = m.get(viewer);
-  m.set(viewer, now);
-  return was === undefined || now - was >= ACTIVE_MS;
-}
-
-/** the page closed; true when the viewer was counted (the count went down) */
-export function leave(matchId: string, viewer: string, now = Date.now()): boolean {
-  const m = seen.get(matchId);
-  const was = m?.get(viewer);
-  m?.delete(viewer);
-  return was !== undefined && now - was < ACTIVE_MS;
-}
-
-export function watchingCount(matchId: string, now = Date.now()): number {
-  let n = 0;
-  for (const t of seen.get(matchId)?.values() ?? []) if (now - t < ACTIVE_MS) n++;
-  return n;
-}
-
-/** drops viewers not seen for 90 s; the matches whose count went down */
-export function expire(now = Date.now()): string[] {
-  const changed: string[] = [];
-  for (const [matchId, m] of seen) {
-    let dropped = false;
-    for (const [viewer, t] of m) {
-      if (now - t >= ACTIVE_MS) {
-        m.delete(viewer);
-        dropped = true;
-      }
-    }
-    if (dropped) changed.push(matchId);
-    if (!m.size) seen.delete(matchId);
+/**
+ * a join or a leave changed the party: the server that took the request tells everyone at once,
+ * from the database (the one source of truth), stamped with when it was read. pages keep the
+ * newest stamp, so two servers never make the count flap. the leader's engine also re-reads the
+ * party every second (timeouts) and stamps its own broadcasts the same way
+ */
+export async function roomChanged(matchId: string) {
+  try {
+    standings.delete(matchId);
+    const at = Date.now();
+    const p = await partyStandings(matchId);
+    await publish(matchId, [{ event: "room", payload: { leaderboard: boardRows(p), watching: p.watching, members: p.members, at } }]);
+  } catch (err) {
+    console.warn(`presence: ${(err as Error).message}`);
   }
-  return changed;
 }
 
-/** the count or the board changed: everyone on the match page hears it (the room event) */
-export const roomChanged = (matchId: string) => refreshRoom(matchId).catch((err) => console.warn(`presence: ${(err as Error).message}`));
-
-let sweeping: ReturnType<typeof setInterval> | null = null;
-export function startPresenceSweep() {
-  sweeping ??= setInterval(() => {
-    for (const matchId of expire()) void roomChanged(matchId);
-  }, SWEEP_MS);
-  sweeping.unref?.();
+/** a heartbeat: the fan is in the party and active. true when they weren't active before */
+export async function heartbeat(matchId: string, user: DbUser): Promise<boolean> {
+  if (user.isBot) return false;
+  const { fresh } = await getDb().presence.beat(matchId, roomScope(matchId).cycle, user.id);
+  standings.delete(matchId);
+  if (fresh) void roomChanged(matchId);
+  return fresh;
 }
+
+/** the page closed: no longer watching, still on the party's board */
+export async function leave(matchId: string, user: DbUser) {
+  await getDb().presence.leave(matchId, roomScope(matchId).cycle, user.id);
+  standings.delete(matchId);
+  void roomChanged(matchId);
+}
+
+export interface PartyEntry {
+  userId: string;
+  name: string;
+  score: number;
+  rank: number;
+  active: boolean;
+  joinedAt: string;
+}
+
+export interface PartyStandings {
+  key: string;
+  cycle: string;
+  /** everyone who joined this party (and anyone who scored in it), best first; equal points share a rank */
+  ranked: PartyEntry[];
+  watching: number;
+  /** active now, the latest first */
+  members: PartyMember[];
+}
+
+async function computeStandings(matchId: string, now = Date.now()): Promise<PartyStandings> {
+  const db = getDb();
+  const scope = roomScope(matchId);
+  const [rows, bots, points] = await Promise.all([db.presence.list(matchId, scope.cycle), botIds(), db.points.listSince(scope.since, matchId)]);
+  const joined = new Map(rows.filter((r) => !bots.has(r.userId)).map((r) => [r.userId, r]));
+  // earned points in this party: this match since the cycle (or run) began
+  const score = new Map<string, number>();
+  for (const p of points) if (!bots.has(p.userId) && isEarned(p)) score.set(p.userId, (score.get(p.userId) ?? 0) + p.points);
+  const ids = [...new Set([...joined.keys(), ...score.keys()])];
+  const users = new Map((await db.users.getMany(ids)).map((u) => [u.id, u]));
+  const active = (id: string) => {
+    const r = joined.get(id);
+    return !!r && now - Date.parse(r.lastSeen) < ACTIVE_MS;
+  };
+  const sorted = ids
+    .map((id) => ({ id, score: score.get(id) ?? 0, joinedAt: joined.get(id)?.joinedAt ?? new Date(now).toISOString() }))
+    .sort((a, b) => b.score - a.score || a.joinedAt.localeCompare(b.joinedAt));
+  const ranked = sorted.map((e) => ({
+    userId: e.id,
+    name: displayName(users.get(e.id)),
+    score: e.score,
+    rank: 1 + sorted.filter((x) => x.score > e.score).length,
+    active: active(e.id),
+    joinedAt: e.joinedAt,
+  }));
+  const members = [...joined.values()]
+    .filter((r) => active(r.userId))
+    .sort((a, b) => b.lastSeen.localeCompare(a.lastSeen))
+    .map((r) => ({ userId: r.userId, name: displayName(users.get(r.userId)), active: true }));
+  return { key: scope.key, cycle: scope.cycle, ranked, watching: members.length, members };
+}
+
+// shared by every poll and the engine's board for a moment: many viewers, one set of queries.
+// per party (match and cycle): a new cycle never sees the last one's board
+const standings = new Map<string, { at: number; key: string; value: Promise<PartyStandings> }>();
+export function partyStandings(matchId: string): Promise<PartyStandings> {
+  const scope = roomScope(matchId);
+  const key = `${scope.cycle}|${scope.since}`;
+  const hit = standings.get(matchId);
+  if (hit && hit.key === key && Date.now() - hit.at < 500) return hit.value;
+  const value = computeStandings(matchId);
+  value.catch(() => standings.delete(matchId));
+  standings.set(matchId, { at: Date.now(), key, value });
+  return value;
+}
+
+/** the board rows everyone sees (broadcast: "you" is marked by each page) */
+export const boardRows = (p: PartyStandings, top = 50): RoomLeaderboardRow[] =>
+  p.ranked.slice(0, top).map((e) => ({ userId: e.userId, rank: e.rank, name: e.name, score: e.score }));
 
 /** tests */
 export function resetPresence() {
-  seen.clear();
+  standings.clear();
 }

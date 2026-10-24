@@ -31,6 +31,7 @@ const PATHS = {
   leaderboard: "M4 21v-8h5v8M10 21V7h4v14M15 21v-5h5v5",
   teams: "M12 3l8 3v6c0 5-3.5 8-8 9-4.5-1-8-4-8-9V6z",
   profile: "M12 12a4 4 0 1 0 0-8 4 4 0 0 0 0 8zM4 21a8 8 0 0 1 16 0",
+  friends: "M9 11a4 4 0 1 0 0-8 4 4 0 0 0 0 8zM2 21a7 7 0 0 1 14 0M16 3.5a4 4 0 0 1 0 7M22 21a7 7 0 0 0-4.5-6.5",
   volume: "M4 9h4l5-4v14l-5-4H4zM16 9a4 4 0 0 1 0 6M19 6a8 8 0 0 1 0 12",
   volumeOff: "M4 9h4l5-4v14l-5-4H4zM17 9l4 6M21 9l-4 6",
   tv: "M3 6h18v12H3zM8 21h8",

@@ -4,7 +4,7 @@ import { Router, type NextFunction, type Request, type RequestHandler, type Resp
 import { z } from "zod";
 import { findGamblingFields } from "@/features/liiga";
 import { getStandings, getSeason } from "@/features/liiga/server";
-import { answerCall, controlReplay, controlRotation, engineMatch, publish, refreshRotation } from "@/features/live/server";
+import { answerCall, controlReplay, controlRotation, engineMatch, publish, refreshRotation, roomScope } from "@/features/live/server";
 import { forecastNow, getSeasonContext } from "@/features/stakes/server";
 import { demoMode, leagueNow } from "@/shared/clock";
 import { getDb } from "@/shared/db";
@@ -20,10 +20,13 @@ import { viewerSummary } from "../points";
 import { myCalls, profilePage } from "../profile";
 import { rewardsPage } from "../rewards";
 import { teamPage, teamsPage } from "../teams-page";
-import { joinMatch, postComment, recentComments } from "../social";
-import { liveStateFor } from "../state";
+import { askMatch } from "../ask";
+import { acceptFriend, acceptInvite, addFriend, createInvite, FriendError, friendsPage, friendsWatching, inviteInfo, removeFriend, usePass } from "../friends";
+import { postBurst, postComment, postFact, react, recentComments } from "../social";
+import { publicBaseUrl, reportPublicUrl } from "../public-url";
+import { answerCount, answerCountChanged, liveStateFor } from "../state";
 import { allowWhatIf, WHAT_IF_MAX, whatIf, WhatIfError } from "../whatif";
-import { heartbeat, leave, roomChanged, watchingCount } from "../presence";
+import { heartbeat, leave, partyStandings } from "../presence";
 import { matchStarted, NOT_STARTED } from "../started";
 import { cancel, purchase, redeemOffer, WalletError } from "../wallet";
 
@@ -37,6 +40,13 @@ const schemas = {
   leaderboard: z.object({ scope: z.enum(["weekly", "season", "room"]).default("weekly") }),
   answer: z.object({ optionId: z.string().min(1).max(40) }),
   comment: z.object({ text: z.string().max(400) }),
+  ask: z.object({ text: z.string().trim().min(1).max(200) }),
+  emoji: z.object({ emoji: z.string().min(1).max(8) }),
+  friendCode: z.object({ code: z.string().trim().min(4).max(12) }),
+  invite: z.object({ matchId: matchId.nullable().optional() }),
+  inviteCode: z.string().regex(/^[A-Z0-9]{6,12}$/),
+  accept: z.object({ nickname: nickname.optional() }),
+  publicUrl: z.object({ url: z.string().url().max(200) }),
   reminder: z.object({ matchId, on: z.boolean().default(true) }),
   standings: z.object({ live: z.enum(["true", "false"]).default("true") }),
   control: z.object({ action: z.enum(["start", "pause", "resume", "skip", "reset"]) }),
@@ -93,7 +103,7 @@ siteRouter.get(
 
 siteRouter.get(
   "/me",
-  handle(async (req, res) => mePage(await viewerOf(req, res))),
+  handle(async (req, res) => mePage(await viewerOf(req, res), publicBaseUrl(req))),
 );
 
 siteRouter.post(
@@ -208,7 +218,10 @@ siteRouter.get(
   }),
 );
 
-/** the page is open (a heartbeat every 30 s while visible) or closed ({ leave: true }) */
+/**
+ * the page is open (a heartbeat every 30 s while visible) or closed ({ leave: true }). opening a
+ * match joins its party: a first-time visitor becomes a guest fan (a row, the welcome balance)
+ */
 siteRouter.post(
   "/matches/:id/presence",
   handle(async (req, res) => {
@@ -218,8 +231,13 @@ siteRouter.post(
     if (started === null) return void res.status(404).json({ error: "match not found" });
     if (!started) return void res.status(409).json(NOT_STARTED);
     const v = await viewerOf(req, res);
-    if (!v.user?.isBot && (going ? leave(id, v.anonId) : heartbeat(id, v.anonId))) await roomChanged(id);
-    return { watching: watchingCount(id), ...asOfNow() };
+    if (going) {
+      if (v.user) await leave(id, v.user);
+    } else {
+      await heartbeat(id, await ensureUser(v));
+    }
+    const party = await partyStandings(id);
+    return { watching: party.watching, userId: v.user?.id ?? null, party: { key: party.key, cycle: party.cycle }, ...asOfNow() };
   }),
 );
 
@@ -234,14 +252,11 @@ siteRouter.post(
     if (!started) return void res.status(409).json(NOT_STARTED);
     const v = await viewerOf(req, res);
     const user = await ensureUser(v, body.nickname, !!body.bot);
-    const room = await joinMatch(id, user.id, body.roomCode);
-    if (!room) return void res.status(404).json({ error: "room not found" });
-    // a fan joined: they're watching, and everyone's board and count change (bots never count)
-    if (!user.isBot) {
-      heartbeat(id, v.anonId);
-      await roomChanged(id);
-    }
-    return { user: await viewerSummary(user), nickname: user.nickname, room: { code: room.code, matchId: room.matchId }, ...asOfNow() };
+    // every fan on a match is in its one public party: an old room code (a qr from another
+    // cycle, a typo) can't put anyone in a separate room. bots never count
+    await heartbeat(id, user);
+    const scope = roomScope(id);
+    return { user: await viewerSummary(user), nickname: user.nickname, room: { code: "PARTY", matchId: id, cycle: scope.cycle }, ...asOfNow() };
   }),
 );
 
@@ -279,6 +294,10 @@ siteRouter.post(
     const user = await ensureUser(v);
     const result = await answerCall(callId, user.id, optionId);
     if (result.status !== 201) return void res.status(result.status).json({ error: result.error });
+    // "8 of 12 have answered" for everyone at once (counts only; the leader's engine also sends it
+    // every second, and pages keep the highest count, so the order of the two never matters)
+    answerCountChanged(callId);
+    if (call && call.type !== "trivia") void answerCount(callId).then((n) => publish(call.matchId, [{ event: "call_count", payload: { callId, answered: n, serverNow: Date.now() } }]));
     res.status(201);
     return { ok: true, callId, optionId, ...asOfNow() };
   }),
@@ -299,6 +318,8 @@ siteRouter.post(
     const { text } = schemas.comment.parse(req.body ?? {});
     const v = await viewerOf(req, res);
     if (!v.user?.nickname) return void res.status(401).json({ error: "pick a nickname first" });
+    // a message starting with "?" asks the match instead (the fact card goes to the party)
+    if (text.trim().startsWith("?")) return void res.redirect(307, `/api/site/matches/${id}/ask`);
     const result = await postComment(id, v.user.id, text);
     if ("error" in result) return void res.status(result.status).json({ error: result.error });
     void publish(id, [{ event: "comment", payload: { comment: result } }]);
@@ -423,6 +444,177 @@ siteRouter.post(
 siteRouter.post(
   "/offers/:id/redeem",
   handle(wallet(async (req, res) => redeemOffer(await viewerOf(req, res), schemas.offerId.parse(req.params.id)))),
+);
+
+// ---------- the watch party: reactions, ask the match, the guest pass ----------
+
+/** a started match, else the 404 / 409 answer was sent */
+async function started(id: string, res: Response): Promise<boolean> {
+  const s = await matchStarted(id);
+  if (s === null) res.status(404).json({ error: "match not found" });
+  else if (!s) res.status(409).json(NOT_STARTED);
+  return !!s;
+}
+
+/** a reaction that floats over everyone's screen (one every 2 s per fan) */
+siteRouter.post(
+  "/matches/:id/bursts",
+  handle(async (req, res) => {
+    const id = matchId.parse(req.params.id);
+    const { emoji } = schemas.emoji.parse(req.body ?? {});
+    if (!(await started(id, res))) return;
+    const v = await viewerOf(req, res);
+    if (!v.user?.nickname) return void res.status(401).json({ error: "pick a nickname first" });
+    const burst = await postBurst(id, v.user, emoji);
+    if ("error" in burst) return void res.status(burst.status).json({ error: burst.error });
+    void publish(id, [{ event: "burst", payload: { burst } }]);
+    res.status(201);
+    return { burst, ...asOfNow() };
+  }),
+);
+
+/** an emoji on a message in the feed */
+siteRouter.post(
+  "/comments/:id/react",
+  handle(async (req, res) => {
+    const id = z.string().uuid().parse(req.params.id);
+    const { emoji } = schemas.emoji.parse(req.body ?? {});
+    const v = await viewerOf(req, res);
+    if (!v.user?.nickname) return void res.status(401).json({ error: "pick a nickname first" });
+    const r = await react(id, v.user.id, emoji);
+    if ("error" in r) return void res.status(r.status).json({ error: r.error });
+    void publish(r.matchId, [{ event: "reaction", payload: { commentId: id, reactions: r.reactions } }]);
+    res.status(201);
+    return { commentId: id, reactions: r.reactions, ...asOfNow() };
+  }),
+);
+
+const ASK_EVERY_MS = 5000;
+const lastAsk = new Map<string, number>();
+
+/** "ask the match": an answer from liiga data, as a fact card for the whole party (one ask every 5 s) */
+siteRouter.post(
+  "/matches/:id/ask",
+  handle(async (req, res) => {
+    const id = matchId.parse(req.params.id);
+    const { text } = schemas.ask.parse(req.body ?? {});
+    if (!(await started(id, res))) return;
+    const v = await viewerOf(req, res);
+    if (!v.user?.nickname) return void res.status(401).json({ error: "pick a nickname first" });
+    if (Date.now() - (lastAsk.get(v.user.id) ?? 0) < ASK_EVERY_MS) return void res.status(429).json({ error: "one question every 5 seconds" });
+    lastAsk.set(v.user.id, Date.now());
+    const { card, post } = await askMatch(id, text);
+    if (!post) return { card, comment: null, posted: false, ...asOfNow() };
+    const comment = await postFact(id, v.user.id, card);
+    void publish(id, [{ event: "comment", payload: { comment } }]);
+    res.status(201);
+    return { card, comment, posted: true, ...asOfNow() };
+  }),
+);
+
+/** the guest pass: "Watch free" binds it to this match and cycle */
+siteRouter.post(
+  "/matches/:id/pass",
+  handle(
+    friendly(async (req, res) => {
+      const id = matchId.parse(req.params.id);
+      if (!(await started(id, res))) return;
+      return { ...(await usePass(await viewerOf(req, res), id)), ...asOfNow() };
+    }),
+  ),
+);
+
+/** a friend error is the fan's answer (400 / 401 / 404 / 409 / 429), anything else a server error */
+function friendly(fn: (req: Request, res: Response) => Promise<unknown>) {
+  return async (req: Request, res: Response) => {
+    try {
+      return await fn(req, res);
+    } catch (err) {
+      if (err instanceof FriendError) return void res.status(err.status).json({ error: err.message, ...err.extra });
+      throw err;
+    }
+  };
+}
+
+// ---------- friends and invites ----------
+
+siteRouter.get(
+  "/friends",
+  handle(async (req, res) => friendsPage(await viewerOf(req, res))),
+);
+
+/** friends in a watch party right now (?match= one match) */
+siteRouter.get(
+  "/friends/watching",
+  handle(async (req, res) => {
+    const match = matchId.optional().parse(req.query.match || undefined);
+    return { friends: await friendsWatching((await viewerOf(req, res)).user, match), ...asOfNow() };
+  }),
+);
+
+siteRouter.post(
+  "/friends/add",
+  handle(friendly(async (req, res) => ({ ...(await addFriend(await viewerOf(req, res), schemas.friendCode.parse(req.body ?? {}).code)), ...asOfNow() }))),
+);
+
+siteRouter.post(
+  "/friends/:userId/accept",
+  handle(
+    friendly(async (req, res) => {
+      await acceptFriend(await viewerOf(req, res), z.string().uuid().parse(req.params.userId));
+      return { ok: true, ...asOfNow() };
+    }),
+  ),
+);
+
+/** declines a request, cancels your own, or unfriends */
+siteRouter.post(
+  "/friends/:userId/remove",
+  handle(
+    friendly(async (req, res) => {
+      await removeFriend(await viewerOf(req, res), z.string().uuid().parse(req.params.userId));
+      return { ok: true, ...asOfNow() };
+    }),
+  ),
+);
+
+siteRouter.post(
+  "/invites",
+  handle(
+    friendly(async (req, res) => {
+      const body = schemas.invite.parse(req.body ?? {});
+      res.status(201);
+      return createInvite(await viewerOf(req, res), body.matchId ?? null, req);
+    }),
+  ),
+);
+
+siteRouter.get(
+  "/invites/:code",
+  handle(friendly(async (req, res) => inviteInfo(await viewerOf(req, res), schemas.inviteCode.parse(String(req.params.code).toUpperCase())))),
+);
+
+siteRouter.post(
+  "/invites/:code/accept",
+  handle(
+    friendly(async (req, res) => {
+      const code = schemas.inviteCode.parse(String(req.params.code).toUpperCase());
+      const { nickname: name } = schemas.accept.parse(req.body ?? {});
+      return { ...(await acceptInvite(await viewerOf(req, res), code, name)), ...asOfNow() };
+    }),
+  ),
+);
+
+/** npm run demo:tunnel reports its public url here (host token), so tv mode can show "Join at …" */
+siteRouter.post(
+  "/public-url",
+  handle(async (req, res) => {
+    if (!process.env.HOST_TOKEN) return void res.status(503).json({ error: "host controls are off (set HOST_TOKEN)" });
+    if (!isHost(req)) return void res.status(403).json({ error: "wrong host token" });
+    const { url } = schemas.publicUrl.parse(req.body ?? {});
+    await reportPublicUrl(url);
+    return { url: publicBaseUrl(req), ...asOfNow() };
+  }),
 );
 
 siteRouter.use((_req, res) => {

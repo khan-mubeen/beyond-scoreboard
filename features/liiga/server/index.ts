@@ -15,12 +15,13 @@ import type {
 import { helsinkiDate, leagueNow, notPlayedYet, setLeagueClock } from "@/shared/clock";
 import { describeGoalTypes } from "../goal-types";
 import { maskPastAndFuture, unplayedFixture, unplayedGame } from "../mask";
-import type { LiigaFixture, LiigaGame, LiigaGameStats, LiigaLineups, LiigaPastAndFuture, LiigaStandings, LiigaTeam } from "../model";
+import type { LiigaFixture, LiigaGame, LiigaGameStats, LiigaLineups, LiigaPastAndFuture, LiigaRoster, LiigaStandings, LiigaTeam, PlayerSeasonStats } from "../model";
 import {
   normalizeFixture,
   normalizeGame,
   normalizeLineups,
   normalizePastAndFuture,
+  normalizeRoster,
   normalizeStandings,
   normalizeStats,
   normalizeTeams,
@@ -162,6 +163,62 @@ export async function getPastAndFuture(game: LiigaGame): Promise<Sourced<LiigaPa
     .get<PastAndFutureGamesDTO>(`/api/v1/games/${game.season}/${game.gameId}/pastAndFutureGames`, TTL.schedule)
     .catch(() => null);
   return res && mapSourced(res, (d) => maskPastAndFuture(normalizePastAndFuture(d), notPlayedYet));
+}
+
+/** a game's two rosters with each player's details (from the game details, which carry them) */
+export async function getRoster(season: number, gameId: number): Promise<Sourced<LiigaRoster>> {
+  const res = await client.get<GameDetailsDTO>(`/api/v1/games/${season}/${gameId}`, (d) => byStatus(statusOf(d.game)));
+  return mapSourced(res, normalizeRoster);
+}
+
+const SEASON_TTL_MS = 10 * 60 * 1000;
+let seasonStats: { key: string; at: number; value: Promise<SeasonStats> } | null = null;
+
+export interface SeasonStats {
+  /** player id -> games, goals and assists */
+  players: Map<number, PlayerSeasonStats>;
+  /** finished games counted, and the ones whose details couldn't be read (a missing snapshot) */
+  games: number;
+  missing: number;
+}
+
+/**
+ * every player's regular season so far, counted from the goal events of every finished game
+ * before the league clock: in demo mode nothing after the demo date is counted. games are read
+ * a few at a time and cached (24 h for a final), the totals for 10 minutes
+ */
+export function getSeasonStats(season: number): Promise<SeasonStats> {
+  const key = `${season}:${helsinkiDate(leagueNow())}`;
+  if (seasonStats && seasonStats.key === key && Date.now() - seasonStats.at < SEASON_TTL_MS) return seasonStats.value;
+  const value = (async () => {
+    const schedule = await getSchedule(season);
+    const nowIso = leagueNow().toISOString();
+    const played = schedule.data.filter((f) => f.status === "final" && f.start < nowIso);
+    const players = new Map<number, PlayerSeasonStats>();
+    const row = (id: number) => players.get(id) ?? players.set(id, { games: 0, goals: 0, assists: 0 }).get(id)!;
+    let missing = 0;
+    for (let i = 0; i < played.length; i += 4) {
+      await Promise.all(
+        played.slice(i, i + 4).map(async (f) => {
+          const res = await client.get<GameDetailsDTO>(`/api/v1/games/${f.season}/${f.gameId}`, TTL.final).catch(() => null);
+          if (!res) return void missing++;
+          const game = normalizeGame(res.data.game);
+          for (const p of [...(res.data.homeTeamPlayers ?? []), ...(res.data.awayTeamPlayers ?? [])]) if (p.id != null && !p.removed) row(p.id).games++;
+          for (const g of game.goals) {
+            // shootout goals don't count as goals in the season totals
+            if (g.period > 4) continue;
+            if (g.scorerId !== null) row(g.scorerId).goals++;
+            for (const a of g.assistIds) row(a).assists++;
+          }
+        }),
+      );
+    }
+    if (missing) console.warn(`liiga: season stats count ${played.length - missing} of ${played.length} games (${missing} without details; npm run snapshot -- --season)`);
+    return { players, games: played.length - missing, missing };
+  })();
+  value.catch(() => (seasonStats = null));
+  seasonStats = { key, at: Date.now(), value };
+  return value;
 }
 
 export { matchIdOf, parseMatchId } from "../model";

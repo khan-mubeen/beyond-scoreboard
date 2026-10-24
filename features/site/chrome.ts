@@ -50,5 +50,6 @@ export const QUICK_LINKS: QuickLink[] = [
   { id: "rewards", label: "Kaleva Rewards", href: "/rewards", icon: "rewards" },
   { id: "achievements", label: "Achievements", href: "/achievements", icon: "achievements" },
   { id: "profile", label: "Profile", href: "/profile", icon: "profile" },
+  { id: "friends", label: "Friends", href: "/friends", icon: "friends" },
   { id: "settings", label: "Settings", href: "/settings", icon: "settings" },
 ];

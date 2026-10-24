@@ -27,6 +27,7 @@ import { teamBook, type TeamBook } from "./teams";
 import { whatIfOptions } from "./whatif";
 import { previewDetail } from "./preview";
 import { hasLiveStream, streamLockFor } from "./wallet";
+import { passFor } from "./friends";
 import { matchStarted } from "./started";
 
 export type Side = "home" | "away";
@@ -253,9 +254,12 @@ export async function matchDetail(id: string, viewer: Viewer, opts: { host?: boo
   const rotation = eng?.rotation ?? null;
   const hosted = highlightOf(id);
   const liigaUrl = liigaGameUrl(g);
-  // the live stream (our hosted highlight while the match is on) needs a plan with it; the host's
-  // tv never locks, and the finished match's highlights are free. a locked fan never gets the url
-  const locked = !!hosted && g.status !== "final" && !opts.host && !(await hasLiveStream(viewer.user));
+  // the live stream (our hosted highlight while the match is on) needs a plan with it, or the
+  // guest pass from a member's invite once it is bound to this match and cycle; the host's tv
+  // never locks, and the finished match's highlights are free. a locked fan never gets the url
+  const needsAccess = !!hosted && g.status !== "final" && !opts.host && !(await hasLiveStream(viewer.user));
+  const pass = needsAccess ? await passFor(viewer.user, id) : null;
+  const locked = needsAccess && !pass?.watch;
   const highlight = locked ? null : hosted;
   const clip = clipOf(id, liigaUrl, !locked);
   const summary = summaryOf(g, book, now);
@@ -282,7 +286,7 @@ export async function matchDetail(id: string, viewer: Viewer, opts: { host?: boo
     seasonStakes: s ? { ...seasonStakesCard(s, g, side, book), whatIf: g.status === "final" ? null : await whatIfOptions(ctx, g.id) } : emptyStakes(g[side].name),
     isReplay,
     highlight,
-    streamLock: locked ? streamLockFor(hosted!.poster) : null,
+    streamLock: locked ? { ...streamLockFor(hosted!.poster), guestPass: pass?.offer ?? null, passUsed: !!pass?.used } : null,
     rotation,
     asOf: res.asOf,
     source,
