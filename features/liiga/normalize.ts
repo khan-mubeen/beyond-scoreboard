@@ -60,10 +60,13 @@ export const playerName = (p: SimplePlayerDTO | PlayerDTO | null | undefined): s
 
 /** a goal taken back after video review: the score doesn't move and there is no clip (goal-types.md) */
 export const DISALLOWED_GOAL = "VT0";
+/** a penalty shot that missed: listed with the goals, but the score doesn't move (goal-types.md) */
+export const MISSED_PENALTY_SHOT = "RL0";
+const NOT_A_GOAL = [DISALLOWED_GOAL, MISSED_PENALTY_SHOT];
 
 function goalsOf(team: GameTeamDTO, side: Side): LiigaGoal[] {
   const teamId = team.teamId ?? side;
-  return (team.goalEvents ?? []).filter((e) => !(e.goalTypes ?? []).includes(DISALLOWED_GOAL)).map((e, i) => ({
+  return (team.goalEvents ?? []).filter((e) => !(e.goalTypes ?? []).some((t) => NOT_A_GOAL.includes(t))).map((e, i) => ({
     id: `g${e.eventId ?? `${side}-${i}`}`,
     teamId,
     side,

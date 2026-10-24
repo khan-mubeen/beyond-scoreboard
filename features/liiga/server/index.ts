@@ -12,7 +12,9 @@ import type {
   TeamsDTO,
   TournamentDTO,
 } from "../dto";
+import { helsinkiDate, leagueNow, notPlayedYet, setLeagueClock } from "@/shared/clock";
 import { describeGoalTypes } from "../goal-types";
+import { maskPastAndFuture, unplayedFixture, unplayedGame } from "../mask";
 import type { LiigaFixture, LiigaGame, LiigaGameStats, LiigaLineups, LiigaPastAndFuture, LiigaStandings, LiigaTeam } from "../model";
 import {
   normalizeFixture,
@@ -51,15 +53,16 @@ export const liigaOffline = () => client.offline;
 /** for the snapshot recorder only */
 export const liigaClient = client;
 
-/** "now" for the liiga data: the recording time when serving snapshots offline */
-export function liigaNow(): Date {
-  return client.offline && manifest ? new Date(manifest.recordedAt) : new Date();
-}
+// outside demo mode, "now" for the liiga data is the recording time when serving snapshots offline
+setLeagueClock(() => (client.offline && manifest ? new Date(manifest.recordedAt) : new Date()));
 
-/** yyyy-mm-dd in Helsinki, the calendar the league plays on */
-export function helsinkiDate(d: Date): string {
-  return new Intl.DateTimeFormat("en-CA", { timeZone: "Europe/Helsinki", year: "numeric", month: "2-digit", day: "2-digit" }).format(d);
-}
+/** "now" for the liiga data: the pinned demo moment in demo mode (shared/clock) */
+export const liigaNow = leagueNow;
+export { helsinkiDate };
+
+// demo mode: every game from the demo date on is served as not played yet (see ../mask.ts)
+const maskGame = (g: LiigaGame) => (notPlayedYet(g.start) ? unplayedGame(g) : g);
+const maskFixture = (f: LiigaFixture) => (notPlayedYet(f.start) ? unplayedFixture(f) : f);
 
 const mapSourced = <A, B>(s: Sourced<A>, f: (a: A) => B): Sourced<B> => ({ ...s, data: f(s.data) });
 
@@ -91,14 +94,18 @@ export async function getGamesOn(date: string): Promise<Sourced<LiigaGame[]>> {
   const res = await client.get<GamesDTO>(`/api/v1/games?date=${date}&serie=${SERIE}`, (d) =>
     d.games.some((g) => statusOf(g) === "live") ? TTL.live : date === today ? TTL.today : date < today ? TTL.final : TTL.schedule,
   );
-  return mapSourced(res, (d) => d.games.map(normalizeGame));
+  return mapSourced(res, (d) => d.games.map(normalizeGame).map(maskGame));
 }
 
 export async function getSchedule(season: number): Promise<Sourced<LiigaFixture[]>> {
   const res = await client.get<ScheduleItemDTO[]>(`/api/v1/games/schedule?season=${season}&serie=${SERIE}`, TTL.schedule);
-  return mapSourced(res, (d) => d.map(normalizeFixture).sort((a, b) => a.start.localeCompare(b.start)));
+  return mapSourced(res, (d) => d.map(normalizeFixture).map(maskFixture).sort((a, b) => a.start.localeCompare(b.start)));
 }
 
+/**
+ * the api's table. in demo mode it already counts games after the demo date: for points and
+ * positions use the stakes engine's table on the (masked) schedule; names and lines are fine
+ */
 export async function getStandings(season: number, live = true): Promise<Sourced<LiigaStandings>> {
   const res = await client.get<StandingsResponseDTO>(`/api/v1/standings/${SERIE}?season=${season}&isLive=${live}`, TTL.live);
   return mapSourced(res, normalizeStandings);
@@ -117,16 +124,21 @@ export interface GameWithNames {
   names: Map<number, string>;
 }
 
-export async function getGame(season: number, gameId: number): Promise<Sourced<GameWithNames>> {
+/** a game; in demo mode one not played yet is masked, unless `unmasked` (the rotation engine replaying it) */
+export async function getGame(season: number, gameId: number, opts: { unmasked?: boolean } = {}): Promise<Sourced<GameWithNames>> {
   const res = await client.get<GameDetailsDTO>(`/api/v1/games/${season}/${gameId}`, (d) => byStatus(statusOf(d.game)));
   return mapSourced(res, (d) => {
     const game = normalizeGame(d.game);
     reportGoalTypes(game);
-    return { game, names: playerNames(d) };
+    return { game: opts.unmasked ? game : maskGame(game), names: playerNames(d) };
   });
 }
 
+/** team stats; none for a game the demo clock hasn't played yet (a replay passes its own state) */
 export async function getGameStats(game: LiigaGame): Promise<Sourced<LiigaGameStats>> {
+  if (game.status !== "final" && notPlayedYet(game.start)) {
+    return { data: normalizeStats(null, null, game), source: "live", asOf: new Date().toISOString() };
+  }
   const ttl = byStatus(game.status);
   const [stats, shots] = await Promise.all([
     client.get<GameStatsDTO>(`/api/v1/games/${game.season}/${game.gameId}/stats`, ttl).catch(() => null),
@@ -149,7 +161,7 @@ export async function getPastAndFuture(game: LiigaGame): Promise<Sourced<LiigaPa
   const res = await client
     .get<PastAndFutureGamesDTO>(`/api/v1/games/${game.season}/${game.gameId}/pastAndFutureGames`, TTL.schedule)
     .catch(() => null);
-  return res && mapSourced(res, normalizePastAndFuture);
+  return res && mapSourced(res, (d) => maskPastAndFuture(normalizePastAndFuture(d), notPlayedYet));
 }
 
 export { matchIdOf, parseMatchId } from "../model";
