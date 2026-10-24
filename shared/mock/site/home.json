@@ -1,0 +1,358 @@
+{
+  "hero": {
+    "kicker": "KALEVA",
+    "titleLead": "Sports",
+    "titleAccent": "Experience",
+    "subtitle": "Follow the games. Understand what they mean.",
+    "body": "Live scores, expert analysis and season context — all in one place, only at Kaleva.",
+    "tagline": "Sports lives here in the North.",
+    "image": "/placeholders/hero.svg"
+  },
+  "dateLabel": "Saturday 24 October 2026",
+  "featured": {
+    "match": {
+      "id": "karpat-assat-live",
+      "league": "Liiga",
+      "status": "live",
+      "home": { "id": "karpat", "name": "Kärpät", "city": "Oulu", "logo": "/placeholders/teams/karpat.svg" },
+      "away": { "id": "assat", "name": "Ässät", "city": "Pori", "logo": "/placeholders/teams/assat.svg" },
+      "score": { "home": 2, "away": 1 },
+      "periodScores": [{ "home": 1, "away": 0 }, { "home": 1, "away": 1 }, null],
+      "periodLabel": "2nd period",
+      "clock": "14:26",
+      "whenLabel": "Today",
+      "href": "/match/karpat-assat-live"
+    },
+    "background": "/placeholders/featured-live.svg",
+    "whatItMeans": "Kärpät lead 2–1. If it ends like this, their playoff chance rises from 54% to 66% and they climb from 13th to 11th, above the playoff line.",
+    "stakes": [
+      {
+        "team": { "id": "karpat", "name": "Kärpät", "logo": "/placeholders/teams/karpat.svg" },
+        "label": "Playoff chance",
+        "chance": 66,
+        "change": 12
+      },
+      {
+        "team": { "id": "assat", "name": "Ässät", "logo": "/placeholders/teams/assat.svg" },
+        "label": "Playoff chance",
+        "chance": 38,
+        "change": -9
+      }
+    ],
+    "openCalls": 2
+  },
+  "seasonStakesToday": [
+    {
+      "id": "tappara-ilves",
+      "home": { "id": "tappara", "name": "Tappara", "logo": "/placeholders/teams/tappara.svg" },
+      "away": { "id": "ilves", "name": "Ilves", "logo": "/placeholders/teams/ilves.svg" },
+      "line": "the winner moves into the top 4",
+      "href": "/match/tappara-ilves"
+    },
+    {
+      "id": "kalpa-kookoo",
+      "home": { "id": "kalpa", "name": "KalPa", "logo": "/placeholders/teams/kalpa.svg" },
+      "away": { "id": "kookoo", "name": "KooKoo", "logo": "/placeholders/teams/kookoo.svg" },
+      "line": "both chasing the playoff line",
+      "href": "/match/kalpa-kookoo"
+    },
+    {
+      "id": "jokerit-saipa",
+      "home": { "id": "jokerit", "name": "Jokerit", "logo": "/placeholders/teams/jokerit.svg" },
+      "away": { "id": "saipa", "name": "SaiPa", "logo": "/placeholders/teams/saipa.svg" },
+      "line": "loser drops into the relegation zone",
+      "href": "/match/jokerit-saipa"
+    }
+  ],
+  "live": [
+    {
+      "id": "karpat-assat-live",
+      "league": "Liiga",
+      "status": "live",
+      "home": { "id": "karpat", "name": "Kärpät", "city": "Oulu", "logo": "/placeholders/teams/karpat.svg" },
+      "away": { "id": "assat", "name": "Ässät", "city": "Pori", "logo": "/placeholders/teams/assat.svg" },
+      "score": { "home": 2, "away": 1 },
+      "periodScores": [{ "home": 1, "away": 0 }, { "home": 1, "away": 1 }, null],
+      "periodLabel": "2nd period",
+      "clock": "14:26",
+      "whenLabel": "Today",
+      "href": "/match/karpat-assat-live"
+    },
+    {
+      "id": "kalpa-kookoo",
+      "league": "Liiga",
+      "status": "live",
+      "home": { "id": "kalpa", "name": "KalPa", "logo": "/placeholders/teams/kalpa.svg" },
+      "away": { "id": "kookoo", "name": "KooKoo", "logo": "/placeholders/teams/kookoo.svg" },
+      "score": { "home": 1, "away": 1 },
+      "periodScores": [
+        { "home": 0, "away": 1 },
+        { "home": 1, "away": 0 },
+        { "home": 0, "away": 0 }
+      ],
+      "periodLabel": "3rd period",
+      "clock": "07:12",
+      "whenLabel": "Today",
+      "note": "A draw keeps both in the playoff race; the overtime winner gains 2 points.",
+      "href": "/match/kalpa-kookoo"
+    }
+  ],
+  "comingSoon": [{ "id": "korisliiga", "title": "Korisliiga", "league": "Korisliiga" }],
+  "upcoming": [
+    {
+      "id": "tappara-ilves",
+      "league": "Liiga",
+      "status": "scheduled",
+      "home": { "id": "tappara", "name": "Tappara", "logo": "/placeholders/teams/tappara.svg" },
+      "away": { "id": "ilves", "name": "Ilves", "logo": "/placeholders/teams/ilves.svg" },
+      "score": null,
+      "periodScores": [],
+      "whenLabel": "Today 18:30",
+      "href": "/match/tappara-ilves"
+    },
+    {
+      "id": "jokerit-saipa",
+      "league": "Liiga",
+      "status": "scheduled",
+      "home": { "id": "jokerit", "name": "Jokerit", "logo": "/placeholders/teams/jokerit.svg" },
+      "away": { "id": "saipa", "name": "SaiPa", "logo": "/placeholders/teams/saipa.svg" },
+      "score": null,
+      "periodScores": [],
+      "whenLabel": "Today 18:30",
+      "href": "/match/jokerit-saipa"
+    },
+    {
+      "id": "karpat-tappara",
+      "league": "Liiga",
+      "status": "scheduled",
+      "home": { "id": "karpat", "name": "Kärpät", "logo": "/placeholders/teams/karpat.svg" },
+      "away": { "id": "tappara", "name": "Tappara", "logo": "/placeholders/teams/tappara.svg" },
+      "score": null,
+      "periodScores": [],
+      "whenLabel": "Tue 27 Oct 18:30",
+      "note": "What this game is worth for Kärpät: Win → 72% · Loss → 55% playoff chance",
+      "href": "/match/karpat-tappara"
+    }
+  ],
+  "recent": [
+    {
+      "id": "hpk-karpat",
+      "league": "Liiga",
+      "status": "final",
+      "home": { "id": "hpk", "name": "HPK", "logo": "/placeholders/teams/hpk.svg" },
+      "away": { "id": "karpat", "name": "Kärpät", "logo": "/placeholders/teams/karpat.svg" },
+      "score": { "home": 3, "away": 4 },
+      "periodScores": [
+        { "home": 2, "away": 1 },
+        { "home": 1, "away": 1 },
+        { "home": 0, "away": 2 }
+      ],
+      "whenLabel": "Yesterday",
+      "note": "Kärpät came back to win in the third period.",
+      "href": "/match/hpk-karpat"
+    }
+  ],
+  "leaderboard": {
+    "title": "Weekly Leaderboard",
+    "sponsor": "Oulun Energia",
+    "href": "/calls/history",
+    "entries": [
+      {
+        "playerId": "p-laura",
+        "nickname": "Laura Nieminen",
+        "score": 2340,
+        "rank": 1,
+        "avatar": "/placeholders/avatars/ln.svg"
+      },
+      {
+        "playerId": "u-mikko",
+        "nickname": "Mikko Korhonen",
+        "score": 1250,
+        "rank": 2,
+        "avatar": "/placeholders/avatars/mk.svg",
+        "isYou": true
+      },
+      {
+        "playerId": "p-jussi",
+        "nickname": "Jussi Virtanen",
+        "score": 980,
+        "rank": 3,
+        "avatar": "/placeholders/avatars/jv.svg"
+      },
+      {
+        "playerId": "p-emilia",
+        "nickname": "Emilia Laine",
+        "score": 760,
+        "rank": 4,
+        "avatar": "/placeholders/avatars/el.svg"
+      },
+      {
+        "playerId": "p-antti",
+        "nickname": "Antti Heikkinen",
+        "score": 690,
+        "rank": 5,
+        "avatar": "/placeholders/avatars/ah.svg"
+      }
+    ]
+  },
+  "table": {
+    "highlightTeamId": "karpat",
+    "highlightNote": "11th if it ends now",
+    "fullTableHref": "#",
+    "rows": [
+      {
+        "rank": 1,
+        "teamId": "ilves",
+        "team": { "id": "ilves", "name": "Ilves", "logo": "/placeholders/teams/ilves.svg" },
+        "gamesPlayed": 15,
+        "goalDifference": 18,
+        "points": 32,
+        "zone": "top4"
+      },
+      {
+        "rank": 2,
+        "teamId": "tappara",
+        "team": { "id": "tappara", "name": "Tappara", "logo": "/placeholders/teams/tappara.svg" },
+        "gamesPlayed": 15,
+        "goalDifference": 14,
+        "points": 31,
+        "zone": "top4"
+      },
+      {
+        "rank": 3,
+        "teamId": "kalpa",
+        "team": { "id": "kalpa", "name": "KalPa", "logo": "/placeholders/teams/kalpa.svg" },
+        "gamesPlayed": 15,
+        "goalDifference": 11,
+        "points": 29,
+        "zone": "top4"
+      },
+      {
+        "rank": 4,
+        "teamId": "saipa",
+        "team": { "id": "saipa", "name": "SaiPa", "logo": "/placeholders/teams/saipa.svg" },
+        "gamesPlayed": 15,
+        "goalDifference": 9,
+        "points": 28,
+        "zone": "top4"
+      },
+      {
+        "rank": 5,
+        "teamId": "hifk",
+        "team": { "id": "hifk", "name": "HIFK", "logo": "/placeholders/teams/hifk.svg" },
+        "gamesPlayed": 15,
+        "goalDifference": 8,
+        "points": 26,
+        "zone": "playoffs"
+      },
+      {
+        "rank": 6,
+        "teamId": "jukurit",
+        "team": { "id": "jukurit", "name": "Jukurit", "logo": "/placeholders/teams/jukurit.svg" },
+        "gamesPlayed": 15,
+        "goalDifference": 6,
+        "points": 24,
+        "zone": "playoffs"
+      },
+      {
+        "rank": 7,
+        "teamId": "kookoo",
+        "team": { "id": "kookoo", "name": "KooKoo", "logo": "/placeholders/teams/kookoo.svg" },
+        "gamesPlayed": 15,
+        "goalDifference": 4,
+        "points": 24,
+        "zone": "playoffs"
+      },
+      {
+        "rank": 8,
+        "teamId": "tps",
+        "team": { "id": "tps", "name": "TPS", "logo": "/placeholders/teams/tps.svg" },
+        "gamesPlayed": 15,
+        "goalDifference": 2,
+        "points": 23,
+        "zone": "playoffs"
+      },
+      {
+        "rank": 9,
+        "teamId": "sport",
+        "team": { "id": "sport", "name": "Sport", "logo": "/placeholders/teams/sport.svg" },
+        "gamesPlayed": 15,
+        "goalDifference": 1,
+        "points": 22,
+        "zone": "playoffs"
+      },
+      {
+        "rank": 10,
+        "teamId": "assat",
+        "team": { "id": "assat", "name": "Ässät", "logo": "/placeholders/teams/assat.svg" },
+        "gamesPlayed": 15,
+        "goalDifference": -1,
+        "points": 20,
+        "zone": "playoffs"
+      },
+      {
+        "rank": 11,
+        "teamId": "hpk",
+        "team": { "id": "hpk", "name": "HPK", "logo": "/placeholders/teams/hpk.svg" },
+        "gamesPlayed": 15,
+        "goalDifference": -3,
+        "points": 20,
+        "zone": "playoffs"
+      },
+      {
+        "rank": 12,
+        "teamId": "lukko",
+        "team": { "id": "lukko", "name": "Lukko", "logo": "/placeholders/teams/lukko.svg" },
+        "gamesPlayed": 15,
+        "goalDifference": -5,
+        "points": 19,
+        "zone": "playoffs"
+      },
+      {
+        "rank": 13,
+        "teamId": "karpat",
+        "team": { "id": "karpat", "name": "Kärpät", "logo": "/placeholders/teams/karpat.svg" },
+        "gamesPlayed": 15,
+        "goalDifference": -8,
+        "points": 18,
+        "zone": "safe"
+      },
+      {
+        "rank": 14,
+        "teamId": "pelicans",
+        "team": { "id": "pelicans", "name": "Pelicans", "logo": "/placeholders/teams/pelicans.svg" },
+        "gamesPlayed": 15,
+        "goalDifference": -10,
+        "points": 17,
+        "zone": "safe"
+      },
+      {
+        "rank": 15,
+        "teamId": "jyp",
+        "team": { "id": "jyp", "name": "JYP", "logo": "/placeholders/teams/jyp.svg" },
+        "gamesPlayed": 15,
+        "goalDifference": -12,
+        "points": 16,
+        "zone": "relegated"
+      },
+      {
+        "rank": 16,
+        "teamId": "kiekko-espoo",
+        "team": { "id": "kiekko-espoo", "name": "Kiekko-Espoo", "logo": "/placeholders/teams/kiekko-espoo.svg" },
+        "gamesPlayed": 15,
+        "goalDifference": -16,
+        "points": 14,
+        "zone": "relegated"
+      },
+      {
+        "rank": 17,
+        "teamId": "kettera",
+        "team": { "id": "kettera", "name": "Ketterä", "logo": "/placeholders/teams/kettera.svg" },
+        "gamesPlayed": 15,
+        "goalDifference": -20,
+        "points": 12,
+        "zone": "relegated"
+      }
+    ]
+  }
+}

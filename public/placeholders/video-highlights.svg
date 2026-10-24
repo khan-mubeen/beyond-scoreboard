@@ -1,0 +1,28 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 1000" preserveAspectRatio="xMidYMid slice" role="img" aria-label="highlights video poster placeholder">
+  <defs>
+    <linearGradient id="g" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#3a3f47"/>
+      <stop offset="0.55" stop-color="#22262c"/>
+      <stop offset="1" stop-color="#121417"/>
+    </linearGradient>
+    <radialGradient id="v" cx="0.5" cy="0.45" r="0.75">
+      <stop offset="0.5" stop-color="#000" stop-opacity="0"/>
+      <stop offset="1" stop-color="#000" stop-opacity="0.55"/>
+    </radialGradient>
+  </defs>
+  <rect width="800" height="1000" fill="url(#g)"/>
+  <g fill="none" stroke="#ffffff" stroke-opacity="0.09" stroke-width="2">
+    <rect x="32" y="80" width="736" height="840" rx="220"/>
+    <line x1="264" y1="80" x2="264" y2="920"/>
+    <line x1="536" y1="80" x2="536" y2="920"/>
+    <circle cx="400" cy="500" r="128"/>
+    <circle cx="136" cy="300" r="89.6"/>
+    <circle cx="136" cy="700" r="89.6"/>
+    <circle cx="664" cy="300" r="89.6"/>
+    <circle cx="664" cy="700" r="89.6"/>
+  </g>
+  <line x1="400" y1="80" x2="400" y2="920" stroke="#d80016" stroke-opacity="0.22" stroke-width="3.2"/>
+  <rect width="800" height="1000" fill="url(#v)"/>
+  <circle cx="400" cy="500" r="64" fill="#000" fill-opacity="0.35" stroke="#fff" stroke-width="4.571428571428571"/>
+  <path d="M 380.8 473.12 L 428.8 500 L 380.8 526.88 Z" fill="#fff"/>
+</svg>

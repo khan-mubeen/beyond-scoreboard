@@ -1,5 +1,6 @@
 /* design tokens, maintained by stakes. tell the team before changing them */
 
+/* room theme (default): the dark tv and phone screens */
 :root {
   /* colours */
   --pp-bg: #0a101c;
@@ -10,22 +11,70 @@
   --pp-muted: #8d9bb4;
   --pp-accent: #4cc3ff;
   --pp-accent-ink: #04131d;
+  --pp-accent-soft: #12283a;
   --pp-good: #3ddc97;
+  --pp-good-soft: #123128;
   --pp-bad: #ff6b6b;
+  --pp-highlight: #2a2f1d;
+  --pp-gold: #f5c542;
+  --pp-dark: #05080f;
+  --pp-scrim: #000000;
+  --pp-dark-ink: #ffffff;
 
   /* one colour per zone, used by the meter and the table */
   --pp-zone-top4: #f5c542;
   --pp-zone-playoffs: #3ddc97;
   --pp-zone-safe: #8d9bb4;
   --pp-zone-relegated: #ff6b6b;
+  --pp-zone-top4-soft: #2a2a1a;
+  --pp-zone-playoffs-soft: #13291f;
+  --pp-zone-safe-soft: #1b2539;
+  --pp-zone-relegated-soft: #2e1a20;
 
   /* fonts */
   --pp-font-sans: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  --pp-font-serif: Georgia, "Times New Roman", serif;
   --pp-font-mono: ui-monospace, "SFMono-Regular", Menlo, monospace;
 
   /* spacing and shape */
   --pp-gutter: 1rem;
   --pp-radius: 14px;
+  --pp-shadow: none;
+}
+
+/* site theme: the kaleva sports pages (white, black, kaleva red) */
+[data-theme="site"] {
+  --pp-bg: #ffffff;
+  --pp-surface: #ffffff;
+  --pp-surface-2: #f4f5f7;
+  --pp-line: #e6e8eb;
+  --pp-ink: #111418;
+  --pp-muted: #6b7280;
+  --pp-accent: #d80016;
+  --pp-accent-ink: #ffffff;
+  --pp-accent-soft: #fdeef0;
+  --pp-good: #0f8d69;
+  --pp-good-soft: #e6f5ef;
+  --pp-bad: #d80016;
+  --pp-highlight: #fff6d6;
+  --pp-gold: #e2a200;
+  --pp-dark: #17191d;
+  --pp-dark-ink: #ffffff;
+
+  --pp-zone-top4: #2f6db5;
+  --pp-zone-playoffs: #138b7e;
+  --pp-zone-safe: #9ca3af;
+  --pp-zone-relegated: #d80016;
+  --pp-zone-top4-soft: #ebf2fb;
+  --pp-zone-playoffs-soft: #e8f5f2;
+  --pp-zone-safe-soft: #f4f5f7;
+  --pp-zone-relegated-soft: #fdeef0;
+
+  --pp-font-sans: "Inter", system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  --pp-font-serif: "Playfair Display", Georgia, "Times New Roman", serif;
+
+  --pp-radius: 14px;
+  --pp-shadow: 0 1px 2px rgb(16 24 40 / 0.04), 0 2px 8px rgb(16 24 40 / 0.04);
 }
 
 /* expose the tokens as tailwind utilities: bg-surface, text-muted, bg-playoffs, ... */
@@ -38,14 +87,27 @@
   --color-muted: var(--pp-muted);
   --color-accent: var(--pp-accent);
   --color-accent-ink: var(--pp-accent-ink);
+  --color-accent-soft: var(--pp-accent-soft);
   --color-good: var(--pp-good);
+  --color-good-soft: var(--pp-good-soft);
   --color-bad: var(--pp-bad);
+  --color-highlight: var(--pp-highlight);
+  --color-gold: var(--pp-gold);
+  --color-dark: var(--pp-dark);
+  --color-scrim: var(--pp-scrim);
+  --color-dark-ink: var(--pp-dark-ink);
   --color-top4: var(--pp-zone-top4);
   --color-playoffs: var(--pp-zone-playoffs);
   --color-safe: var(--pp-zone-safe);
   --color-relegated: var(--pp-zone-relegated);
+  --color-top4-soft: var(--pp-zone-top4-soft);
+  --color-playoffs-soft: var(--pp-zone-playoffs-soft);
+  --color-safe-soft: var(--pp-zone-safe-soft);
+  --color-relegated-soft: var(--pp-zone-relegated-soft);
   --font-sans: var(--pp-font-sans);
+  --font-serif: var(--pp-font-serif);
   --font-mono: var(--pp-font-mono);
   --spacing-gutter: var(--pp-gutter);
   --radius-card: var(--pp-radius);
+  --shadow-card: var(--pp-shadow);
 }

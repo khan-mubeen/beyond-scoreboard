@@ -291,3 +291,361 @@ export interface AnswerRequest {
 export interface ApiError {
   error: string;
 }
+
+// ---------- site (kaleva sports pages) ----------
+// percentages here are whole numbers 0-100 ("66" means 66%), changes are percentage points
+
+/** a team as the site shows it. logo is an image path, today a placeholder */
+export interface TeamRef {
+  id: string;
+  name: string;
+  city?: string;
+  logo: string;
+}
+
+/** a link in the top nav */
+export interface NavLink {
+  label: string;
+  href: string;
+  active?: boolean;
+  /** shows a dropdown chevron */
+  hasMenu?: boolean;
+}
+
+export type QuickLinkIcon = "home" | "calls" | "history" | "rewards" | "achievements" | "settings";
+
+export interface QuickLink {
+  id: string;
+  label: string;
+  href: string;
+  icon: QuickLinkIcon;
+}
+
+/** the signed-in fan */
+export interface UserSummary {
+  id: string;
+  name: string;
+  /** "Sports fan" */
+  role: string;
+  avatar: string;
+  points: number;
+  pointsThisWeek: number;
+  level: number;
+  pointsToNextLevel: number;
+  /** 0-1 progress towards the next level */
+  levelProgress: number;
+}
+
+export interface FavoriteTeam {
+  team: TeamRef;
+  league: string;
+  starred: boolean;
+  comingSoon: boolean;
+}
+
+/** top nav, user and sidebar, the same on every site page */
+export interface SiteChrome {
+  nav: NavLink[];
+  searchPlaceholder: string;
+  hasNotifications: boolean;
+  user: UserSummary;
+  favorites: FavoriteTeam[];
+  quickLinks: QuickLink[];
+}
+
+/** one team's playoff chance in a chip */
+export interface StakesChipData {
+  team: TeamRef;
+  /** "Playoff chance" */
+  label: string;
+  chance: number;
+  change: number;
+}
+
+/** a match card on the home page */
+export interface MatchSummary {
+  id: string;
+  league: string;
+  status: GameStatus;
+  home: TeamRef;
+  away: TeamRef;
+  /** null before puck drop */
+  score: Score | null;
+  /** one entry per period, null for a period not played yet */
+  periodScores: (Score | null)[];
+  /** "2nd period" while live */
+  periodLabel?: string;
+  /** "14:26" while live */
+  clock?: string;
+  /** "Today 18:30", "Yesterday" */
+  whenLabel: string;
+  /** short "what it's worth" line */
+  note?: string;
+  href: string;
+}
+
+/** a sport we don't cover yet, shown greyed out */
+export interface ComingSoonCard {
+  id: string;
+  title: string;
+  league: string;
+}
+
+export interface FeaturedMatch {
+  match: MatchSummary;
+  background: string;
+  whatItMeans: string;
+  stakes: StakesChipData[];
+  openCalls: number;
+}
+
+/** a card in the "season stakes today" strip */
+export interface StakesStripItem {
+  id: string;
+  home: TeamRef;
+  away: TeamRef;
+  line: string;
+  href: string;
+}
+
+/** a leaderboard row with a face */
+export interface SiteLeaderboardEntry extends LeaderboardEntry {
+  avatar: string;
+  isYou?: boolean;
+}
+
+/** a liiga table row, the projected row plus what the table shows */
+export interface LiigaTableRow extends ProjectedRow {
+  team: TeamRef;
+  gamesPlayed: number;
+  goalDifference: number;
+}
+
+export interface LiigaTableData {
+  rows: LiigaTableRow[];
+  highlightTeamId: string;
+  /** "11th if it ends now" next to the highlighted row */
+  highlightNote: string;
+  fullTableHref: string;
+}
+
+export interface HeroData {
+  kicker: string;
+  titleLead: string;
+  titleAccent: string;
+  subtitle: string;
+  body: string;
+  tagline: string;
+  image: string;
+}
+
+export interface HomePage {
+  hero: HeroData;
+  dateLabel: string;
+  featured: FeaturedMatch;
+  seasonStakesToday: StakesStripItem[];
+  live: MatchSummary[];
+  upcoming: MatchSummary[];
+  recent: MatchSummary[];
+  comingSoon: ComingSoonCard[];
+  leaderboard: { title: string; sponsor: string; entries: SiteLeaderboardEntry[]; href: string };
+  table: LiigaTableData;
+}
+
+export interface Breadcrumb {
+  label: string;
+  href?: string;
+}
+
+export interface VideoInfo {
+  poster: string;
+  /** "Match highlights · 3:12" */
+  title: string;
+}
+
+/** a goal or other event in the match feed, newest first */
+export interface MatchEvent {
+  id: string;
+  /** "11:40" in the period */
+  time: string;
+  /** "2nd period" */
+  period: string;
+  title: string;
+  detail: string;
+  /** playoff chance effect in percentage points, null when none */
+  effect: number | null;
+  video: VideoInfo;
+}
+
+/** one match statistic. null values render as "Data pending" */
+export interface MatchStat {
+  id: string;
+  label: string;
+  home: number | null;
+  away: number | null;
+  unit?: string;
+}
+
+export interface StakesStep {
+  /** "Start", "1–0" */
+  label: string;
+  chance: number;
+}
+
+export interface StakesTableRow {
+  rank: number;
+  /** "—" for other teams, "Kärpät · if it ends now" for the highlighted one */
+  label: string;
+  zone: Zone;
+  highlight?: boolean;
+}
+
+/** what the game does to one team's season */
+export interface SeasonStakes {
+  teamName: string;
+  source: string;
+  chance: number;
+  change: number;
+  before: number;
+  /** the chance right now, labelled by nowLabel ("if it ends now", "after the game") */
+  now: number;
+  nowLabel: string;
+  steps: StakesStep[];
+  tableTitle: string;
+  tableBadge: string;
+  rows: StakesTableRow[];
+  /** playoff chance for each way the game can end */
+  worth: Record<GameOutcome, number>;
+}
+
+/** someone's comment in the match discussion */
+export interface Comment {
+  id: string;
+  author: string;
+  text: string;
+}
+
+/** the call it! card. mock only: the real api sends result after the call locks */
+export interface CallItState {
+  call: PublicCall;
+  points: number;
+  subtitle: string;
+  secondsLeft: number;
+  result: { correctOptionId: string; split: Record<string, number> };
+  lastCall: { text: string; correct: boolean };
+}
+
+export interface RoomLeaderboardRow {
+  rank: number | null;
+  name: string;
+  score: number | null;
+  isYou?: boolean;
+}
+
+/** the watch together room linked to a match */
+export interface RoomSummary {
+  code: string;
+  watching: number;
+  subtitle: string;
+  avatars: string[];
+  extraCount: number;
+  leaderboardTitle: string;
+  leaderboardNote: string;
+  leaderboard: RoomLeaderboardRow[];
+  /** small print under the leaderboard */
+  footnote?: string;
+}
+
+interface MatchDetailBase {
+  id: string;
+  breadcrumbs: Breadcrumb[];
+  match: MatchSummary;
+  venue: string;
+  dateLabel: string;
+  spectators: number;
+  stakesSummary: StakesChipData[];
+  video: VideoInfo;
+  seasonStakes: SeasonStakes;
+  events: MatchEvent[];
+  eventsNote: string;
+  stats: MatchStat[];
+  statsSource: string;
+  statsNote: string;
+}
+
+export interface LiveMatchDetail extends MatchDetailBase {
+  status: "live";
+  whatItMeans: string;
+  discussion: Comment[];
+  guidelinesHref: string;
+  callIt: CallItState;
+  room: RoomSummary;
+}
+
+export interface FinishedMatchDetail extends MatchDetailBase {
+  status: "final";
+  whatItMeant: {
+    badge: string;
+    chanceBefore: number;
+    chanceAfter: number;
+    positionBefore: number;
+    positionAfter: number;
+    positionNote: string;
+    story: Content;
+    chips: { label: string; tone: "neutral" | "good" }[];
+  };
+  goalOfTheGame: {
+    thumbnail: string;
+    meta: string;
+    title: string;
+    effectText: string;
+    chip: string;
+    video: VideoInfo;
+  };
+  yourNight: { points: number; callsCorrect: number; callsTotal: number; rank: number; of: number; bestCall: string };
+  room: RoomSummary;
+  discussionHighlights: Comment[];
+  nextUp: { title: string; when: string; worth: string };
+}
+
+export type MatchDetail = LiveMatchDetail | FinishedMatchDetail;
+
+export interface Subscription {
+  id: string;
+  tag: string;
+  title: string;
+  description: string;
+  priceLabel: string;
+  /** the fan already has it */
+  included: boolean;
+}
+
+export interface RewardOffer {
+  id: string;
+  tag: string;
+  title: string;
+  description: string;
+  /** null means members only */
+  costPoints: number | null;
+}
+
+export type AchievementIcon = "star" | "bolt" | "rook";
+
+export interface Achievement {
+  id: string;
+  title: string;
+  subtitle: string;
+  icon: AchievementIcon;
+}
+
+export interface RewardsPage {
+  titleLead: string;
+  titleAccent: string;
+  subtitle: string;
+  howToEarnHref: string;
+  earnChips: { icon: "call" | "story" | "watch"; label: string }[];
+  subscriptions: Subscription[];
+  offers: RewardOffer[];
+  achievements: Achievement[];
+  footnote: string;
+}

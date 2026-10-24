@@ -51,6 +51,37 @@ Everything one part can rely on from another. Types live in `shared/types.ts`. T
 - `ControlAction`: `start | pause | resume | seek | intermission | finish | reset` · `ControlRequest` `{ action, seconds? }`
 - `AnswerRequest` `{ playerId, callId, optionId }` · `ApiError` `{ error }`
 
+### Site (kaleva sports pages)
+
+Percentages are whole numbers 0-100. Changes are percentage points.
+
+- `TeamRef`: id, name, city?, logo (image path, a placeholder today)
+- `NavLink`: label, href, active?, hasMenu? · `QuickLink`: id, label, href, icon `QuickLinkIcon`
+- `UserSummary`: id, name, role, avatar, points, pointsThisWeek, level, pointsToNextLevel, levelProgress (0-1)
+- `FavoriteTeam`: team, league, starred, comingSoon
+- `SiteChrome`: nav, searchPlaceholder, hasNotifications, user, favorites, quickLinks (same on every page)
+- `StakesChipData`: team, label, chance, change
+- `MatchSummary`: id, league, status `GameStatus`, home, away, score `Score | null`, periodScores, periodLabel?, clock?, whenLabel, note?, href
+- `ComingSoonCard`: id, title, league · `FeaturedMatch`: match, background, whatItMeans, stakes, openCalls
+- `StakesStripItem`: id, home, away, line, href
+- `SiteLeaderboardEntry`: `LeaderboardEntry` + avatar, isYou?
+- `LiigaTableRow`: `ProjectedRow` + team, gamesPlayed, goalDifference · `LiigaTableData`: rows, highlightTeamId, highlightNote, fullTableHref
+- `HeroData`: kicker, titleLead, titleAccent, subtitle, body, tagline, image
+- `HomePage`: hero, dateLabel, featured, seasonStakesToday, live, upcoming, recent, comingSoon, leaderboard, table
+- `Breadcrumb`: label, href? · `VideoInfo`: poster, title
+- `MatchEvent`: id, time, period, title, detail, effect `number | null`, video
+- `MatchStat`: id, label, home, away (`null` shows "Data pending"), unit?
+- `StakesStep`: label, chance · `StakesTableRow`: rank, label, zone, highlight?
+- `SeasonStakes`: teamName, source, chance, change, before, now, nowLabel, steps, tableTitle, tableBadge, rows, worth `Record<GameOutcome, number>`
+- `Comment`: id, author, text
+- `CallItState`: call `PublicCall`, points, subtitle, secondsLeft, result `{ correctOptionId, split }`, lastCall (mock only: the real api sends result after the call locks)
+- `RoomLeaderboardRow`: rank, name, score, isYou? · `RoomSummary`: code, watching, subtitle, avatars, extraCount, leaderboardTitle, leaderboardNote, leaderboard, footnote?
+- `LiveMatchDetail` / `FinishedMatchDetail`, joined as `MatchDetail` by `status`. Shared fields: breadcrumbs, match, venue, dateLabel, spectators, stakesSummary, video, seasonStakes, events, eventsNote, stats, statsSource, statsNote. Live adds whatItMeans, discussion, guidelinesHref, callIt, room. Final adds whatItMeant (story is a `Content`), goalOfTheGame, yourNight, room, discussionHighlights, nextUp
+- `Subscription`: id, tag, title, description, priceLabel, included
+- `RewardOffer`: id, tag, title, description, costPoints (`null` = members only)
+- `Achievement`: id, title, subtitle, icon `AchievementIcon`
+- `RewardsPage`: titleLead, titleAccent, subtitle, howToEarnHref, earnChips, subscriptions, offers, achievements, footnote
+
 ## Public functions
 
 ### stakes: `@/features/stakes` (browser-safe)
@@ -94,6 +125,14 @@ Everything one part can rely on from another. Types live in `shared/types.ts`. T
 - `generateStory(teamId, gameId, language): Promise<Content>`, same
 - `getVerification(contentId): Promise<VerificationReport | null>`
 
+### site: `@/features/site` (browser-safe, front-end only)
+
+- `SiteLayout({ chrome, sidebar: { activeLinkId?, variant?, docked }, children })`: the full-width page shell (top nav, toasts, reduced motion) · `Breadcrumbs({ items })`. The hamburger hides or shows the docked sidebar on large screens (remembered in localStorage). On match pages (`docked: false`) and below 1024px it opens a drawer over a 50% black layer
+- `SectionCard`, `Pill`, `ToastProvider`, `useToast()`
+- `LiigaTable({ table })`, `ZoneLegend`, `StakesChip({ chip, dark? })`, `ChangeTag({ change })`, `StepChart({ steps })`, `CountdownRing({ seconds, total })`
+- `findMatch(id): MatchDetail | null`
+- data seam: `features/site/data.ts` (`useSiteChrome`, `useHomePage`, `useMatchDetail`, `useRewardsPage`). Screens get data only from here. Today it reads `shared/mock/site/`, later the api
+
 ## HTTP API
 
 | route                           | method | body / query                       | returns                                     |
@@ -110,3 +149,5 @@ Everything one part can rely on from another. Types live in `shared/types.ts`. T
 ## Mock data (`shared/mock/`)
 
 `teams.json` (17 teams), `games.json` (seasons of the two demo teams), `stakes-card.json`, `fact-inputs.json`, `content.json` (verified story + ledger + report with one blocked claim), `room-states.json` (13 states, a full game). Load them through `shared/mock/index.ts`.
+
+`shared/mock/site/`: `chrome.json` (nav, user, sidebar), `home.json`, `match-live.json`, `match-final.json`, `rewards.json`. Text and numbers come from `docs/design/`, the people are fictional, and every image is a `/placeholders/...` path. Load them through `shared/mock/site/index.ts`.

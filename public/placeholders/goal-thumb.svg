@@ -1,0 +1,28 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 640 432" preserveAspectRatio="xMidYMid slice" role="img" aria-label="goal thumbnail placeholder">
+  <defs>
+    <linearGradient id="g" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#3a3f47"/>
+      <stop offset="0.55" stop-color="#22262c"/>
+      <stop offset="1" stop-color="#121417"/>
+    </linearGradient>
+    <radialGradient id="v" cx="0.5" cy="0.45" r="0.75">
+      <stop offset="0.5" stop-color="#000" stop-opacity="0"/>
+      <stop offset="1" stop-color="#000" stop-opacity="0.55"/>
+    </radialGradient>
+  </defs>
+  <rect width="640" height="432" fill="url(#g)"/>
+  <g fill="none" stroke="#ffffff" stroke-opacity="0.09" stroke-width="2">
+    <rect x="25.6" y="34.56" width="588.8000000000001" height="362.88" rx="95.04"/>
+    <line x1="211.20000000000002" y1="34.56" x2="211.20000000000002" y2="397.44"/>
+    <line x1="428.8" y1="34.56" x2="428.8" y2="397.44"/>
+    <circle cx="320" cy="216" r="69.12"/>
+    <circle cx="108.80000000000001" cy="129.6" r="48.384"/>
+    <circle cx="108.80000000000001" cy="302.4" r="48.384"/>
+    <circle cx="531.1999999999999" cy="129.6" r="48.384"/>
+    <circle cx="531.1999999999999" cy="302.4" r="48.384"/>
+  </g>
+  <line x1="320" y1="34.56" x2="320" y2="397.44" stroke="#d80016" stroke-opacity="0.22" stroke-width="3"/>
+  <rect width="640" height="432" fill="url(#v)"/>
+  <circle cx="320" cy="216" r="43.2" fill="#000" fill-opacity="0.35" stroke="#fff" stroke-width="3.085714285714286"/>
+  <path d="M 307.04 197.856 L 339.44 216 L 307.04 234.144 Z" fill="#fff"/>
+</svg>

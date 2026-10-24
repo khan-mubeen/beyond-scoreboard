@@ -4,7 +4,7 @@ import reactHooks from "eslint-plugin-react-hooks";
 import globals from "globals";
 import tseslint from "typescript-eslint";
 
-const FEATURES = ["stakes", "live", "story"];
+const FEATURES = ["stakes", "live", "story", "site"];
 
 // flat config replaces (not merges) a rule per matching block,
 // so every block below carries the full list of patterns for its files

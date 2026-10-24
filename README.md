@@ -40,6 +40,7 @@ Stack: Vite + React + TypeScript (strict) + Tailwind, a small Express server, np
 | stakes | `features/stakes/` | Liiga data, standings, simulation, stakes visuals, big screen                   |
 | live   | `features/live/`   | replay clock, calls, rooms, scoring, phone and host screens                     |
 | story  | `features/story/`  | fact ledger, LLM writer, validator, trust components                            |
+| site   | `features/site/`   | Kaleva Sports pages: home, match pages, rewards (front-end, mock data for now)  |
 | shared | `shared/`          | contract types, mock data, UI primitives, tokens. tell the team before changing |
 
 `app/` (pages) and `server/` (api wiring) are thin tables that only point at feature code.
@@ -69,7 +70,10 @@ Copy `.env.example` to `.env` to change anything. Defaults work offline: `USE_SN
 
 ### Pages
 
-- [`/`](http://localhost:3000/) create or join a room
+- [`/`](http://localhost:3000/) Kaleva Sports home
+- [`/match/karpat-assat-live`](http://localhost:3000/match/karpat-assat-live) and [`/match/karpat-assat-final`](http://localhost:3000/match/karpat-assat-final), the live and finished match pages
+- [`/rewards`](http://localhost:3000/rewards) Kaleva Rewards. `/calls`, `/calls/history`, `/achievements` and `/settings` say "Coming soon"
+- [`/watch`](http://localhost:3000/watch) create or join a watch party room
 - [`/dev`](http://localhost:3000/dev) links to everything below
 - [`/dev/stakes`](http://localhost:3000/dev/stakes) meter, season strip and projected table on mock data
 - [`/dev/live`](http://localhost:3000/dev/live) step through a full game, phone and host side by side

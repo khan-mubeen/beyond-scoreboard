@@ -1,0 +1,28 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1280 360" preserveAspectRatio="xMidYMid slice" role="img" aria-label="live video poster placeholder">
+  <defs>
+    <linearGradient id="g" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#3a3f47"/>
+      <stop offset="0.55" stop-color="#22262c"/>
+      <stop offset="1" stop-color="#121417"/>
+    </linearGradient>
+    <radialGradient id="v" cx="0.5" cy="0.45" r="0.75">
+      <stop offset="0.5" stop-color="#000" stop-opacity="0"/>
+      <stop offset="1" stop-color="#000" stop-opacity="0.55"/>
+    </radialGradient>
+  </defs>
+  <rect width="1280" height="360" fill="url(#g)"/>
+  <g fill="none" stroke="#ffffff" stroke-opacity="0.09" stroke-width="3.2">
+    <rect x="51.2" y="28.8" width="1177.6000000000001" height="302.4" rx="79.2"/>
+    <line x1="422.40000000000003" y1="28.8" x2="422.40000000000003" y2="331.2"/>
+    <line x1="857.6" y1="28.8" x2="857.6" y2="331.2"/>
+    <circle cx="640" cy="180" r="57.6"/>
+    <circle cx="217.60000000000002" cy="108" r="40.32"/>
+    <circle cx="217.60000000000002" cy="251.99999999999997" r="40.32"/>
+    <circle cx="1062.3999999999999" cy="108" r="40.32"/>
+    <circle cx="1062.3999999999999" cy="251.99999999999997" r="40.32"/>
+  </g>
+  <line x1="640" y1="28.8" x2="640" y2="331.2" stroke="#d80016" stroke-opacity="0.22" stroke-width="5.12"/>
+  <rect width="1280" height="360" fill="url(#v)"/>
+  <circle cx="640" cy="180" r="61.2" fill="#000" fill-opacity="0.35" stroke="#fff" stroke-width="4.371428571428572"/>
+  <path d="M 621.64 154.296 L 667.54 180 L 621.64 205.704 Z" fill="#fff"/>
+</svg>
