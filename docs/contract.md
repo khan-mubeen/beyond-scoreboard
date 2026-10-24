@@ -27,7 +27,7 @@ Everything one part can rely on from another. Types live in `shared/types.ts`. T
 - `Fact`: id (`F17`), label, value `number | string`, unit `string | null`, sourceGameIds
 - `ContentSentence`: text, factIds
 - `Content`: id (`<kind>.<teamId>.<gameId>.<language>`), kind `brief | story`, gameId, teamId, language `en | fi`, sentences, status `verified | fallback`, generatedAt
-- `ValidationErrorType`: `uncited_sentence | model_typed_number | unknown_name | quote | off_ice_claim`
+- `ValidationErrorType`: `uncited_sentence | model_typed_number | unknown_name | quote | off_ice_claim | betting_language`
 - `VerifiedClaim`: text, factIds, passed, errorType, reason
 - `VerificationReport`: contentId, claims, blockedCount
 
@@ -80,7 +80,23 @@ Percentages are whole numbers 0-100. Changes are percentage points.
 - `Subscription`: id, tag, title, description, priceLabel, included
 - `RewardOffer`: id, tag, title, description, costPoints (`null` = members only)
 - `Achievement`: id, title, subtitle, icon `AchievementIcon`
-- `RewardsPage`: titleLead, titleAccent, subtitle, howToEarnHref, earnChips, subscriptions, offers, achievements, footnote
+- `RewardsPage`: titleLead, titleAccent, subtitle, howToEarnHref, earnChips, subscriptions, offers, achievements, footnote, user
+- `DataSource`: `live | snapshot | mock | config | db` · `ApiMeta`: `{ asOf, source }`, on every `/api/site` response
+- Real data made some fields nullable: `HomePage.featured`, `highlightNote`, `MatchEvent.video`, `spectators`, `callIt`, `goalOfTheGame`, `yourNight`, `nextUp`. Added: `HomePage.user / favorites`, `VideoInfo.src`, `MatchEvent.kind`, `MatchStat.display`, `Comment.likes / createdAt`, `lineups`, `isReplay`, `nextUp.matchId`. `LiveMatchDetail.status` is `live | scheduled`
+
+### Live state (`GET /api/site/matches/:id/state` and realtime `match:{id}`)
+
+- `LiveCallStatus`: `open | locked | resolved | cancelled`
+- `LiveCall`: id, type, question, options, stakesLine, points (20), status, openedAt, locksAt (ms, server time), split (`%` per option, from the lock), correctOptionId (**only once resolved**), reason (why cancelled)
+- `LiveStakes`: chips, seasonStakes, whatItMeans
+- `LiveState`: matchId, serverNow, isReplay, status, clock `{ period, gameTime, label, clock }`, score, periodScores, events (newest first), stakes, call (open or locked), lastCall (resolved or cancelled), leaderboard, watching, me `{ userId, nickname, matchPoints, answers }` (from the cookie, null for guests)
+
+## Call it! rules (`features/live/engine/rules.ts`)
+
+- Opens: who wins (first 2 minutes), who scores first (first 3 minutes of a period without a goal), power play (within a minute of a real 2- or 5-minute penalty, not offsetting), answer back (within 90 s of a goal, not in the last 2 minutes), overtime (tied, 5 to ½ minute left). One open call at a time, 60 s of game time apart, each trigger once per match (stored, so a restart doesn't repeat one).
+- Answers: 20 s (`CALL_ANSWER_SECONDS`) of server time, one per fan. Late, locked, cancelled or repeated answers get 409.
+- Fairness: only events after the lock decide a call. An event that would decide it while answers were open cancels it: no points either way.
+- Points: 20 per correct call into `points_ledger`, unique per (user, call), so resolving twice never pays twice.
 
 ## Public functions
 
@@ -111,6 +127,26 @@ Percentages are whole numbers 0-100. Changes are percentage points.
 
 - `getRoomState(code, playerId?): Promise<RoomState | null>`, null when the room doesn't exist
 - `store`: the `RoomStore` (createRoom, getRoom, updateRoom, addPlayer, listPlayers, saveAnswer, listAnswers)
+- `startEngine(renderer)`: the demo replay (`DEMO_REPLAY_*`) and every live game; the site passes its `MatchRenderer`, so live never imports site
+- `engineMatch(id)`: `{ state, visible, isReplay, names } | null` · `ensureLiveLoop(id, game)` · `activeReplays()` · `matchSince(id)` (a replay's room leaderboard counts from its last reset)
+- `controlReplay(id, start | pause | resume | skip | reset): Promise<string | null>`, null when done
+- `answerCall(callId, userId, optionId, now?)`: 201, or 400 / 404 / 409 with an error
+- `publish(matchId, messages)`: realtime broadcast over REST with the secret key; throws on betting fields · `recentBroadcasts`
+- `phraseProblem(kind, template)`, `PHRASE_VARS`, `BUILT_IN`: the rules a stored call wording must pass
+
+### liiga: `@/features/liiga` (browser-safe) and `@/features/liiga/server`
+
+- Model and pure normalisers (`normalizeGame`, `normalizeFixture`, …), `matchIdOf` / `parseMatchId`, `describeGoalTypes`, `stripGambling` / `findGamblingFields`
+- Server: `getGame(season, gameId)` `{ game, names }`, `getGamesOn(date)`, `getSchedule`, `getStandings(season, live)`, `getTeams`, `getGameStats`, `getLineups`, `getPastAndFuture`, `liigaNow()` (the snapshot's time in snapshot mode). Every getter returns `{ data, asOf, source }`. Field by field: [api/mapping.md](api/mapping.md)
+
+### stakes: `@/features/stakes/server` (season forecast)
+
+- `getSeasonContext()`: schedule, table, strengths · `forecastNow(ctx, targets)` · `forecastBefore(ctx, game)`: a finished game judged as the season stood before it (also used for replays) · `checkRulesAgainstApi()`
+- Engine helpers: `worthFor`, `ifEndsNow`, `chanceTimeline`, `goalOfTheGame`, `tableIfEndsNow`, `rankOf`
+
+### site: `@/features/site/server`
+
+- `homePage(viewer)`, `matchDetail(id, viewer)`, `rewardsPage(viewer)`, `matchFactsFor(id)` (for `npm run pregen`)
 
 ### story: `@/features/story` (browser-safe)
 
@@ -130,8 +166,9 @@ Percentages are whole numbers 0-100. Changes are percentage points.
 - `SiteLayout({ chrome, sidebar: { activeLinkId?, variant?, docked }, children })`: the full-width page shell (top nav, toasts, reduced motion) · `Breadcrumbs({ items })`. The hamburger hides or shows the docked sidebar on large screens (remembered in localStorage). On match pages (`docked: false`) and below 1024px it opens a drawer over a 50% black layer
 - `SectionCard`, `Pill`, `ToastProvider`, `useToast()`
 - `LiigaTable({ table })`, `ZoneLegend`, `StakesChip({ chip, dark? })`, `ChangeTag({ change })`, `StepChart({ steps })`, `CountdownRing({ seconds, total })`
-- `findMatch(id): MatchDetail | null`
-- data seam: `features/site/data.ts` (`useSiteChrome`, `useHomePage`, `useMatchDetail`, `useRewardsPage`). Screens get data only from here. Today it reads `shared/mock/site/`, later the api
+- `findMatch(id): Promise<MatchDetail | null>`
+- data seam: `features/site/data.ts` (`useSiteChrome`, `useHomePage`, `useMatchDetail`, `useRewardsPage`, `useMe`, `joinMatchApi`, `answerCallApi`, `postCommentApi`, `setReminderApi`). Screens get data only from here: `/api/site/*`, with `shared/mock/site/` as the fallback (`VITE_USE_MOCKS=true`, a failed request, or the two design pages)
+- `useLiveMatch(detail, me)`: realtime `match:{id}` (receive only), `GET /state` on subscribe and reconnect, polling every 3 s when not subscribed within 5 s or `?realtime=off`
 
 ## HTTP API
 
@@ -145,6 +182,47 @@ Percentages are whole numbers 0-100. Changes are percentage points.
 | `/api/content/brief`            | GET    | `?teamId=&gameId=&language=en\|fi` | 200 `Content`, 400                          |
 | `/api/content/story`            | GET    | same                               | 200 `Content`, 400                          |
 | `/api/content/:id/verification` | GET    |                                    | 200 `VerificationReport`, 404               |
+
+### Kaleva Sports (`/api/site`)
+
+Every request is validated with zod (400 with the reason). Every response has `asOf` and `source`, and is refused if it holds a betting field. The fan is the httpOnly `ks_anon` cookie; a users row exists from the first join.
+
+| route                              | method | body / query                       | returns                                                        |
+| ---------------------------------- | ------ | ---------------------------------- | -------------------------------------------------------------- |
+| `/api/site/home`                   | GET    | `?team=&date=YYYY-MM-DD`           | 200 `HomePage`                                                 |
+| `/api/site/me`                     | GET    |                                    | 200 `{ user, joined, nickname }`                               |
+| `/api/site/matches/:id`            | GET    | id `2027-2701404`                  | 200 `MatchDetail`, 400, 404                                    |
+| `/api/site/matches/:id/state`      | GET    |                                    | 200 `LiveState`, 404                                           |
+| `/api/site/matches/:id/join`       | POST   | `{ nickname?, roomCode? }`         | 200 `{ user, nickname, room }`, 404 unknown room code          |
+| `/api/site/matches/:id/control`    | POST   | `{ action }`, header `x-host-token`| 200, 400, 403 wrong token, 409 no replay, 503 no `HOST_TOKEN`  |
+| `/api/site/calls/:callId/answer`   | POST   | `{ optionId }`                     | 201, 400, 404, 409 locked / cancelled / already answered       |
+| `/api/site/matches/:id/comments`   | GET    |                                    | 200 `{ comments }`                                             |
+| `/api/site/matches/:id/comments`   | POST   | `{ text }`, 1–280 characters       | 201 `{ comment }`, 401 no nickname, 422 too long or guardrails, 429 within 5 s |
+| `/api/site/comments/:id/like`      | POST   |                                    | 201, 404, 409 already liked                                    |
+| `/api/site/reminders`              | GET    |                                    | 200 `{ reminders }`                                            |
+| `/api/site/reminders`              | POST   | `{ matchId, on }`                  | 200 `{ matchId, on, reminders }`                               |
+| `/api/site/standings`              | GET    | `?live=true\|false`                | 200 standings                                                  |
+| `/api/site/rewards`                | GET    |                                    | 200 `RewardsPage`                                              |
+
+## Realtime (`match:{id}`, private, broadcast)
+
+Sent by the server only (REST, secret key). Browsers subscribe with the publishable key; the RLS policy on `realtime.messages` lets them read `match:%` broadcasts and has no insert policy, so they can't send.
+
+| event            | payload                                                                 |
+| ---------------- | ----------------------------------------------------------------------- |
+| `state`          | serverNow, isReplay, status, clock, score, periodScores, events (new ones only) |
+| `stakes`         | chips, seasonStakes, whatItMeans, serverNow (after a goal or status change) |
+| `call_open`      | call (`LiveCall`, no answer, no split), serverNow                       |
+| `call_locked`    | callId, split, serverNow                                                |
+| `call_resolved`  | callId, correctOptionId, split, serverNow                               |
+| `call_cancelled` | callId, reason, serverNow                                               |
+| `leaderboard`    | leaderboard, watching                                                   |
+| `comment`        | comment                                                                 |
+| `game_end`       | score, decidedIn, serverNow                                             |
+
+## Database (`supabase/migrations/`)
+
+`users`, `match_rooms`, `room_members`, `calls`, `answers` (unique per call and user), `points_ledger` (unique per user and call), `comments`, `comment_likes`, `reminders`, `content_cache`, `phrase_bank`. RLS is on for every table with no policies: only the server's secret key reads or writes. Repositories: `shared/db` (`Db` interface, Supabase and memory implementations).
 
 ## Mock data (`shared/mock/`)
 

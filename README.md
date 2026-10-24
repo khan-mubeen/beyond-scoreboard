@@ -13,35 +13,39 @@ User-facing text always says "chance" ("playoff chance 64%"), never "odds". No p
 ## Architecture
 
 ```
-  phones (/room/CODE)      host (/room/CODE/host)      big screen (/room/CODE/screen)
-        │  poll state every 1s, POST join / answers / control  │
-        └──────────────────────────┬──────────────────────────┘
-                                   ▼
-                 one node process: server/main.ts (express)
-          /api/* ──► server/api.ts ──► features/<part>/server/routes/*
-          everything else ──► the react app (vite in dev, dist/ in prod)
+  Kaleva Sports pages (/, /match/:id, /rewards)          watch party (/room/CODE, host, screen)
+     │ GET /api/site/*  POST join / answer / comment          │ poll /api/rooms/* every 1s
+     │ ◄── Supabase Realtime "match:{id}" (receive only)      │
+     └─────────────────────────┬──────────────────────────────┘
+                               ▼
+                one node process: server/main.ts (express)
+        /api/* ──► server/api.ts ──► features/<part>/server/routes/*
+        everything else ──► the react app (vite in dev, dist/ in prod)
 
-  features/live/server ──► in-memory room store, replay clock, calls, scoring
-          │ uses
-          ▼
-  features/stakes/server ──► snapshots/*.json, else shared/mock   (chances, table)
-          ▲ uses
-  features/story/server  ──► story/cache/*.json, else template    (brief, story, verification)
+  features/liiga/server  ──► Liiga API (x-api-key, cached, betting fields stripped), else snapshots
+  features/stakes/server ──► Monte Carlo season forecast on the Liiga schedule (chances, worth, table)
+  features/story/server  ──► fact ledger, templates, optional LLM, validator, content_cache
+  features/live/server   ──► live engine: one loop per match, calls, points, Realtime broadcasts
+  features/site/server   ──► the /api/site routes, built from the four above
+  shared/db              ──► Supabase Postgres (RLS on, server key only), or memory
 
-  all three speak shared/types.ts
+  all of them speak shared/types.ts
 ```
 
-Stack: Vite + React + TypeScript (strict) + Tailwind, a small Express server, npm. No database: rooms, players and answers live in memory. Story content is pre-generated into JSON.
+Stack: Vite + React + TypeScript (strict) + Tailwind, a small Express server, npm, Supabase (Postgres and Realtime broadcast). Without Supabase everything runs on an in-memory store and the pages poll. The older watch party rooms still live in memory.
+
+The server is the only authority: it runs the clock, opens and locks calls, judges answers against server time, and pays points into an idempotent ledger. Browsers only receive broadcasts on private channels (RLS has no insert policy), and every response and broadcast is checked for betting fields before it leaves.
 
 ## Who owns what
 
 | Part   | Folder             | Responsibility                                                                  |
 | ------ | ------------------ | ------------------------------------------------------------------------------- |
-| stakes | `features/stakes/` | Liiga data, standings, simulation, stakes visuals, big screen                   |
-| live   | `features/live/`   | replay clock, calls, rooms, scoring, phone and host screens                     |
-| story  | `features/story/`  | fact ledger, LLM writer, validator, trust components                            |
-| site   | `features/site/`   | Kaleva Sports pages: home, match pages, rewards (front-end, mock data for now)  |
-| shared | `shared/`          | contract types, mock data, UI primitives, tokens. tell the team before changing |
+| liiga  | `features/liiga/`  | Liiga API client, cache, normalisers, snapshots                                 |
+| stakes | `features/stakes/` | standings, simulation, stakes visuals, big screen                               |
+| live   | `features/live/`   | live engine, replay, call it! rules, answers, realtime, rooms, phone and host   |
+| story  | `features/story/`  | fact ledger, templates, LLM writer, validator, trust components                 |
+| site   | `features/site/`   | Kaleva Sports pages and their api: home, match pages, rewards                   |
+| shared | `shared/`          | contract types, db, mock data, UI primitives, tokens. tell the team before changing |
 
 `app/` (pages) and `server/` (api wiring) are thin tables that only point at feature code.
 
@@ -54,24 +58,42 @@ npm run dev          # http://localhost:3000, api and app on one port
 
 Other scripts:
 
-| script                 | what it does                                                |
-| ---------------------- | ----------------------------------------------------------- |
-| `npm run build`        | builds the client into `dist/`                              |
-| `npm start`            | serves `dist/` and the api (run `build` first)              |
-| `npm test`             | vitest, pure functions only                                 |
-| `npm run lint`         | eslint, including the import rules below                    |
-| `npm run typecheck`    | `tsc --noEmit`                                              |
-| `npm run format`       | prettier                                                    |
-| `npm run snapshot`     | fetch Liiga data into `features/stakes/snapshots/` (gate 0) |
-| `npm run fake-players` | `-- [room] [count]`, joins fake players to a running server |
-| `npm run pregen`       | write LLM content into `features/story/cache/`              |
+| script                   | what it does                                                                        |
+| ------------------------ | ----------------------------------------------------------------------------------- |
+| `npm run build`          | builds the client into `dist/`                                                      |
+| `npm start`              | serves `dist/` and the api (run `build` first)                                      |
+| `npm test`               | vitest: engine and rules, the whole server in-process on snapshots, the bundle scan |
+| `npm run lint`           | eslint, including the import rules below                                            |
+| `npm run typecheck`      | `tsc --noEmit`                                                                      |
+| `npm run format`         | prettier                                                                            |
+| `npm run snapshot`       | record Liiga responses into `features/liiga/snapshots/` (needs the api key)        |
+| `npm run db:migrate`     | apply `supabase/migrations/` (needs `SUPABASE_DB_URL`)                              |
+| `npm run db:seed`        | demo fans, points and comments (idempotent)                                         |
+| `npm run fake-players`   | `-- <matchId> [count]`, fans that join and answer every call on a running server   |
+| `npm run pregen`         | `-- --match <id>`, LLM match stories into `content_cache`, validated               |
+| `npm run pregen:phrases` | LLM wordings for each call it! question into `phrase_bank`, validated              |
 
-Copy `.env.example` to `.env` to change anything. Defaults work offline: `USE_SNAPSHOT=true` reads snapshots and falls back to `shared/mock/`, and `LLM_ENABLED=false` uses the template writer. The running app never calls the LLM. It reads the cache, and only the deterministic validator decides what passes.
+Copy `.env.example` to `.env` to change anything; it says which variables are browser-safe (only `VITE_*`). Defaults work offline: `USE_SNAPSHOT=true` serves the recorded snapshots, no Supabase means an in-memory store, and `LLM_ENABLED=false` uses templates. The running app never waits on the LLM: texts come from `content_cache` (re-verified against the current facts) or templates, and only the deterministic validator decides what passes.
+
+### Demo replay
+
+A finished game replayed as live, with Call It! running on it.
+
+```sh
+# .env: DEMO_REPLAY_MATCH_ID=2027-2701404  HOST_TOKEN=<anything>  (DEMO_REPLAY_SPEED=15)
+npm run dev
+# host: open http://localhost:3000/match/2027-2701404?host=1, enter the token, press Start
+# or let 30 fans play it, start included:
+HOST_TOKEN=<same> npm run fake-players -- 2027-2701404 30
+```
+
+The replay only shows what had happened by its clock (no final stats, no future goals). It runs at 1x while a call takes answers, so 20 s to answer is 20 s of game, as in a live game; at 15x the power play would be over before the lock. Host buttons: Start, Pause, Resume, Skip to next call, Reset (a reset starts a fresh room leaderboard; season points stay). Real live games are picked up on their own and ticked every 5 s.
 
 ### Pages
 
 - [`/`](http://localhost:3000/) Kaleva Sports home
-- [`/match/karpat-assat-live`](http://localhost:3000/match/karpat-assat-live) and [`/match/karpat-assat-final`](http://localhost:3000/match/karpat-assat-final), the live and finished match pages
+- [`/match/2027-2701404`](http://localhost:3000/match/2027-2701404) a real match (`{season}-{gameId}`): live while it's played or replayed, the finished page after. `?host=1` shows the host bar, `?realtime=off` forces polling, `?room=CODE` joins a friend's room
+- [`/match/karpat-assat-live`](http://localhost:3000/match/karpat-assat-live) and [`/match/karpat-assat-final`](http://localhost:3000/match/karpat-assat-final), the design's mock pages, kept working without a backend
 - [`/rewards`](http://localhost:3000/rewards) Kaleva Rewards. `/calls`, `/calls/history`, `/achievements` and `/settings` say "Coming soon"
 - [`/watch`](http://localhost:3000/watch) create or join a watch party room
 - [`/dev`](http://localhost:3000/dev) links to everything below
@@ -88,7 +110,7 @@ Phones on the same wifi open `http://<your-laptop-ip>:3000`. The QR code is buil
 - `features/<part>/server/index.ts` is **server only**: data loading, cache, store.
 - Route handlers live in `features/<part>/server/routes/` and only `server/api.ts` imports them.
 
-Logic that tests or scripts need lives outside `server/` as pure functions. Scripts never import `server/`.
+Logic that tests or scripts need lives outside `server/` as pure functions where it can. Node scripts and tests may use server entries and the db; the browser bundle never does (lint enforces it, and a test scans the built bundle for server secrets).
 
 ## Import rules (enforced by `npm run lint`)
 
@@ -103,4 +125,4 @@ See [docs/contract.md](docs/contract.md) for every shared type and public functi
 
 ## Deploy
 
-One long-running Node server (Render or Railway): build with `npm install && npm run build`, start with `npm start`. Set `PORT` if the host needs it. Serverless won't work, because the in-memory store needs a single process.
+One long-running Node server (Render or Railway): build with `npm install && npm run build`, start with `npm start`. Set `PORT` if the host needs it, and the server-only variables from `.env.example` as secrets. Run one instance: the live engine's loops and the watch party store live in that process. Serverless won't work for the same reason. API docs: [docs/api/mapping.md](docs/api/mapping.md) (Liiga fields), [docs/api/goal-types.md](docs/api/goal-types.md).
