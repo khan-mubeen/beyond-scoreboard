@@ -3,6 +3,7 @@ import { periodScoresText } from "../format";
 import { Icon } from "./Icon";
 import { StakesChip } from "./StakesChip";
 import { TeamLogo } from "./TeamLogo";
+import { WhenLabel } from "./WhenLabel";
 
 export function LiveBadge({ className = "" }: { className?: string }) {
   return (
@@ -46,7 +47,7 @@ export function LiveMatchCard({ featured }: { featured: FeaturedMatch }) {
             </>
           ) : (
             <span className="rounded-md bg-dark-ink/15 px-2.5 py-1 text-xs font-bold">
-              {match.status === "final" ? "FINAL" : match.whenLabel}
+              {match.status === "final" ? "FINAL" : <WhenLabel match={match} />}
             </span>
           )}
         </p>
@@ -82,11 +83,11 @@ export function LiveMatchCard({ featured }: { featured: FeaturedMatch }) {
               {live ? "Watch live" : "Match centre"}
             </a>
             <a
-              href={`${match.href}#call-it`}
+              href={match.status === "final" ? match.href : `${match.href}#call-it`}
               className="flex h-11 items-center justify-center gap-2 rounded-lg border border-dark-ink/70 font-semibold hover:bg-dark-ink/10"
             >
               <Icon name="chart" className="size-4" />
-              {live ? `Call It! · ${featured.openCalls} open` : "Call It! at puck drop"}
+              {match.status === "final" ? "The match in 60 seconds" : live || featured.openCalls > 0 ? `Call It! · ${featured.openCalls} open` : "Calls open when the game starts"}
             </a>
           </div>
         </div>

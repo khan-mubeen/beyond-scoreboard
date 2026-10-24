@@ -34,10 +34,24 @@ export async function viewerSummary(user: DbUser | null): Promise<UserSummary> {
   return { id: "guest", name: "Guest", role: "Join a match to play", avatar: initialsAvatar(), points: 0, pointsThisWeek: 0, ...levelFor(0) };
 }
 
-/** points per user, highest first, equal points share a rank */
+// the fake players, briefly cached: every leaderboard and count leaves them out
+let bots: { at: number; ids: Promise<Set<string>> } | null = null;
+export function botIds(): Promise<Set<string>> {
+  if (!bots || Date.now() - bots.at > 5000) {
+    const ids = getDb()
+      .users.botIds()
+      .then((x) => new Set(x));
+    ids.catch(() => (bots = null));
+    bots = { at: Date.now(), ids };
+  }
+  return bots.ids;
+}
+
+/** points per user (bots left out), highest first, equal points share a rank */
 export async function rankPoints(rows: DbPoints[], limit: number, youId?: string | null): Promise<SiteLeaderboardEntry[]> {
+  const skip = await botIds();
   const totals = new Map<string, number>();
-  for (const r of rows) totals.set(r.userId, (totals.get(r.userId) ?? 0) + r.points);
+  for (const r of rows) if (!skip.has(r.userId)) totals.set(r.userId, (totals.get(r.userId) ?? 0) + r.points);
   const sorted = [...totals.entries()].sort((a, b) => b[1] - a[1]);
   const users = new Map((await getDb().users.getMany(sorted.slice(0, limit).map(([id]) => id).concat(youId ? [youId] : []))).map((u) => [u.id, u]));
   const rankOf = (score: number) => 1 + sorted.filter(([, s]) => s > score).length;

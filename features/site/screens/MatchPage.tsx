@@ -1,21 +1,34 @@
-import { PageLoading } from "../components/PageLoading";
 import { SiteLayout } from "../components/SiteLayout";
-import { useMatchDetail, useSiteChrome } from "../data";
+import { DataUnavailable, MatchSkeleton } from "../components/Skeleton";
+import { isMockMatch, USE_MOCKS, useMatchDetail } from "../data";
 import { FinishedMatch } from "./FinishedMatch";
 import { LiveMatch } from "./LiveMatch";
 import { Placeholder } from "./Placeholder";
+import { TvMatch } from "./TvMatch";
 
-/** /match/:id picks the live (or upcoming) or the finished layout from the match status */
+const tvMode = () => typeof window !== "undefined" && new URLSearchParams(window.location.search).get("tv") === "1";
+
+/** /match/:id picks the live (or upcoming) or the finished layout from the match status; ?tv=1 is the projector view */
 export function MatchPage({ id }: { id: string }) {
-  const { data: match, status, source } = useMatchDetail(id);
-  const chrome = useSiteChrome();
-  if (status === "loading") {
+  if (tvMode()) return <TvMatch id={id} />;
+  return <MatchView id={id} />;
+}
+
+function MatchView({ id }: { id: string }) {
+  const { data: match, status, source, refresh } = useMatchDetail(id);
+  if (isMockMatch(id) && !USE_MOCKS) return <Placeholder title="Match centre" />;
+  if (!match) {
+    if (status === "notfound") return <Placeholder title="Match centre" />;
     return (
-      <SiteLayout chrome={chrome} sidebar={{ docked: false }}>
-        <PageLoading label="Loading the match…" />
+      <SiteLayout sidebar={{ docked: false }}>
+        {status === "error" ? <DataUnavailable what="this match" onRetry={refresh} /> : <MatchSkeleton />}
       </SiteLayout>
     );
   }
-  if (!match) return <Placeholder title="Match centre" />;
-  return match.status === "final" ? <FinishedMatch match={match} source={source} /> : <LiveMatch match={match} source={source} />;
+  // a live game that ends (or a rotation match that moves on) refetches the page in place
+  return match.status === "final" ? (
+    <FinishedMatch match={match} source={source} onChange={refresh} />
+  ) : (
+    <LiveMatch match={match} source={source} onChange={refresh} />
+  );
 }

@@ -2,6 +2,7 @@ import type { MatchSummary, TeamRef } from "@/shared/types";
 import { fmtInt, periodScoresText } from "../format";
 import { LiveBadge } from "./LiveMatchCard";
 import { TeamLogo } from "./TeamLogo";
+import { WhenLabel } from "./WhenLabel";
 
 function Team({ team, align }: { team: TeamRef; align: "left" | "right" }) {
   return (
@@ -46,7 +47,7 @@ export function ScoreHeader({
               <LiveBadge />
             ) : (
               <span className="rounded-md bg-surface-2 px-2.5 py-1 text-xs font-bold">
-                {match.status === "final" ? "FINAL" : match.whenLabel}
+                {match.status === "final" ? "FINAL" : <WhenLabel match={match} />}
               </span>
             )}
             {live && (

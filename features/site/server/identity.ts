@@ -31,8 +31,8 @@ export async function viewerOf(req: Request, res: Response): Promise<Viewer> {
   return { anonId, user };
 }
 
-/** the viewer's user row, created now if needed. a nickname is set on first join */
-export async function ensureUser(viewer: Viewer, nickname?: string): Promise<DbUser> {
+/** the viewer's user row, created now if needed. a nickname is set on first join; bots are fake players */
+export async function ensureUser(viewer: Viewer, nickname?: string, isBot = false): Promise<DbUser> {
   const db = getDb();
   if (viewer.user) {
     if (nickname && nickname !== viewer.user.nickname) {
@@ -41,7 +41,7 @@ export async function ensureUser(viewer: Viewer, nickname?: string): Promise<DbU
     }
     return viewer.user;
   }
-  viewer.user = await db.users.create(viewer.anonId, nickname ?? null);
+  viewer.user = await db.users.create(viewer.anonId, nickname ?? null, isBot);
   return viewer.user;
 }
 

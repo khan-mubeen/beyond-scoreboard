@@ -1,11 +1,12 @@
 // GET /api/site/matches/:id/state: the full live snapshot. used on page load, after a realtime
 // reconnect and as the polling fallback. the live engine owns active matches; otherwise the
 // state is derived from the match detail (cached a few seconds, polling clients share it)
-import { engineMatch } from "@/features/live/server";
+import { engineMatch, roomScope } from "@/features/live/server";
 import { getDb, type DbUser } from "@/shared/db";
 import type { LiveState, MatchDetail } from "@/shared/types";
 import { periodName } from "./labels";
 import { matchDetail } from "./match";
+import { roomStandings } from "./social";
 
 const DETAIL_TTL_MS = 5000;
 const fromDetail = new Map<string, { at: number; state: Promise<LiveState | null> }>();
@@ -14,8 +15,12 @@ const fromDetail = new Map<string, { at: number; state: Promise<LiveState | null
 export async function liveStateFor(matchId: string, user: DbUser | null): Promise<LiveState | null> {
   const base = engineMatch(matchId)?.state ?? (await cachedFromDetail(matchId));
   if (!base) return null;
-  // serverNow is the response time (the clients sync their countdowns to it), not the tick's
-  return { ...base, serverNow: Date.now(), me: user ? await meFor(base, user) : null };
+  // serverNow is the response time (the clients sync their countdowns to it), not the tick's;
+  // a running highlight's second moves on with it
+  const now = Date.now();
+  const r = base.rotation;
+  const rotation = r && r.videoSec !== null && !r.paused ? { ...r, videoSec: r.videoSec + (now - base.serverNow) / 1000 } : r;
+  return { ...base, serverNow: now, rotation, me: user ? await meFor(base, user) : null };
 }
 
 function cachedFromDetail(matchId: string): Promise<LiveState | null> {
@@ -27,16 +32,34 @@ function cachedFromDetail(matchId: string): Promise<LiveState | null> {
   return state;
 }
 
-/** the viewer's answers to the current and last call, and their points this match */
+// the room ranking, shared by every viewer polling the same match for a couple of seconds
+const standings = new Map<string, { at: number; value: ReturnType<typeof roomStandings> }>();
+function cachedStandings(matchId: string) {
+  const hit = standings.get(matchId);
+  if (hit && Date.now() - hit.at < 2000) return hit.value;
+  const value = roomStandings(matchId, null);
+  value.catch(() => standings.delete(matchId));
+  standings.set(matchId, { at: Date.now(), value });
+  return value;
+}
+
+/** the viewer's answers to the current and last call, their points this match, and their room rank */
 async function meFor(s: LiveState, user: DbUser): Promise<NonNullable<LiveState["me"]>> {
   const db = getDb();
   const callIds = [s.call?.id, s.lastCall?.id].filter((x): x is string => !!x);
-  const [answers, points] = await Promise.all([callIds.length ? db.answers.listForUser(user.id, callIds) : [], db.points.listForUser(user.id)]);
+  const since = roomScope(s.matchId).since;
+  const [answers, points, room] = await Promise.all([
+    callIds.length ? db.answers.listForUser(user.id, callIds) : [],
+    db.points.listForUser(user.id),
+    cachedStandings(s.matchId),
+  ]);
   return {
     userId: user.id,
     nickname: user.nickname,
-    matchPoints: points.filter((p) => p.matchId === s.matchId).reduce((sum, p) => sum + p.points, 0),
+    matchPoints: points.filter((p) => p.matchId === s.matchId && p.createdAt >= since).reduce((sum, p) => sum + p.points, 0),
     answers: Object.fromEntries(answers.map((a) => [a.callId, a.optionId])),
+    rank: room.ranked.find((e) => e.playerId === user.id)?.rank ?? null,
+    of: Math.max(room.fans.length, room.ranked.length),
   };
 }
 

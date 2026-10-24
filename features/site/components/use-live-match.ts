@@ -1,10 +1,12 @@
 // live updates for a match page: supabase realtime broadcast on "match:{id}" (receive only),
 // with GET /state on subscribe or reconnect, and polling every 3 s while realtime is not
-// SUBSCRIBED (none within 5 s, a drop, or ?realtime=off). the server is the only authority
+// SUBSCRIBED (none within 5 s, a drop, or ?realtime=off). the server is the only authority.
+// a call you answered that resolves or is cancelled raises a toast and refreshes your points
 import { RealtimeClient, type RealtimeChannel } from "@supabase/realtime-js";
 import { useEffect, useMemo, useRef, useState } from "react";
-import type { Comment, LiveCall, LiveMatchDetail, LiveState, MatchEvent } from "@/shared/types";
-import { answerCallApi, type Me } from "../data";
+import type { Comment, LiveCall, LiveMatchDetail, LiveState, MatchEvent, MeResponse } from "@/shared/types";
+import { answerCallApi, noteServerNow, refreshMeSoon, serverNowMs } from "../data";
+import { toast } from "./Toast";
 import type { CallItView } from "./use-call-it";
 
 const URL_ = import.meta.env.VITE_SUPABASE_URL as string | undefined;
@@ -21,6 +23,10 @@ export interface LiveView {
   isReplay: boolean;
   gameTime: number;
   connection: Connection;
+  /** the server's latest snapshot (status, rotation phase...) */
+  state: LiveState | null;
+  /** your place in the watch together room, once you have joined */
+  you: { rank: number | null; of: number } | null;
 }
 
 const realtimeOff = () => typeof window !== "undefined" && new URLSearchParams(window.location.search).get("realtime") === "off";
@@ -67,14 +73,14 @@ export function applyBroadcast(s: LiveState, event: string, p: Record<string, un
 }
 
 /** a live call as the call it! card shows it, counting down against server time */
-function viewOf(call: LiveCall, now: number, picked: string | null, error: string | null, pick: (id: string) => void): CallItView {
+function viewOf(call: LiveCall, now: number, picked: string | null, error: string | null, pick: (id: string) => void, fi = false): CallItView {
   const secondsLeft = Math.max(0, Math.ceil((call.locksAt - now) / 1000));
   const phase =
     call.status === "resolved" ? "revealed" : call.status === "cancelled" ? "cancelled" : call.status === "locked" || secondsLeft === 0 ? "locked" : "open";
   return {
-    question: call.question,
+    question: fi && call.fi ? call.fi.question : call.question,
     subtitle: phase === "open" ? "Answer before the timer ends" : phase === "locked" ? "Answers are locked" : "",
-    options: call.options,
+    options: fi && call.fi ? call.fi.options : call.options,
     points: call.points,
     stakesLine: call.stakesLine,
     secondsLeft,
@@ -90,15 +96,47 @@ function viewOf(call: LiveCall, now: number, picked: string | null, error: strin
   };
 }
 
-export function useLiveMatch(detail: LiveMatchDetail | null, me: Me | null): LiveView | null {
+export function useLiveMatch(detail: LiveMatchDetail | null, me: MeResponse | null): LiveView | null {
   const id = detail?.id ?? null;
   const [state, setState] = useState<LiveState | null>(null);
   const [connection, setConnection] = useState<Connection>("connecting");
   const [comments, setComments] = useState<Comment[]>([]);
-  const [answers, setAnswers] = useState<Record<string, string>>({});
+  const [own, setAnswers] = useState<Record<string, string>>({});
   const [answerError, setAnswerError] = useState<string | null>(null);
-  const [now, setNow] = useState(() => Date.now());
-  const offset = useRef(0);
+  // a refresh keeps your locked answers: /me knows them for every open call
+  const openAnswers = me?.openCallAnswers;
+  const answers = useMemo(() => ({ ...openAnswers, ...own }), [openAnswers, own]);
+  const [now, setNow] = useState(serverNowMs);
+  const latest = useRef<{ state: LiveState | null; answers: Record<string, string> }>({ state: null, answers: {} });
+  // results already settled when the page opened are never announced
+  const announced = useRef<Set<string> | null>(null);
+
+  useEffect(() => {
+    latest.current = { state, answers };
+  }, [state, answers]);
+
+  /** the toast for a call you answered, once */
+  function announce(call: LiveCall | null | undefined, status: "resolved" | "cancelled", correctOptionId: string | null) {
+    if (!call || !announced.current || announced.current.has(call.id)) return;
+    announced.current.add(call.id);
+    const mine = latest.current.answers[call.id];
+    if (!mine) return;
+    if (status === "cancelled") toast("Call cancelled — no points (the play happened while answers were open)", { ms: 4000 });
+    else if (mine === correctOptionId) toast(`You got it! +${call.points} pts`, { tone: "good", ms: 4000 });
+    else toast(`Not this time — the answer was ${call.options.find((o) => o.id === correctOptionId)?.label ?? "…"}`, { ms: 4000 });
+    refreshMeSoon();
+  }
+
+  // polling (and the first load): announce what changed since the last snapshot
+  useEffect(() => {
+    if (!state) return;
+    const settled = [state.call, state.lastCall].filter((c): c is LiveCall => !!c && (c.status === "resolved" || c.status === "cancelled"));
+    if (!announced.current) {
+      announced.current = new Set(settled.map((c) => c.id));
+      return;
+    }
+    for (const c of settled) announce(c, c.status as "resolved" | "cancelled", c.correctOptionId);
+  }, [state, answers]);
 
   // server state: subscribe, refetch on (re)subscribe, poll while realtime is down
   useEffect(() => {
@@ -112,7 +150,7 @@ export function useLiveMatch(detail: LiveMatchDetail | null, me: Me | null): Liv
         const r = await fetch(`/api/site/matches/${id}/state`, { credentials: "same-origin", cache: "no-store" });
         if (!r.ok || cancelled) return;
         const s = (await r.json()) as LiveState;
-        offset.current = s.serverNow - Date.now();
+        noteServerNow(s.serverNow);
         setState(s);
         if (s.me?.answers) setAnswers((a) => ({ ...s.me!.answers, ...a }));
       } catch {
@@ -141,9 +179,15 @@ export function useLiveMatch(detail: LiveMatchDetail | null, me: Me | null): Liv
       channel.on("broadcast", { event: "*" }, (msg) => {
         if (cancelled) return;
         const payload = (msg.payload ?? {}) as Record<string, unknown>;
-        if (typeof payload.serverNow === "number") offset.current = payload.serverNow - Date.now();
+        if (typeof payload.serverNow === "number") noteServerNow(payload.serverNow);
         if (msg.event === "comment") return setComments((c) => [...c, payload.comment as Comment]);
         if (msg.event === "game_end") return void fetchState();
+        // two calls can resolve in one tick: announce from the event, before the state merges
+        if (msg.event === "call_resolved" || msg.event === "call_cancelled") {
+          const s = latest.current.state;
+          const call = [s?.call, s?.lastCall].find((c) => c?.id === payload.callId);
+          announce(call, msg.event === "call_resolved" ? "resolved" : "cancelled", (payload.correctOptionId as string) ?? null);
+        }
         setState((s) => (s ? applyBroadcast(s, msg.event, payload) : s));
       });
       channel.subscribe((status) => {
@@ -174,7 +218,7 @@ export function useLiveMatch(detail: LiveMatchDetail | null, me: Me | null): Liv
   // the countdown ticks against server time
   useEffect(() => {
     if (!state?.call || state.call.status !== "open") return;
-    const t = setInterval(() => setNow(Date.now() + offset.current), 250);
+    const t = setInterval(() => setNow(serverNowMs()), 250);
     return () => clearInterval(t);
   }, [state?.call]);
 
@@ -222,7 +266,7 @@ export function useLiveMatch(detail: LiveMatchDetail | null, me: Me | null): Liv
       });
     });
   };
-  const view = call ? viewOf(call, now, answers[call.id] ?? null, answerError, pick) : null;
+  const view = call ? viewOf(call, now, answers[call.id] ?? null, answerError, pick, me?.language === "fi") : null;
   const last = state?.lastCall;
   const lastCall =
     last && last.status === "resolved" && last.correctOptionId
@@ -233,5 +277,6 @@ export function useLiveMatch(detail: LiveMatchDetail | null, me: Me | null): Liv
       : last && last.status === "cancelled"
         ? { text: "cancelled, no points either way", correct: false }
         : null;
-  return { match, call: view, lastCall, isReplay: !!state?.isReplay, gameTime: state?.clock.gameTime ?? 0, connection };
+  const you = me?.joined && state?.me ? { rank: state.me.rank, of: state.me.of } : null;
+  return { match, call: view, lastCall, isReplay: !!state?.isReplay, gameTime: state?.clock.gameTime ?? 0, connection, state, you };
 }

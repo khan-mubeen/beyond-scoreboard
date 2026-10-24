@@ -1,21 +1,22 @@
-import type { SiteChrome } from "@/shared/types";
+import type { MeResponse } from "@/shared/types";
+import { QUICK_LINKS } from "../chrome";
+import type { Resource } from "../data";
 import { FavoriteTeams } from "./FavoriteTeams";
 import { Icon } from "./Icon";
 import { PointsCard } from "./PointsCard";
 import { QuickLinks } from "./QuickLinks";
+import { PointsCardSkeleton, ProfileSkeleton } from "./Skeleton";
 import { Avatar } from "./TeamLogo";
 
-function ProfileCard({ user, compact }: { user: SiteChrome["user"]; compact: boolean }) {
+function ProfileCard({ me, compact }: { me: MeResponse; compact: boolean }) {
+  const { user } = me;
   return (
-    <a
-      href="/settings"
-      className="flex items-center gap-3 rounded-card border border-line bg-surface p-4 shadow-card hover:border-muted/40"
-    >
+    <a href="/profile" className="flex items-center gap-3 rounded-card border border-line bg-surface p-4 shadow-card hover:border-muted/40">
       <Avatar src={user.avatar} name={user.name} size={compact ? 32 : 48} />
       <div className="min-w-0 flex-1">
         <p className="truncate font-semibold">{user.name}</p>
         <p className="flex items-center gap-1.5 text-sm text-muted">
-          {!compact && <span className="size-2 rounded-full bg-good" aria-hidden />}
+          {!compact && <span className={`size-2 rounded-full ${me.joined ? "bg-good" : "bg-muted"}`} aria-hidden />}
           {user.role}
         </p>
       </div>
@@ -25,34 +26,41 @@ function ProfileCard({ user, compact }: { user: SiteChrome["user"]; compact: boo
 }
 
 /**
- * profile, points, favourite teams and quick links.
+ * profile, points, favourite teams and quick links, from /api/site/me.
+ * skeletons until it answers; the links are static and always there.
  * "home" order matches the home design, "compact" the rewards one
  */
-export function Sidebar({
-  chrome,
-  activeLinkId,
-  variant = "home",
-}: {
-  chrome: SiteChrome;
-  activeLinkId: string;
-  variant?: "home" | "compact";
-}) {
+export function Sidebar({ me, activeLinkId, variant = "home" }: { me: Resource<MeResponse>; activeLinkId: string; variant?: "home" | "compact" }) {
   const compact = variant === "compact";
+  const data = me.data;
+  const profile = data ? (
+    <>
+      <ProfileCard me={data} compact={compact} />
+      <PointsCard user={data.user} compact={compact} />
+    </>
+  ) : me.status === "error" ? (
+    <p role="status" className="rounded-card border border-line bg-surface p-4 text-sm text-muted shadow-card">
+      Your profile is unavailable right now.
+    </p>
+  ) : (
+    <>
+      <ProfileSkeleton compact={compact} />
+      <PointsCardSkeleton />
+    </>
+  );
+  const teams = data ? <FavoriteTeams teams={data.favorites} compact={compact} /> : null;
   return (
     <aside aria-label="Your profile" className="flex flex-col gap-4">
-      <ProfileCard user={chrome.user} compact={compact} />
-      <PointsCard user={chrome.user} compact={compact} />
+      {profile}
       {compact ? (
         <>
-          <QuickLinks links={chrome.quickLinks} activeId={activeLinkId} title={null} boxed={false} />
-          <div className="border-t border-line pt-5">
-            <FavoriteTeams teams={chrome.favorites} compact />
-          </div>
+          <QuickLinks links={QUICK_LINKS} activeId={activeLinkId} title={null} boxed={false} />
+          {teams && <div className="border-t border-line pt-5">{teams}</div>}
         </>
       ) : (
         <>
-          <FavoriteTeams teams={chrome.favorites} />
-          <QuickLinks links={chrome.quickLinks} activeId={activeLinkId} />
+          {teams}
+          <QuickLinks links={QUICK_LINKS} activeId={activeLinkId} />
         </>
       )}
     </aside>

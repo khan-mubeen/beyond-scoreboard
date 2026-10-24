@@ -22,6 +22,9 @@ export const scoreText = (s: Score) => `${s.home} – ${s.away}`;
 export const periodScoresText = (periods: (Score | null)[]) =>
   periods.length ? `(${periods.map((p) => (p ? `${p.home}–${p.away}` : "–")).join(", ")})` : "";
 
+/** a team's page: "495643563:kärpät" -> "/teams/k%C3%A4rp%C3%A4t" (the slug reads well and is unique) */
+export const teamHref = (teamId: string) => `/teams/${encodeURIComponent(teamId.split(":")[1] ?? teamId)}`;
+
 /** 42 -> "00:42" */
 export const fmtClock = (seconds: number) =>
   `${String(Math.floor(seconds / 60)).padStart(2, "0")}:${String(seconds % 60).padStart(2, "0")}`;

@@ -2,8 +2,8 @@
 import { parseMatchId, type LiigaFixture, type LiigaGame } from "@/features/liiga";
 import { getGame, getGameStats, getLineups, getPastAndFuture, liigaNow } from "@/features/liiga/server";
 import { goalOfTheGame, rankOf, zoneForRank, zoneLabel, getSeasonContext, type SeasonContext } from "@/features/stakes/server";
-import { engineMatch, ensureLiveLoop, matchSince } from "@/features/live/server";
-import { matchStory, whatItMeansText, type MatchFactsInput } from "@/features/story/server";
+import { engineMatch, ensureLiveLoop, roomScope } from "@/features/live/server";
+import { matchStory, spokenSummary, whatItMeansText, type MatchFactsInput } from "@/features/story/server";
 import { getDb } from "@/shared/db";
 import type {
   ApiMeta,
@@ -20,9 +20,11 @@ import { chanceNow, gameStakes, projectedTable, timelineFor, type GameStakes } f
 import type { Viewer } from "./identity";
 import { clockIn, longDate, ordinal, pct, periodName, shortDate, timeLabel } from "./labels";
 import { eventsOf, goalVideo, lineupsOf, statsOf, summaryOf } from "./match-parts";
-import { recentComments, roomSummary, topComments } from "./social";
+import { clipOf, highlightOf } from "./highlight";
+import { recentComments, roomSummary } from "./social";
 import { SITE } from "./config";
 import { teamBook, type TeamBook } from "./teams";
+import { whatIfOptions } from "./whatif";
 
 type Side = "home" | "away";
 
@@ -68,7 +70,6 @@ export function seasonStakesCard(s: GameStakes, g: LiigaGame, side: Side, book: 
   const table = projectedTable(s, g);
   const rankNow = rankOf(table, team.teamId);
   const rankBefore = rankOf(s.table, team.teamId);
-  const lo = Math.max(1, Math.min(rankNow - 3, table.length - 7));
   const label = g.status === "final" ? "after the game" : g.status === "live" ? "if it ends now" : "before the game";
   const worth = s.worth[side];
   const titleLead = g.status === "final" ? "After the game" : g.status === "live" ? "If it ends now" : "Before the game";
@@ -83,7 +84,8 @@ export function seasonStakesCard(s: GameStakes, g: LiigaGame, side: Side, book: 
     steps: timeline.map((p) => ({ label: p.label, chance: pct(p.chance) })),
     tableTitle: g.status === "scheduled" ? `${titleLead}: ${ordinal(rankBefore)}` : `${titleLead}: ${ordinal(rankBefore)} → ${ordinal(rankNow)}`,
     tableBadge: rankNow <= 12 ? "Above playoff line" : rankNow <= 14 ? "Below playoff line" : "In the relegation zone",
-    rows: table.slice(lo - 1, lo + 7).map((r) => ({
+    // the whole table (the card scrolls it to the team); an 8-row window used to cut off 1st place
+    rows: table.map((r) => ({
       rank: r.rank,
       label: r.teamId === team.teamId ? `${book.ref(r.teamId).name}${g.status === "live" ? " · if it ends now" : ""}` : book.ref(r.teamId).name,
       zone: zoneForRank(r.rank),
@@ -93,11 +95,32 @@ export function seasonStakesCard(s: GameStakes, g: LiigaGame, side: Side, book: 
   };
 }
 
-/** the facts the texts may use, for one team's point of view */
-export function factsFor(g: LiigaGame, s: GameStakes | null, side: Side, book: TeamBook): MatchFactsInput {
+/** "20.10.2026" in Helsinki */
+const fiDate = (d: Date) => new Intl.DateTimeFormat("fi-FI", { timeZone: "Europe/Helsinki", day: "numeric", month: "numeric", year: "numeric" }).format(d);
+
+/** the goal that moved the team's chance most, with the chance before and after it */
+function turningPoint(s: GameStakes | null, side: Side, g: LiigaGame): MatchFactsInput["turningPoint"] {
+  if (!s || g.goals.length === 0) return null;
+  const timeline = timelineFor(s, side, g);
+  const gotg = goalOfTheGame(timeline);
+  const at = timeline.findIndex((p) => p.goalId === gotg?.goalId);
+  const goal = g.goals.findIndex((x) => x.id === gotg?.goalId);
+  if (!gotg || at < 1 || goal < 0) return null;
+  return { goal, before: pct(timeline[at - 1].chance), after: pct(gotg.chance) };
+}
+
+/**
+ * the facts the texts may use, for one team's point of view. `next` (the team's next game) is
+ * only known after an async lookup, so the summary passes it in
+ */
+export function factsFor(g: LiigaGame, s: GameStakes | null, side: Side, book: TeamBook, next: NextGame | null = null): MatchFactsInput {
   const table = s ? projectedTable(s, g) : null;
   const name = (x: Side) => book.ref(g[x].teamId, g[x].name).name;
   return {
+    dateFi: fiDate(new Date(g.start)),
+    worth: s ? { win: pct(s.worth[side].regulationWin.playoffs), loss: pct(s.worth[side].regulationLoss.playoffs) } : null,
+    turningPoint: g.status === "final" ? turningPoint(s, side, g) : null,
+    next: next && { opponent: next.opponent, date: next.date, dateFi: next.dateFi, win: next.win, loss: next.loss },
     matchId: g.id,
     home: name("home"),
     away: name("away"),
@@ -109,7 +132,8 @@ export function factsFor(g: LiigaGame, s: GameStakes | null, side: Side, book: T
     goals: g.goals.map((goal) => ({
       scorer: goal.scorer,
       team: name(goal.side),
-      period: Math.min(goal.period, 4),
+      // 4 is overtime, 5 the shootout
+      period: Math.min(goal.period, 5),
       time: clockIn(goal.gameTime, goal.period),
       homeScore: goal.homeScore,
       awayScore: goal.awayScore,
@@ -123,8 +147,18 @@ export function factsFor(g: LiigaGame, s: GameStakes | null, side: Side, book: T
   };
 }
 
+export interface NextGame {
+  fixture: LiigaFixture;
+  opponent: string;
+  date: string;
+  dateFi: string;
+  /** the team's playoff chance with a regulation win / loss there */
+  win: number | null;
+  loss: number | null;
+}
+
 /** the stakes team's next game: pastAndFutureGames first (as docs/api/mapping.md), the schedule as a fallback */
-async function nextUp(g: LiigaGame, side: Side, ctx: SeasonContext, book: TeamBook): Promise<FinishedMatchDetail["nextUp"]> {
+export async function nextGame(g: LiigaGame, side: Side, ctx: SeasonContext, book: TeamBook): Promise<NextGame | null> {
   const teamId = g[side].teamId;
   const pf = await getPastAndFuture(g);
   const futureId = (side === "home" ? pf?.data.futureHome : pf?.data.futureAway)?.find((x) => x.start > g.start)?.id;
@@ -134,20 +168,34 @@ async function nextUp(g: LiigaGame, side: Side, ctx: SeasonContext, book: TeamBo
   if (!next) return null;
   const s = gameStakes(ctx, next);
   const nextSide: Side = next.homeTeamId === teamId ? "home" : "away";
-  const win = s ? pct(s.worth[nextSide].regulationWin.playoffs) : null;
+  const other = nextSide === "home" ? book.ref(next.awayTeamId, next.awayName) : book.ref(next.homeTeamId, next.homeName);
   const d = new Date(next.start);
   return {
-    title: `${book.ref(next.homeTeamId, next.homeName).name} vs ${book.ref(next.awayTeamId, next.awayName).name}`,
+    fixture: next,
+    opponent: other.name,
+    date: longDate(d),
+    dateFi: fiDate(d),
+    win: s ? pct(s.worth[nextSide].regulationWin.playoffs) : null,
+    loss: s ? pct(s.worth[nextSide].regulationLoss.playoffs) : null,
+  };
+}
+
+function nextUp(next: NextGame | null, book: TeamBook): FinishedMatchDetail["nextUp"] {
+  if (!next) return null;
+  const f = next.fixture;
+  const d = new Date(f.start);
+  return {
+    title: `${book.ref(f.homeTeamId, f.homeName).name} vs ${book.ref(f.awayTeamId, f.awayName).name}`,
     when: `${shortDate(d)} · ${timeLabel(d)}`,
-    worth: win !== null ? `What it's worth: Win → ${win}% playoff chance` : "What it's worth: chances update after tonight",
-    matchId: next.id,
+    worth: next.win !== null ? `What it's worth: Win → ${next.win}% playoff chance` : "What it's worth: chances update after tonight",
+    matchId: f.id,
   };
 }
 
 async function yourNight(matchId: string, youId: string | null): Promise<FinishedMatchDetail["yourNight"]> {
   if (!youId) return null;
   const db = getDb();
-  const since = matchSince(matchId);
+  const since = roomScope(matchId).since;
   const calls = (await db.calls.listForMatch(matchId)).filter((c) => c.status === "resolved" && c.openedAt >= since);
   const mine = await db.answers.listForUser(youId, calls.map((c) => c.id));
   if (mine.length === 0) return null;
@@ -188,22 +236,28 @@ export async function matchDetail(id: string, viewer: Viewer): Promise<(MatchDet
   const youId = viewer.user?.id ?? null;
   // a replay's real stats are the final totals: hide them until the replay ends
   const hideStats = g.status === "scheduled" || (isReplay && g.status !== "final");
-  const [stats, lineups] = await Promise.all([hideStats ? null : getGameStats(res.data.game), getLineups(g)]);
+  // the game as the page shows it (a masked or replayed game has no final stats yet)
+  const [stats, lineups] = await Promise.all([hideStats ? null : getGameStats(g), getLineups(g)]);
 
   const timeline = s ? timelineFor(s, side, g) : [];
   const facts = factsFor(g, s, side, book);
   const source: DataSource = res.source === "snapshot" || ctx.source === "snapshot" ? "snapshot" : "live";
   const latestGoal = g.goals.at(-1);
+  const rotation = eng?.rotation ?? null;
+  const highlight = highlightOf(id);
+  const clip = clipOf(id);
+  const summary = summaryOf(g, book, now);
+  if (rotation?.phase === "lobby") Object.assign(summary, { whenLabel: "Starting soon", startsAt: rotation.liveStartedAt });
   const base = {
     id: g.id,
     breadcrumbs: [{ label: "Sports", href: "/" }, { label: "Ice Hockey", href: "/" }, { label: "Liiga", href: "/" }, { label: `${g.home.name} – ${g.away.name}` }],
-    match: summaryOf(g, book, now),
+    match: summary,
     venue: g.rink ?? "",
     dateLabel: shortDate(new Date(g.start)),
     spectators: g.spectators,
     stakesSummary: chips(s, g, book),
-    events: eventsOf(g, names, timeline, book),
-    eventsNote: "Penalty details come from the match feed; faceoffs and shots are in the statistics.",
+    events: eventsOf(g, names, timeline, book, clip),
+    eventsNote: "Goals and penalties as they happen. Shots and more are under Statistics.",
     stats: statsOf(stats?.data ?? null),
     statsSource: "Liiga feed",
     statsNote: stats
@@ -212,10 +266,18 @@ export async function matchDetail(id: string, viewer: Viewer): Promise<(MatchDet
         ? "Statistics appear when the replay ends: the feed only has the final totals."
         : "Awaiting statistics from the Liiga feed. No values are assumed.",
     lineups: lineupsOf(lineups?.data ?? null),
-    seasonStakes: s ? seasonStakesCard(s, g, side, book) : emptyStakes(g[side].name),
+    seasonStakes: s ? { ...seasonStakesCard(s, g, side, book), whatIf: g.status === "final" ? null : await whatIfOptions(ctx, g.id) } : emptyStakes(g[side].name),
     isReplay,
+    highlight,
+    rotation,
     asOf: res.asOf,
     source,
+  };
+  const highlightInfo = highlight && {
+    poster: highlight.poster ?? "/placeholders/video-highlights.svg",
+    title: `Match highlights · ${g.home.name} – ${g.away.name}`,
+    src: highlight.type === "mp4" ? highlight.url : null,
+    streamUrl: highlight.streamUrl,
   };
 
   if (g.status !== "final") {
@@ -223,14 +285,14 @@ export async function matchDetail(id: string, viewer: Viewer): Promise<(MatchDet
     const detail: LiveMatchDetail & ApiMeta = {
       ...base,
       status: g.status === "live" ? "live" : "scheduled",
-      video: (latestGoal && goalVideo(latestGoal, `Latest goal · ${latestGoal.scorer ?? g[latestGoal.side].name}`)) ?? {
+      video: highlightInfo ?? (latestGoal && goalVideo(latestGoal, `Latest goal · ${latestGoal.scorer ?? g[latestGoal.side].name}`)) ?? {
         poster: "/placeholders/video-live.svg",
         title: `${g.home.name} – ${g.away.name}`,
         src: g.video?.url ?? null,
       },
       whatItMeans: whatItMeansText(facts),
       discussion,
-      guidelinesHref: "#",
+      guidelinesHref: "/guidelines",
       callIt: null,
       room,
     };
@@ -240,19 +302,24 @@ export async function matchDetail(id: string, viewer: Viewer): Promise<(MatchDet
   const gotg = goalOfTheGame(timeline);
   const goal = gotg && g.goals.find((x) => x.id === gotg.goalId);
   const before = timeline.findIndex((p) => p.goalId === gotg?.goalId);
-  const [{ content }, night, room, highlights, next] = await Promise.all([
+  const coming = await nextGame(g, side, ctx, book);
+  // the spoken summary also says what's next, so it gets the next game's facts
+  const summaryFacts = factsFor(g, s, side, book, coming);
+  const [{ content }, night, room, discussion, en, fi] = await Promise.all([
     matchStory(facts, g[side].teamId),
     yourNight(g.id, youId),
     roomSummary(g.id, youId, true),
-    topComments(g.id),
-    nextUp(g, side, ctx, book),
+    recentComments(g.id),
+    spokenSummary(summaryFacts, g[side].teamId, "en"),
+    spokenSummary(summaryFacts, g[side].teamId, "fi"),
   ]);
+  const next = nextUp(coming, book);
   const posBefore = facts.positionBefore ?? 0;
   const posAfter = facts.positionAfter ?? 0;
   const detail: FinishedMatchDetail & ApiMeta = {
     ...base,
     status: "final",
-    video: (goal && goalVideo(goal, `Goal of the game · ${goal.scorer ?? ""}`)) ?? { poster: "/placeholders/video-highlights.svg", title: "Match highlights", src: null },
+    video: highlightInfo ?? (goal && clip(goal, `Goal of the game · ${goal.scorer ?? ""}`)) ?? { poster: "/placeholders/video-highlights.svg", title: "Match highlights", src: null },
     whatItMeant: {
       badge: "Facts from match data",
       chanceBefore: facts.chanceBefore ?? 0,
@@ -274,14 +341,15 @@ export async function matchDetail(id: string, viewer: Viewer): Promise<(MatchDet
             meta: [clockIn(goal.gameTime, goal.period), periodName(goal.period), ...describeGoalTypes(goal.types).labels].join(" · "),
             title: `${goal.scorer ?? g[goal.side].name}'s ${goal.homeScore}–${goal.awayScore} goal`,
             effectText: `Playoff chance for ${g[side].name}: ${pct(timeline[before - 1]?.chance ?? 0)}% → ${pct(gotg.chance)}%.`,
-            chip: `${Math.round(gotg.delta * 100) > 0 ? "+" : "−"}${Math.abs(Math.round(gotg.delta * 100))} pts playoff chance`,
-            video: goalVideo(goal, `${goal.scorer ?? ""} · ${goal.homeScore}–${goal.awayScore}`) ?? { poster: "/placeholders/goal-thumb.svg", title: "Goal", src: null },
+            chip: `Playoff chance ${Math.round(gotg.delta * 100) > 0 ? "+" : "−"}${Math.abs(Math.round(gotg.delta * 100))}%`,
+            video: clip(goal, `${goal.scorer ?? ""} · ${goal.homeScore}–${goal.awayScore}`) ?? { poster: "/placeholders/goal-thumb.svg", title: "Goal", src: null },
           }
         : null,
     yourNight: night,
     room,
-    discussionHighlights: highlights,
+    discussion,
     nextUp: next,
+    summary: { en, fi },
   };
   return detail;
 }

@@ -88,6 +88,13 @@ describe("site api responses", () => {
     "/standings",
     "/rewards",
     "/reminders",
+    "/teams",
+    "/teams/k%C3%A4rp%C3%A4t",
+    "/profile",
+    "/calls",
+    "/calls?view=history",
+    "/leaderboard?scope=season",
+    "/notifications",
   ];
 
   it.each(pages)("GET %s: asOf, source, no betting fields", async (path) => {
@@ -101,6 +108,88 @@ describe("site api responses", () => {
   it("rejects bad input with 400 and unknown matches with 404", async () => {
     expect((await http("/matches/not-a-match")).status).toBe(400);
     expect((await http("/matches/2027-1")).status).toBe(404);
+  });
+});
+
+describe("teams, follows, settings and the profile", () => {
+  it("follows a team, personalises home, saves settings and resets", async () => {
+    const teams = (await http("/teams")).body;
+    expect(teams.teams).toHaveLength(17);
+    const team = teams.teams.find((t: Json) => t.slug === "tappara");
+    expect((await http("/favorites", { method: "POST", body: { teamId: "nope", on: true } })).status).toBe(400);
+
+    const fav = await http("/favorites", { method: "POST", body: { teamId: team.team.id, on: true } });
+    expect(fav.status).toBe(200);
+    const cookie = fav.cookie!;
+    expect(fav.body.follows).toEqual([team.team.id]);
+    expect((await http("/me", { cookie })).body.follows).toEqual([team.team.id]);
+    expect((await http("/teams", { cookie })).body.teams.find((t: Json) => t.slug === "tappara").followed).toBe(true);
+    const home = (await http("/home", { cookie })).body;
+    expect(home.table.highlightTeamIds).toContain(team.team.id);
+    expect(home.yourTeams.map((t: Json) => t.team.id)).toEqual([team.team.id]);
+    expect((await http("/teams/tappara", { cookie })).body.item.followed).toBe(true);
+    expect((await http("/teams/not-a-team")).status).toBe(404);
+
+    const saved = await http("/settings", {
+      method: "POST",
+      cookie,
+      body: { nickname: "Tapsa", language: "fi", notificationPrefs: { callResults: false, favoriteReminders: true, favoriteResults: false } },
+    });
+    expect(saved.status).toBe(200);
+    expect(saved.body).toMatchObject({ nickname: "Tapsa", language: "fi", notificationPrefs: { callResults: false, favoriteResults: false } });
+    expect((await http("/settings", { method: "POST", cookie, body: { language: "sv" } })).status).toBe(400);
+
+    const profile = (await http("/profile", { cookie })).body;
+    expect(profile.stats).toMatchObject({ answered: 0, correctPct: 0, bestStreak: 0 });
+    expect(profile.achievements.length).toBeGreaterThan(0);
+
+    expect((await http("/me/reset", { method: "POST", cookie, body: {} })).status).toBe(200);
+    const after = (await http("/me", { cookie })).body;
+    expect(after.joined).toBe(false);
+    expect(after.follows).toEqual([]);
+  });
+});
+
+describe("what if?", () => {
+  const UPCOMING = "2027-2701410";
+  const post = (body: unknown) => http("/whatif", { method: "POST", body });
+
+  it("a set win gives the stakes card's win number; win >= overtime win >= overtime loss >= loss", async () => {
+    const page = (await http(`/matches/${UPCOMING}`)).body;
+    const options = page.seasonStakes.whatIf;
+    expect(options.games[0].gameId).toBe(UPCOMING);
+    expect(options.max).toBe(4);
+    const { home, away } = options.games[0];
+    const focusHome = page.seasonStakes.teamName === home.name;
+    const focus = focusHome ? home.id : away.id;
+    // the card's outcomes are the focus team's view; the api takes the home team's
+    const homeView = { regulationWin: "regulationWin", overtimeWin: "overtimeWin", overtimeLoss: "overtimeLoss", regulationLoss: "regulationLoss" } as const;
+    const flip = { regulationWin: "regulationLoss", overtimeWin: "overtimeLoss", overtimeLoss: "overtimeWin", regulationLoss: "regulationWin" } as const;
+    const chances: number[] = [];
+    for (const o of ["regulationWin", "overtimeWin", "overtimeLoss", "regulationLoss"] as const) {
+      const t0 = Date.now();
+      const r = await post({ matchId: UPCOMING, overrides: [{ gameId: UPCOMING, outcome: focusHome ? homeView[o] : flip[o] }] });
+      expect(Date.now() - t0).toBeLessThan(1000);
+      expect(r.status).toBe(200);
+      expect(liiga.findGamblingFields(r.body)).toEqual([]);
+      const team = r.body.teams.find((t: Json) => t.team.id === focus);
+      expect(team.after.playoffs, o).toBe(page.seasonStakes.worth[o]);
+      expect(team.before.playoffs).toBe(page.seasonStakes.before);
+      chances.push(team.after.playoffs);
+    }
+    expect(chances).toEqual([...chances].sort((a, b) => b - a));
+  });
+
+  it("rejects decided games, repeats, unknown outcomes and more than four results", async () => {
+    const finished = "2027-2701401";
+    expect((await post({ matchId: finished, overrides: [] })).status).toBe(400);
+    expect((await post({ matchId: UPCOMING, overrides: [{ gameId: finished, outcome: "regulationWin" }] })).status).toBe(400);
+    expect((await post({ matchId: UPCOMING, overrides: [{ gameId: UPCOMING, outcome: "regulationWin" }, { gameId: UPCOMING, outcome: "regulationLoss" }] })).status).toBe(400);
+    expect((await post({ matchId: UPCOMING, overrides: [{ gameId: UPCOMING, outcome: "draw" }] })).status).toBe(400);
+    const five = Array.from({ length: 5 }, (_, i) => ({ gameId: `2027-27014${11 + i}`, outcome: "regulationWin" }));
+    expect((await post({ matchId: UPCOMING, overrides: five })).status).toBe(400);
+    // a finished match's page offers no what-if
+    expect((await http(`/matches/${finished}`)).body.seasonStakes.whatIf).toBeNull();
   });
 });
 

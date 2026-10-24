@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { readHostToken, saveHostToken } from "../data";
 import { useToast } from "./Toast";
 
 const ACTIONS = [
@@ -9,25 +10,13 @@ const ACTIONS = [
   { id: "reset", label: "Reset" },
 ] as const;
 
-const readToken = () => {
-  try {
-    return sessionStorage.getItem("ks_host_token") ?? "";
-  } catch {
-    return "";
-  }
-};
-
 /** demo replay controls (/match/<id>?host=1). the server checks HOST_TOKEN */
 export function HostBar({ matchId }: { matchId: string }) {
-  const [token, setToken] = useState(readToken);
+  const [token, setToken] = useState(readHostToken);
   const toast = useToast();
 
   async function send(action: string) {
-    try {
-      sessionStorage.setItem("ks_host_token", token);
-    } catch {
-      // private mode: token lasts for this page
-    }
+    saveHostToken(token);
     const res = await fetch(`/api/site/matches/${matchId}/control`, {
       method: "POST",
       credentials: "same-origin",

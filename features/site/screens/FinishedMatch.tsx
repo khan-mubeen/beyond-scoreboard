@@ -1,15 +1,14 @@
 import { AnimatePresence, motion } from "motion/react";
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import type { FinishedMatchDetail, VideoInfo } from "@/shared/types";
 import { EventList } from "../components/EventList";
 import { GoalOfTheGame } from "../components/GoalOfTheGame";
-import { Icon } from "../components/Icon";
 import { LiveDiscussion } from "../components/LiveDiscussion";
 import { MatchStats } from "../components/MatchStats";
 import { NextUpBanner } from "../components/NextUpBanner";
 import { ScoreHeader } from "../components/ScoreHeader";
 import { SeasonStakesCard } from "../components/SeasonStakesCard";
-import { ActionLink, SectionCard } from "../components/SectionCard";
+import { SectionCard } from "../components/SectionCard";
 import { Breadcrumbs, SiteLayout } from "../components/SiteLayout";
 import { StakesSummary } from "../components/StakesSummary";
 import { type TabItem, Tabs } from "../components/Tabs";
@@ -17,7 +16,10 @@ import { VideoModal, VideoPlayer } from "../components/VideoPlayer";
 import { RoomLeaderboard } from "../components/WatchTogetherCard";
 import { WhatItMeant } from "../components/WhatItMeant";
 import { YourNight } from "../components/YourNight";
-import { isMockMatch, setReminderApi, useSiteChrome } from "../data";
+import { Icon } from "../components/Icon";
+import { toast } from "../components/Toast";
+import { AudioSummary } from "../components/AudioSummary";
+import { fmtCountdown, isMockMatch, setReminderApi, useMe, useRotation, useServerNow } from "../data";
 import type { DataSource } from "@/shared/types";
 
 type Tab = "overview" | "moments" | "stats" | "stakes" | "discussion";
@@ -30,10 +32,34 @@ const TABS: TabItem<Tab>[] = [
   { id: "discussion", label: "Discussion" },
 ];
 
-/** a finished match page (docs/design/03-finished-match.png) */
-export function FinishedMatch({ match, source }: { match: FinishedMatchDetail; source?: DataSource | null }) {
-  const chrome = useSiteChrome();
+/**
+ * the demo rotation's summary phase: "next match starts in 9:12", a toast when the next lobby
+ * opens, and the page refetches once this match's summary is over (it then shows as upcoming:
+ * outside its own turn, a rotation match shows no result)
+ */
+function useRotationSummary(match: FinishedMatchDetail, onChange?: () => void) {
+  const isRotation = !!match.rotation;
+  const info = useRotation(isRotation).data;
+  const now = useServerNow(1000);
+  const onAir = info?.current.matchId === match.id && info.current.phase === "summary";
+  const over = isRotation && !!info && !onAir;
+  useEffect(() => {
+    if (over) onChange?.();
+  }, [over, onChange]);
+  const toasted = useRef(false);
+  useEffect(() => {
+    if (!over || toasted.current || !info || info.current.phase !== "lobby") return;
+    toasted.current = true;
+    toast("Next match is starting — join now", { action: { label: "Join", href: `/match/${info.current.matchId}` }, ms: 8000 });
+  }, [over, info]);
+  return onAir && info ? { title: info.next.title, matchId: info.next.matchId, left: fmtCountdown(info.next.startsAt - now) } : null;
+}
+
+/** a finished match page (docs/design/03-finished-match.png). onChange refetches the page */
+export function FinishedMatch({ match, source, onChange }: { match: FinishedMatchDetail; source?: DataSource | null; onChange?: () => void }) {
   const [tab, setTab] = useState<Tab>("overview");
+  const next = useRotationSummary(match, onChange);
+  const lang = useMe().data?.language ?? "en";
   const [video, setVideo] = useState<VideoInfo | null>(null);
 
   const moments = (
@@ -50,7 +76,13 @@ export function FinishedMatch({ match, source }: { match: FinishedMatchDetail; s
   const real = !isMockMatch(match.id);
 
   return (
-    <SiteLayout chrome={chrome} sidebar={{ docked: false }} source={source}>
+    <SiteLayout sidebar={{ docked: false }} source={source}>
+      {next && (
+        <a href={`/match/${next.matchId}`} className="sticky top-16 z-30 flex items-center justify-center gap-2 bg-dark px-4 py-2 text-sm font-semibold text-dark-ink">
+          Next match: {next.title} starts in <span className="tabular-nums">{next.left}</span>
+          <Icon name="arrowRight" className="size-4" />
+        </a>
+      )}
       <div className="px-4 pb-12 md:px-[30px]">
         <Breadcrumbs items={match.breadcrumbs} />
         <div className="grid gap-4 xl:grid-cols-[minmax(0,1fr)_380px]">
@@ -74,6 +106,8 @@ export function FinishedMatch({ match, source }: { match: FinishedMatchDetail; s
               />
               <WhatItMeant data={match.whatItMeant} />
             </div>
+
+            {match.summary && <AudioSummary summary={match.summary} defaultLang={lang} />}
 
             <Tabs label="Match sections" idPrefix="final" tabs={TABS} active={tab} onChange={setTab} />
 
@@ -101,7 +135,7 @@ export function FinishedMatch({ match, source }: { match: FinishedMatchDetail; s
                 {tab === "moments" && moments}
                 {tab === "stats" && stats}
                 {tab === "stakes" && <SeasonStakesCard stakes={match.seasonStakes} />}
-                {tab === "discussion" && <LiveDiscussion title="Discussion" comments={match.discussionHighlights} />}
+                {tab === "discussion" && <LiveDiscussion title="Discussion" comments={match.discussion} readOnly />}
               </motion.div>
             </AnimatePresence>
 
@@ -126,21 +160,7 @@ export function FinishedMatch({ match, source }: { match: FinishedMatchDetail; s
                 </p>
               )}
             </SectionCard>
-            <LiveDiscussion
-              title="Discussion highlights"
-              comments={match.discussionHighlights}
-              readOnly
-              action={
-                <ActionLink
-                  onClick={() => {
-                    setTab("discussion");
-                    requestAnimationFrame(() => document.getElementById("final-tabs")?.scrollIntoView());
-                  }}
-                >
-                  View discussion <Icon name="arrowRight" className="size-4" />
-                </ActionLink>
-              }
-            />
+
           </aside>
         </div>
       </div>

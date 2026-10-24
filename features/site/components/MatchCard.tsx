@@ -3,6 +3,7 @@ import { Icon } from "./Icon";
 import { LiveBadge } from "./LiveMatchCard";
 import { Pill } from "./SectionCard";
 import { TeamLogo } from "./TeamLogo";
+import { WhenLabel } from "./WhenLabel";
 
 const cardCls =
   "block rounded-card border border-line bg-surface p-4 shadow-card transition-colors hover:border-muted/40 focus-visible:border-accent";
@@ -34,7 +35,7 @@ export function MatchCard({ match }: { match: MatchSummary }) {
             {match.periodLabel} {match.clock}
           </span>
         ) : (
-          <span className="text-muted">{match.whenLabel}</span>
+          <span className="text-muted"><WhenLabel match={match} /></span>
         )}
         <Pill>{match.league}</Pill>
       </div>
@@ -56,7 +57,7 @@ function RecentCard({ match }: { match: MatchSummary }) {
       className={`${cardCls} grid items-center gap-3 sm:grid-cols-[auto_1fr_auto_1.2fr]`}
       aria-label={`Result: ${match.home.name} ${match.score?.home}, ${match.away.name} ${match.score?.away}`}
     >
-      <span className="text-sm text-muted">{match.whenLabel}</span>
+      <span className="text-sm text-muted"><WhenLabel match={match} /></span>
       <div className="flex flex-wrap items-center gap-x-3 gap-y-2">
         <TeamLogo team={match.home} size={30} />
         <span className="font-semibold">{match.home.name}</span>

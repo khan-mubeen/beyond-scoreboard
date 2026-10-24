@@ -17,6 +17,24 @@ html {
   outline-offset: 2px;
 }
 
+/* an open call it! card pulses so it can't be missed; reduced motion keeps a static ring */
+@keyframes call-glow {
+  0%,
+  100% {
+    box-shadow: 0 0 0 2px color-mix(in srgb, var(--pp-accent) 55%, transparent), 0 0 12px 0 color-mix(in srgb, var(--pp-accent) 25%, transparent);
+  }
+  50% {
+    box-shadow: 0 0 0 5px color-mix(in srgb, var(--pp-accent) 30%, transparent), 0 0 28px 4px color-mix(in srgb, var(--pp-accent) 40%, transparent);
+  }
+}
+@utility call-glow {
+  animation: call-glow 1.6s ease-in-out infinite;
+  @media (prefers-reduced-motion: reduce) {
+    animation: none;
+    box-shadow: 0 0 0 3px color-mix(in srgb, var(--pp-accent) 55%, transparent);
+  }
+}
+
 @media (prefers-reduced-motion: reduce) {
   html {
     scroll-behavior: auto;

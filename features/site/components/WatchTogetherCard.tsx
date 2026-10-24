@@ -38,17 +38,20 @@ export function RoomLeaderboard({ rows }: { rows: RoomLeaderboardRow[] }) {
   );
 }
 
-/** who's watching in the room, invite and join, and the room leaderboard */
+/** who's watching in the room, invite and join, your place, and the room leaderboard */
 export function WatchTogetherCard({
   room,
   onJoin,
   id,
   matchId,
+  you = null,
 }: {
   room: RoomSummary;
   onJoin: () => void;
   id?: string;
   matchId?: string;
+  /** set once the viewer has joined */
+  you?: { rank: number | null; of: number } | null;
 }) {
   const toast = useToast();
 
@@ -66,32 +69,38 @@ export function WatchTogetherCard({
     <SectionCard id={id} title="Watch Together" action={<Pill tone="outline">Room {room.code}</Pill>}>
       <div className="flex items-start justify-between gap-3">
         <div>
-          <p className="font-semibold tabular-nums">{fmtInt(room.watching)} watching</p>
+          <p className="flex items-center gap-2 font-semibold tabular-nums" aria-live="polite">
+            <span aria-hidden className="size-2 animate-pulse rounded-full bg-accent" />
+            {fmtInt(room.watching)} watching
+          </p>
           <p className="text-xs text-muted">{room.subtitle}</p>
         </div>
         <ActionLink onClick={invite}>
           Invite friends <Icon name="arrowUpRight" className="size-3.5" />
         </ActionLink>
       </div>
-      <div className="mt-4 flex items-center justify-between gap-3">
-        <div className="flex items-center -space-x-1.5" aria-label={`${fmtInt(room.watching)} people in the room`}>
-          {room.avatars.map((a, i) => (
-            <span key={i} className="rounded-full ring-2 ring-surface">
-              <Avatar src={a} name="" size={28} />
-            </span>
-          ))}
-          {room.extraCount > 0 && (
-            <span className="pl-3 text-xs font-semibold text-muted">+{fmtInt(room.extraCount)}</span>
-          )}
-        </div>
+      <div className="mt-4 flex items-center -space-x-1.5" aria-label={`${fmtInt(room.watching)} people in the room`}>
+        {room.avatars.map((a, i) => (
+          <span key={i} className="rounded-full ring-2 ring-surface">
+            <Avatar src={a} name="" size={30} />
+          </span>
+        ))}
+        {room.extraCount > 0 && <span className="pl-3 text-xs font-semibold text-muted">+{fmtInt(room.extraCount)}</span>}
+      </div>
+      {you ? (
+        <p className="mt-4 rounded-lg bg-accent-soft px-4 py-3 text-center font-semibold text-accent" aria-live="polite">
+          {you.rank ? `You're #${you.rank} of ${fmtInt(you.of)}` : "You're in — answer a call to get on the board"}
+        </p>
+      ) : (
         <button
           type="button"
           onClick={onJoin}
-          className="rounded-lg bg-accent px-5 py-2.5 text-sm font-semibold text-accent-ink hover:brightness-110"
+          className="mt-4 flex h-12 w-full items-center justify-center gap-2 rounded-lg bg-accent text-base font-semibold text-accent-ink hover:brightness-110"
         >
+          <Icon name="users" className="size-5" />
           Join room
         </button>
-      </div>
+      )}
       <div className="mt-5 border-t border-line pt-4">
         <div className="flex items-center justify-between text-sm">
           <h3 className="font-semibold">{room.leaderboardTitle}</h3>
@@ -99,8 +108,8 @@ export function WatchTogetherCard({
         </div>
         <div className="mt-1 mb-3 flex items-center justify-between text-xs text-muted">
           <span>{room.leaderboardNote}</span>
-          <a href={matchId ? "/calls/history" : `/room/${room.code}`} className="flex items-center gap-1 hover:text-ink">
-            View standings <Icon name="arrowRight" className="size-3" />
+          <a href={matchId ? "/leaderboard?scope=room" : `/room/${room.code}`} className="flex items-center gap-1 hover:text-ink">
+            View full leaderboard <Icon name="arrowRight" className="size-3" />
           </a>
         </div>
         <RoomLeaderboard rows={room.leaderboard} />

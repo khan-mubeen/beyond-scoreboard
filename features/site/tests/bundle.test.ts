@@ -6,9 +6,19 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterAll, describe, expect, it } from "vitest";
 
-const SERVER_ONLY = ["LIIGA_API_KEY", "SUPABASE_SECRET_KEY", "SUPABASE_SERVICE_ROLE_KEY", "SUPABASE_DB_URL", "LLM_API_KEY", "HOST_TOKEN"];
+const SERVER_ONLY = ["LIIGA_API_KEY", "SUPABASE_SECRET_KEY", "SUPABASE_SERVICE_ROLE_KEY", "SUPABASE_DB_URL", "LLM_API_KEY", "HOST_TOKEN", "AZURE_SPEECH_KEY"];
 // (the host bar's input says "HOST_TOKEN" as a placeholder; the token's value is checked above)
-const MARKS = ["x-api-key", "sb_secret_", "SUPABASE_SECRET_KEY", "SUPABASE_SERVICE_ROLE_KEY", "LIIGA_API_KEY", "LLM_API_KEY", "realtime/v1/api/broadcast"];
+const MARKS = [
+  "x-api-key",
+  "sb_secret_",
+  "SUPABASE_SECRET_KEY",
+  "SUPABASE_SERVICE_ROLE_KEY",
+  "LIIGA_API_KEY",
+  "LLM_API_KEY",
+  "AZURE_SPEECH_KEY",
+  "Ocp-Apim-Subscription-Key",
+  "realtime/v1/api/broadcast",
+];
 const out = join(tmpdir(), `ks-bundle-${process.pid}`);
 
 /** server-only values from .env and the environment, long enough to be real secrets */

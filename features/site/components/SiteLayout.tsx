@@ -1,6 +1,8 @@
 import { AnimatePresence, MotionConfig, motion } from "motion/react";
 import { type ReactNode, useState, useSyncExternalStore } from "react";
-import type { Breadcrumb, DataSource, SiteChrome } from "@/shared/types";
+import type { Breadcrumb, DataSource } from "@/shared/types";
+import { NAV } from "../chrome";
+import { useMe } from "../data";
 import { Icon } from "./Icon";
 import { Sidebar } from "./Sidebar";
 import { SidebarDrawer } from "./SidebarDrawer";
@@ -51,24 +53,37 @@ function saveDocked(open: boolean) {
 
 /**
  * every site page: full-width top nav, the sidebar (docked or as a drawer), toasts,
- * and motion that respects reduced-motion. the hamburger shows or hides the sidebar
+ * and motion that respects reduced-motion. the hamburger shows or hides the sidebar.
+ * the viewer's part (points, teams, bell) comes from /api/site/me through the shared cache.
+ * bare (tv mode) shows only the page and the toasts
  */
 export function SiteLayout({
-  chrome,
   sidebar,
   children,
   source,
+  bare = false,
 }: {
-  chrome: SiteChrome;
   sidebar: SidebarConfig;
   children: ReactNode;
   /** where the page's data came from; saved or demo data says so in a small banner */
   source?: DataSource | null;
+  bare?: boolean;
 }) {
+  const me = useMe();
   const [dockOpen, setDockOpen] = useState(() => typeof window === "undefined" || readDocked());
   const [drawerOpen, setDrawerOpen] = useState(false);
   const large = useIsLarge();
-  const panel = <Sidebar chrome={chrome} activeLinkId={sidebar.activeLinkId ?? ""} variant={sidebar.variant} />;
+  const panel = <Sidebar me={me} activeLinkId={sidebar.activeLinkId ?? ""} variant={sidebar.variant} />;
+
+  if (bare) {
+    return (
+      <MotionConfig reducedMotion="user">
+        <ToastProvider>
+          <div className="min-h-screen overflow-x-clip bg-bg text-ink">{children}</div>
+        </ToastProvider>
+      </MotionConfig>
+    );
+  }
 
   // large screens with a docked sidebar toggle the dock; everything else opens the drawer
   const dockMode = sidebar.docked && large;
@@ -94,7 +109,7 @@ export function SiteLayout({
     <MotionConfig reducedMotion="user">
       <ToastProvider>
         <div className="min-h-screen overflow-x-clip bg-bg text-ink">
-          <TopNav chrome={chrome} menu={menu} />
+          <TopNav me={me} menu={menu} />
           <div className="flex">
             <AnimatePresence initial={false}>
               {docks && (
@@ -116,7 +131,8 @@ export function SiteLayout({
               )}
             </AnimatePresence>
             <div className="min-w-0 flex-1">
-              {(source === "snapshot" || source === "mock") && (
+              {/* demo mode says so in the top nav chip instead */}
+              {((source === "snapshot" && !me.data?.demo) || source === "mock") && (
                 <p role="note" className="border-b border-line bg-highlight px-4 py-1.5 text-center text-xs text-ink lg:px-6">
                   {source === "snapshot" ? "Showing saved Liiga data — live updates resume when the feed is back." : "Demo data from the design."}
                 </p>
@@ -124,7 +140,7 @@ export function SiteLayout({
               {children}
             </div>
           </div>
-          <SidebarDrawer open={drawerOpen} onClose={() => setDrawerOpen(false)} id={DRAWER_ID} nav={chrome.nav}>
+          <SidebarDrawer open={drawerOpen} onClose={() => setDrawerOpen(false)} id={DRAWER_ID} nav={NAV}>
             {panel}
           </SidebarDrawer>
         </div>

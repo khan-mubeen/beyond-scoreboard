@@ -19,7 +19,7 @@ import type { GameOutcome, Score } from "@/shared/types";
 type Side = "home" | "away";
 
 export interface GameStakes {
-  /** before puck drop */
+  /** before the game starts */
   baseline: Record<Side, TeamChances>;
   worth: Record<Side, Record<GameOutcome, TeamChances>>;
   /** overtime win rate for each side */

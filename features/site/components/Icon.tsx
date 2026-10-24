@@ -26,6 +26,12 @@ const PATHS = {
   lock: "M6 11h12v10H6zM8 11V8a4 4 0 0 1 8 0v3",
   sparkle: "M12 3l1.9 5.6L19.5 10l-5.6 1.9L12 17.5l-1.9-5.6L4.5 10l5.6-1.4z",
   discussion: "M4 5h16v11H9l-5 4z",
+  leaderboard: "M4 21v-8h5v8M10 21V7h4v14M15 21v-5h5v5",
+  teams: "M12 3l8 3v6c0 5-3.5 8-8 9-4.5-1-8-4-8-9V6z",
+  profile: "M12 12a4 4 0 1 0 0-8 4 4 0 0 0 0 8zM4 21a8 8 0 0 1 16 0",
+  volume: "M4 9h4l5-4v14l-5-4H4zM16 9a4 4 0 0 1 0 6M19 6a8 8 0 0 1 0 12",
+  volumeOff: "M4 9h4l5-4v14l-5-4H4zM17 9l4 6M21 9l-4 6",
+  tv: "M3 6h18v12H3zM8 21h8",
 } as const;
 
 const FILLED = {
@@ -34,6 +40,7 @@ const FILLED = {
   bolt: "M13 2L4 14h7l-1 8 9-12h-7z",
   rook: "M6 21h12v-2H6zM8 18h8l-1-7H9zM7 10h10V4h-2.5v2h-1.5V4h-2v2H9.5V4H7z",
   trophy: "M7 3h10v6a5 5 0 0 1-10 0zM3 4h3v3a3 3 0 0 1-3-3zM18 4h3a3 3 0 0 1-3 3zM10 15h4v3h3v3H7v-3h3z",
+  pause: "M7 5h4v14H7zM13 5h4v14h-4z",
 } as const;
 
 export type IconName = keyof typeof PATHS | keyof typeof FILLED;

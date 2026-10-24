@@ -1,4 +1,4 @@
-import { Fragment } from "react";
+import { Fragment, useEffect, useRef } from "react";
 import { zoneLabel } from "@/features/stakes";
 import type { GameOutcome, SeasonStakes } from "@/shared/types";
 import { Icon } from "./Icon";
@@ -6,16 +6,28 @@ import { ZONE_LINES, ZONE_TEXT, ZoneLegend } from "./LiigaTable";
 import { Pill, SectionCard } from "./SectionCard";
 import { ChangeTag } from "./StakesChip";
 import { StepChart } from "./StepChart";
+import { WhatIfPanel } from "./WhatIfPanel";
 
 const WORTH: [GameOutcome, string][] = [
   ["regulationWin", "Win"],
-  ["overtimeWin", "OT win"],
-  ["overtimeLoss", "OT loss"],
+  ["overtimeWin", "Overtime win"],
+  ["overtimeLoss", "Overtime loss"],
   ["regulationLoss", "Loss"],
 ];
 
-/** the playoff chance, how each goal moved it, and the table if it ends now */
+/**
+ * the playoff chance, how each goal moved it, and the whole table if it ends now: all 17 teams
+ * in a box about nine rows tall, scrolled so the match team's row sits in the middle
+ */
 export function SeasonStakesCard({ stakes }: { stakes: SeasonStakes }) {
+  const box = useRef<HTMLDivElement>(null);
+  const rowsKey = stakes.rows.map((r) => `${r.rank}${r.highlight ? "*" : ""}`).join();
+  useEffect(() => {
+    const el = box.current;
+    const row = el?.querySelector<HTMLElement>("[data-highlight]");
+    // scroll the box only, never the page
+    if (el && row) el.scrollTop += row.getBoundingClientRect().top - el.getBoundingClientRect().top - el.clientHeight / 2 + row.offsetHeight / 2;
+  }, [rowsKey]);
   return (
     <SectionCard
       id="season-stakes"
@@ -51,30 +63,37 @@ export function SeasonStakesCard({ stakes }: { stakes: SeasonStakes }) {
             <h3 className="text-sm font-semibold">{stakes.tableTitle}</h3>
             <Pill tone="good">{stakes.tableBadge}</Pill>
           </div>
-          <table className="mt-3 w-full overflow-hidden rounded-lg border border-line text-xs tabular-nums">
-            <thead>
-              <tr className="border-b border-line text-left text-muted">
-                <th scope="col" className="w-8 px-3 py-2 font-medium">
-                  #
-                </th>
-                <th scope="col" className="py-2 font-medium">
-                  League position
-                </th>
-                <th scope="col" className="w-24 py-2 pr-3 font-medium">
-                  Zone
-                </th>
-              </tr>
-            </thead>
-            <tbody>
+          <div
+            ref={box}
+            tabIndex={0}
+            role="region"
+            aria-label={`${stakes.tableTitle}, all ${stakes.rows.length} teams`}
+            className="mt-3 max-h-[19.5rem] overflow-y-auto rounded-lg border border-line"
+          >
+            <table className="w-full text-xs tabular-nums">
+              <thead className="sticky top-0 z-10 bg-surface">
+                <tr className="border-b border-line text-left text-muted">
+                  <th scope="col" className="w-8 px-3 py-2 font-medium">
+                    #
+                  </th>
+                  <th scope="col" className="py-2 font-medium">
+                    League position
+                  </th>
+                  <th scope="col" className="w-24 py-2 pr-3 font-medium">
+                    Zone
+                  </th>
+                </tr>
+              </thead>
+              <tbody>
               {stakes.rows.map((r, i) => {
                 const next = stakes.rows[i + 1];
                 const line = next && next.zone !== r.zone ? ZONE_LINES[r.zone] : undefined;
                 return (
                   <Fragment key={r.rank}>
                     <tr
-                      className={`${line ? "" : "border-b border-line last:border-0"} ${
-                        r.highlight ? "bg-accent-soft font-semibold text-accent" : ""
-                      }`}
+                      data-highlight={r.highlight ? "true" : undefined}
+                      aria-current={r.highlight ? "true" : undefined}
+                      className={`${line ? "" : "border-b border-line last:border-0"} ${r.highlight ? "bg-accent-soft font-semibold text-accent" : ""}`}
                     >
                       <td className="px-3 py-2">{r.rank}</td>
                       <td className="py-2">{r.label}</td>
@@ -88,8 +107,9 @@ export function SeasonStakesCard({ stakes }: { stakes: SeasonStakes }) {
                   </Fragment>
                 );
               })}
-            </tbody>
-          </table>
+              </tbody>
+            </table>
+          </div>
           <ZoneLegend className="mt-3" />
         </div>
       </div>
@@ -105,6 +125,7 @@ export function SeasonStakesCard({ stakes }: { stakes: SeasonStakes }) {
           ))}
         </p>
       </div>
+      {stakes.whatIf && <WhatIfPanel options={stakes.whatIf} />}
     </SectionCard>
   );
 }

@@ -47,8 +47,19 @@ export function VideoModal({ video, onClose }: { video: VideoInfo | null; onClos
     <Modal open={video !== null} onClose={onClose} title={video?.title ?? "Video"} wide>
       {video?.src ? (
         <div className="flex flex-col gap-2">
-          <video src={video.src} poster={video.poster} controls autoPlay playsInline className="aspect-video w-full rounded-lg bg-dark" />
-          <a href={video.src} target="_blank" rel="noreferrer" className="self-end text-xs text-muted underline hover:text-ink">
+          <video
+            src={video.src}
+            poster={video.poster}
+            controls
+            autoPlay
+            playsInline
+            // a goal in a rotation highlight opens a few seconds before it
+            onLoadedMetadata={(e) => {
+              if (video.startAt) e.currentTarget.currentTime = video.startAt;
+            }}
+            className="aspect-video w-full rounded-lg bg-dark"
+          />
+          <a href={video.streamUrl ?? video.src} target="_blank" rel="noreferrer" className="self-end text-xs text-muted underline hover:text-ink">
             Clip not playing? Open the stream
           </a>
         </div>
@@ -58,8 +69,8 @@ export function VideoModal({ video, onClose }: { video: VideoInfo | null; onClos
           <div className="absolute inset-0 grid place-items-center text-center">
             <div>
               <Icon name="play" className="mx-auto size-10" />
-              <p className="mt-2 font-semibold">Video player placeholder</p>
-              <p className="text-sm opacity-80">The stream connects when the video api is ready.</p>
+              <p className="mt-2 font-semibold">Highlight coming soon</p>
+              <p className="text-sm opacity-80">There is no clip for this one yet.</p>
             </div>
           </div>
         </div>

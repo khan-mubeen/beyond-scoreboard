@@ -34,13 +34,27 @@ export function summaryOf(g: LiigaGame, book: TeamBook, now: Date, note?: string
 
 const PLACEHOLDER_POSTER = "/placeholders/goal-thumb.svg";
 
+/** liiga's goal clips open with a ~3 s sponsor bumper (a betting ad): play from after it */
+export const LIIGA_BUMPER_SEC = 3;
+
 export function goalVideo(goal: LiigaGame["goals"][number], title: string): VideoInfo | null {
   if (!goal.videoUrl && !goal.thumbUrl) return null;
-  return { poster: goal.thumbUrl ?? PLACEHOLDER_POSTER, title, src: goal.videoUrl };
+  return { poster: goal.thumbUrl ?? PLACEHOLDER_POSTER, title, src: goal.videoUrl, ...(goal.videoUrl && { startAt: LIIGA_BUMPER_SEC }) };
 }
 
-/** goals and penalties, newest first. goal effects are playoff-chance points for the stakes team */
-export function eventsOf(g: LiigaGame, names: Map<number, string>, timeline: TimelineLike[], book: TeamBook): MatchEvent[] {
+type Goal = LiigaGame["goals"][number];
+
+/**
+ * goals and penalties, newest first. goal effects are playoff-chance points for the stakes team.
+ * clipOf gives a goal's video (a rotation match: its highlight, from just before the goal)
+ */
+export function eventsOf(
+  g: LiigaGame,
+  names: Map<number, string>,
+  timeline: TimelineLike[],
+  book: TeamBook,
+  clipOf: (goal: Goal, title: string) => VideoInfo | null = goalVideo,
+): MatchEvent[] {
   // the game's own team names first ("HIFK"), the book as a fallback
   const teamName = (teamId: string) => (teamId === g.home.teamId ? g.home.name : teamId === g.away.teamId ? g.away.name : book.ref(teamId).name);
   const deltaByGoal = new Map(timeline.filter((p) => p.goalId).map((p) => [p.goalId!, Math.round(p.delta * 100)]));
@@ -56,7 +70,7 @@ export function eventsOf(g: LiigaGame, names: Map<number, string>, timeline: Tim
       title,
       detail: [goal.scorer ?? "Unknown scorer", ...kinds].join(" · "),
       effect: deltaByGoal.get(goal.id) ?? null,
-      video: goalVideo(goal, `${title}${goal.scorer ? ` · ${goal.scorer}` : ""}`),
+      video: clipOf(goal, `${title}${goal.scorer ? ` · ${goal.scorer}` : ""}`),
     };
   });
   const penalties: (MatchEvent & { t: number })[] = g.penalties
@@ -82,16 +96,16 @@ export function statsOf(s: LiigaGameStats | null): MatchStat[] {
   return [
     { id: "shots", label: "Shots on goal", ...pair(s?.shots) },
     { id: "blocked", label: "Blocked shots", ...pair(s?.blockedShots) },
-    { id: "faceoffs", label: "Faceoffs", unit: "%", ...pair(s?.faceoffs) },
+    { id: "faceoffs", label: "Faceoffs won", unit: "%", ...pair(s?.faceoffs) },
     { id: "pim", label: "Penalty minutes", ...pair(s?.penaltyMinutes) },
     {
       id: "pp",
-      label: "Power play",
+      label: "Power play goals",
       home: pp ? pp.home.goals : null,
       away: pp ? pp.away.goals : null,
-      display: pp ? [`${pp.home.goals}/${pp.home.instances}`, `${pp.away.goals}/${pp.away.instances}`] : null,
+      display: pp ? [`${pp.home.goals} of ${pp.home.instances}`, `${pp.away.goals} of ${pp.away.instances}`] : null,
     },
-    { id: "momentum", label: "Game momentum", unit: "%", ...pair(s?.momentum) },
+    { id: "momentum", label: "Time with the puck", unit: "%", ...pair(s?.momentum) },
   ];
 }
 

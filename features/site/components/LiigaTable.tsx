@@ -1,7 +1,7 @@
 import { Fragment } from "react";
 import { zoneLabel } from "@/features/stakes";
 import type { LiigaTableData, Zone } from "@/shared/types";
-import { fmtChange } from "../format";
+import { fmtChange, teamHref } from "../format";
 import { Icon } from "./Icon";
 import { ActionLink, SectionCard } from "./SectionCard";
 import { TeamLogo } from "./TeamLogo";
@@ -83,7 +83,8 @@ export function LiigaTable({ table }: { table: LiigaTableData }) {
         </thead>
         <tbody>
           {rows.map((r, i) => {
-            const hot = r.teamId === table.highlightTeamId;
+            // the fan's teams (all of them), or the one the page is about
+            const hot = table.highlightTeamIds ? table.highlightTeamIds.includes(r.teamId) : r.teamId === table.highlightTeamId;
             const next = rows[i + 1];
             const line = next && next.zone !== r.zone ? ZONE_LINES[r.zone] : undefined;
             return (
@@ -94,7 +95,9 @@ export function LiigaTable({ table }: { table: LiigaTableData }) {
                     <span className="flex items-center gap-2">
                       <TeamLogo team={r.team} size={18} />
                       <span className="min-w-0">
-                        {r.team.name}
+                        <a href={teamHref(r.teamId)} className="hover:underline">
+                          {r.team.name}
+                        </a>
                         <span className="sr-only">, {zoneLabel(r.zone)}</span>
                         {hot && table.highlightNote && (
                           <span className="block text-[11px] font-medium text-good">

@@ -1,7 +1,8 @@
 // every page in one table. each one is a thin wrapper around a feature screen, loaded on
 // demand (one chunk per page, so a phone only downloads the page it opens).
-// plain links and full page loads, no router library needed
-import { type ComponentType, lazy, type ReactNode, Suspense } from "react";
+// plain <a> links; between site pages the click is handled here (history.pushState), so the
+// data cache survives and a visited page shows its last data at once. no router library needed
+import { type ComponentType, Fragment, lazy, type ReactNode, startTransition, Suspense, useEffect, useState } from "react";
 import { Card } from "@/shared/ui";
 
 /** a screen module's named export as a lazy component */
@@ -11,7 +12,17 @@ const page = <P extends object>(load: () => Promise<Record<string, unknown>>, na
 const SportsHome = page(() => import("@/features/site/screens/SportsHome"), "SportsHome");
 const MatchPage = page<{ id: string }>(() => import("@/features/site/screens/MatchPage"), "MatchPage");
 const Rewards = page(() => import("@/features/site/screens/Rewards"), "Rewards");
-const Placeholder = page<{ title: string; activeLinkId?: string }>(() => import("@/features/site/screens/Placeholder"), "Placeholder");
+const LeaderboardPage = page(() => import("@/features/site/screens/LeaderboardPage"), "LeaderboardPage");
+const Guidelines = page(() => import("@/features/site/screens/Guidelines"), "Guidelines");
+const DemoControl = page(() => import("@/features/site/screens/DemoControl"), "DemoControl");
+const TvNow = page(() => import("@/features/site/screens/TvMatch"), "TvNow");
+const TeamsPage = page(() => import("@/features/site/screens/TeamsPage"), "TeamsPage");
+const TeamPage = page<{ slug: string }>(() => import("@/features/site/screens/TeamPage"), "TeamPage");
+const ProfilePage = page(() => import("@/features/site/screens/ProfilePage"), "ProfilePage");
+const AchievementsPage = page(() => import("@/features/site/screens/ProfilePage"), "AchievementsPage");
+const MyCalls = page(() => import("@/features/site/screens/MyCalls"), "MyCalls");
+const CallHistory = page(() => import("@/features/site/screens/MyCalls"), "CallHistory");
+const SettingsPage = page(() => import("@/features/site/screens/SettingsPage"), "SettingsPage");
 const Landing = page(() => import("@/features/live/screens/Landing"), "Landing");
 const PhoneRoom = page<{ code: string }>(() => import("@/features/live/screens/PhoneRoom"), "PhoneRoom");
 const HostRoom = page<{ code: string }>(() => import("@/features/live/screens/HostRoom"), "HostRoom");
@@ -28,10 +39,17 @@ const ROUTES: [RegExp, (params: string[]) => ReactNode, Theme][] = [
   [/^\/$/, () => <SportsHome />, "site"],
   [/^\/match\/([^/]+)$/, ([id]) => <MatchPage id={id} />, "site"],
   [/^\/rewards$/, () => <Rewards />, "site"],
-  [/^\/calls$/, () => <Placeholder title="My Calls" activeLinkId="calls" />, "site"],
-  [/^\/calls\/history$/, () => <Placeholder title="Call History" activeLinkId="history" />, "site"],
-  [/^\/achievements$/, () => <Placeholder title="Achievements" activeLinkId="achievements" />, "site"],
-  [/^\/settings$/, () => <Placeholder title="Settings" activeLinkId="settings" />, "site"],
+  [/^\/leaderboard$/, () => <LeaderboardPage />, "site"],
+  [/^\/guidelines$/, () => <Guidelines />, "site"],
+  [/^\/demo\/control$/, () => <DemoControl />, "site"],
+  [/^\/tv$/, () => <TvNow />, "site"],
+  [/^\/calls$/, () => <MyCalls />, "site"],
+  [/^\/calls\/history$/, () => <CallHistory />, "site"],
+  [/^\/teams$/, () => <TeamsPage />, "site"],
+  [/^\/teams\/([^/]+)$/, ([slug]) => <TeamPage slug={slug} />, "site"],
+  [/^\/profile$/, () => <ProfilePage />, "site"],
+  [/^\/achievements$/, () => <AchievementsPage />, "site"],
+  [/^\/settings$/, () => <SettingsPage />, "site"],
   // watch party rooms
   [/^\/watch$/, () => <Landing />, "room"],
   [/^\/room\/([^/]+)$/, ([code]) => <PhoneRoom code={code.toUpperCase()} />, "room"],
@@ -44,26 +62,73 @@ const ROUTES: [RegExp, (params: string[]) => ReactNode, Theme][] = [
   [/^\/dev\/story$/, () => <DevStory />, "room"],
 ];
 
-export function resolveRoute(pathname: string): { element: ReactNode; theme: Theme } {
+const NOT_FOUND = { element: <main className="grid min-h-screen place-items-center text-muted">Page not found</main>, theme: "room" as Theme };
+
+function find(pathname: string) {
   const path = pathname.replace(/\/+$/, "") || "/";
   for (const [pattern, render, theme] of ROUTES) {
     const match = path.match(pattern);
-    if (match) return { element: render(match.slice(1).map(decodeURIComponent)), theme };
+    if (match) return { render: () => render(match.slice(1).map(decodeURIComponent)), theme };
   }
-  return {
-    element: <main className="grid min-h-screen place-items-center text-muted">Page not found</main>,
-    theme: "room",
-  };
+  return null;
+}
+
+export function resolveRoute(pathname: string): { element: ReactNode; theme: Theme } {
+  const hit = find(pathname);
+  return hit ? { element: hit.render(), theme: hit.theme } : NOT_FOUND;
+}
+
+/** true when a path (no query or hash) is a page of the app; the link audit test uses it */
+export const isRoute = (pathname: string) => find(pathname) !== null;
+
+const here = () => window.location.pathname + window.location.search;
+
+/** a click on a link to another site page, handled without a full page load */
+function inAppTarget(e: MouseEvent): HTMLAnchorElement | null {
+  if (e.defaultPrevented || e.button !== 0 || e.metaKey || e.ctrlKey || e.shiftKey || e.altKey) return null;
+  const a = (e.target as Element | null)?.closest?.("a");
+  if (!a || a.target || a.hasAttribute("download") || a.origin !== window.location.origin) return null;
+  const href = a.getAttribute("href") ?? "";
+  if (!href || href.startsWith("#")) return null;
+  // a hash on the same page scrolls natively
+  if (a.pathname === window.location.pathname && a.search === window.location.search && a.hash) return null;
+  // the room and dev pages are a different app (dark theme): those load in full
+  const to = find(a.pathname);
+  return to?.theme === "site" && find(window.location.pathname)?.theme === "site" ? a : null;
 }
 
 export function App() {
-  return <Suspense fallback={<div className="min-h-screen bg-bg" />}>{resolveRoute(window.location.pathname).element}</Suspense>;
+  const [location, setLocation] = useState(here);
+
+  useEffect(() => {
+    const sync = () => startTransition(() => setLocation(here()));
+    const onClick = (e: MouseEvent) => {
+      const a = inAppTarget(e);
+      if (!a) return;
+      e.preventDefault();
+      window.history.pushState(null, "", a.href);
+      sync();
+      requestAnimationFrame(() => (a.hash ? document.getElementById(a.hash.slice(1))?.scrollIntoView() : window.scrollTo(0, 0)));
+    };
+    window.addEventListener("popstate", sync);
+    document.addEventListener("click", onClick);
+    return () => {
+      window.removeEventListener("popstate", sync);
+      document.removeEventListener("click", onClick);
+    };
+  }, []);
+
+  const path = location.split("?")[0];
+  return (
+    <Suspense fallback={<div className="min-h-screen bg-bg" />}>
+      <Fragment key={location}>{resolveRoute(path).element}</Fragment>
+    </Suspense>
+  );
 }
 
 const DEV_PAGES = [
   { href: "/", owner: "site", what: "kaleva sports home" },
-  { href: "/match/karpat-assat-live", owner: "site", what: "live match page" },
-  { href: "/match/karpat-assat-final", owner: "site", what: "finished match page" },
+  { href: "/leaderboard", owner: "site", what: "weekly, season and watch together leaderboards" },
   { href: "/rewards", owner: "site", what: "kaleva rewards" },
   { href: "/watch", owner: "live", what: "create or join a watch party room" },
   { href: "/dev/stakes", owner: "stakes", what: "meter, season strip and projected table on mock data" },

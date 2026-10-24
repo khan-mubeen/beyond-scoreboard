@@ -1,29 +1,37 @@
 import type { ReactNode } from "react";
-import type { RewardsPage, SiteChrome } from "@/shared/types";
+import type { RewardsPage, UserSummary } from "@/shared/types";
 import { Icon } from "../components/Icon";
-import { PageLoading } from "../components/PageLoading";
 import { PointsBalanceCard } from "../components/PointsCard";
 import { AchievementBadge, OfferCard, SubscriptionCard } from "../components/RewardCards";
 import { ActionLink } from "../components/SectionCard";
 import { Breadcrumbs, SiteLayout } from "../components/SiteLayout";
+import { Bone, DataUnavailable, PageSkeleton } from "../components/Skeleton";
 import { useToast } from "../components/Toast";
-import { useRewardsPage, useSiteChrome } from "../data";
+import { useMe, useRewardsPage } from "../data";
 
-function Section({ title, link, children }: { title: string; link: string; children: ReactNode }) {
+function Section({ title, link, children }: { title: string; link?: { label: string; href: string }; children: ReactNode }) {
   return (
     <section aria-label={title} className="mt-8">
       <div className="mb-4 flex items-center justify-between gap-3">
         <h2 className="font-serif text-2xl font-bold">{title}</h2>
-        <ActionLink href="#">
-          {link} <Icon name="arrowRight" className="size-4" />
-        </ActionLink>
+        {link && (
+          <ActionLink href={link.href}>
+            {link.label} <Icon name="arrowRight" className="size-4" />
+          </ActionLink>
+        )}
       </div>
       {children}
     </section>
   );
 }
 
-function RewardsBody({ page, chrome }: { page: RewardsPage; chrome: SiteChrome }) {
+const EARN = [
+  ["Call It!", "20 points for every call you get right during a live match."],
+  ["Watch Together", "Join a room from the match page or its QR code and climb the room leaderboard."],
+  ["Every week", "The Weekly Leaderboard runs Monday to Sunday; season points never reset."],
+];
+
+function RewardsBody({ page, user }: { page: RewardsPage; user: UserSummary | null }) {
   const toast = useToast();
   const soon = () => toast("Coming soon");
 
@@ -39,17 +47,15 @@ function RewardsBody({ page, chrome }: { page: RewardsPage; chrome: SiteChrome }
             <p className="mt-1 text-[15px] text-muted">{page.subtitle}</p>
           </div>
           <span className="mt-4">
-            <ActionLink href={page.howToEarnHref}>
+            <ActionLink href="#how-to-earn">
               How to earn points <Icon name="arrowRight" className="size-4" />
             </ActionLink>
           </span>
         </div>
 
-        <div className="mt-5">
-          <PointsBalanceCard user={chrome.user} earnChips={page.earnChips} />
-        </div>
+        <div className="mt-5">{user ? <PointsBalanceCard user={user} earnChips={page.earnChips} /> : <Bone className="h-36 rounded-card" />}</div>
 
-        <Section title="Subscriptions" link="Compare passes">
+        <Section title="Subscriptions">
           <div className="grid gap-4 md:grid-cols-3">
             {page.subscriptions.map((s) => (
               <SubscriptionCard key={s.id} sub={s} onSubscribe={soon} />
@@ -57,7 +63,7 @@ function RewardsBody({ page, chrome }: { page: RewardsPage; chrome: SiteChrome }
           </div>
         </Section>
 
-        <Section title="Partner offers" link="View all">
+        <Section title="Partner offers">
           <div className="grid gap-4 md:grid-cols-3">
             {page.offers.map((o) => (
               <OfferCard key={o.id} offer={o} onAction={soon} />
@@ -65,7 +71,7 @@ function RewardsBody({ page, chrome }: { page: RewardsPage; chrome: SiteChrome }
           </div>
         </Section>
 
-        <Section title="Your achievements" link="View all">
+        <Section title="Your achievements" link={{ label: "View all", href: "/achievements" }}>
           <div className="grid gap-4 md:grid-cols-3">
             {page.achievements.map((a) => (
               <AchievementBadge key={a.id} achievement={a} />
@@ -73,23 +79,37 @@ function RewardsBody({ page, chrome }: { page: RewardsPage; chrome: SiteChrome }
           </div>
         </Section>
 
+        <section id="how-to-earn" aria-label="How to earn points" className="mt-8 scroll-mt-20 rounded-card border border-line bg-surface p-5 shadow-card">
+          <h2 className="font-serif text-2xl font-bold">How to earn points</h2>
+          <ul className="mt-3 grid gap-3 md:grid-cols-3">
+            {EARN.map(([title, text]) => (
+              <li key={title} className="rounded-lg bg-surface-2 p-4 text-sm">
+                <p className="font-semibold">{title}</p>
+                <p className="mt-1 text-muted">{text}</p>
+              </li>
+            ))}
+          </ul>
+        </section>
+
         <p className="mt-8 text-xs text-muted">{page.footnote}</p>
       </main>
     </div>
   );
 }
 
-/** kaleva rewards (docs/design/04-rewards.png) */
+/** kaleva rewards (docs/design/04-rewards.png). the balance comes from /me, like the sidebar */
 export function Rewards() {
-  const { data: page, source } = useRewardsPage();
-  const chrome = useSiteChrome(page?.user);
+  const { data: page, status, source, refresh } = useRewardsPage();
+  const me = useMe();
   return (
-    <SiteLayout
-      chrome={chrome}
-      sidebar={{ activeLinkId: "rewards", variant: "compact", docked: true }}
-      source={source === "mock" ? source : null}
-    >
-      {page ? <RewardsBody page={page} chrome={chrome} /> : <PageLoading label="Loading your rewards…" />}
+    <SiteLayout sidebar={{ activeLinkId: "rewards", variant: "compact", docked: true }} source={source === "mock" ? source : null}>
+      {page ? (
+        <RewardsBody page={page} user={me.data?.user ?? null} />
+      ) : status === "error" ? (
+        <DataUnavailable what="your rewards" onRetry={refresh} />
+      ) : (
+        <PageSkeleton />
+      )}
     </SiteLayout>
   );
 }
