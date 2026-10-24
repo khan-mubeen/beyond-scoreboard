@@ -124,6 +124,11 @@ export function createSupabaseDb(sb: SupabaseClient): Db {
           ...(patch.language && { language: patch.language }),
           ...(patch.notificationPrefs && { notification_prefs: patch.notificationPrefs }),
         };
+        // an empty patch is no update at all (postgrest returns no row): the user as they are
+        if (!Object.keys(row).length) {
+          const cur = must(await sb.from("users").select("*").eq("id", id).maybeSingle());
+          return cur ? user(cur) : null;
+        }
         const r = must(await sb.from("users").update(row).eq("id", id).select().maybeSingle());
         return r ? user(r) : null;
       },
