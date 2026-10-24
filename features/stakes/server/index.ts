@@ -1,18 +1,24 @@
 // stakes server api. server only: never import this from browser code (lint enforces it).
-// stubs: snapshot first, then shared/mock. todo: run the engine on real data
+// real forecasts come from forecast.ts; the mock card helpers below keep the
+// original watch-party rooms (/room/...) and the dev pages running on shared/mock
 import { mockFactInputs, mockRoomStates, mockStakesCard } from "@/shared/mock";
 import type { FactInputs, StakesCard } from "@/shared/types";
-import { readSnapshot } from "./data/snapshot";
+
+export { checkRulesAgainstApi, forecastBefore, forecastNow, getSeasonContext } from "./forecast";
+export type { ForecastResult, SeasonContext } from "./forecast";
+// the pure engine pieces the site and the live loop read forecasts with
+export { chanceTimeline, goalOfTheGame, ifEndsNow, leverage, rankOf, tableIfEndsNow, worthFor } from "../engine/stakes";
+export type { TimelinePoint } from "../engine/stakes";
+export { compareRows, tableWithOutcome, type TableRow } from "../engine/standings";
+export { OUTCOMES, type TeamChances } from "../engine/simulation";
+export { zoneForRank, zoneLabel } from "../engine/zones";
 
 export async function getStakes(teamId: string, gameId: string): Promise<StakesCard> {
-  const card = readSnapshot<StakesCard>(`stakes-${teamId}-${gameId}`) ?? mockStakesCard;
-  return { ...card, teamId, gameId };
+  return { ...mockStakesCard, teamId, gameId };
 }
 
-/** a stakes card per score state, keyed "home-away" like "2-1" */
+/** a stakes card per score state, keyed "home-away" like "2-1" (mock room flow) */
 export async function oddsByScoreState(gameId: string): Promise<Record<string, StakesCard>> {
-  const fromSnapshot = readSnapshot<Record<string, StakesCard>>(`score-states-${gameId}`);
-  if (fromSnapshot) return fromSnapshot;
   const out: Record<string, StakesCard> = {};
   for (const s of mockRoomStates) {
     const key = `${s.score.home}-${s.score.away}`;
@@ -22,6 +28,5 @@ export async function oddsByScoreState(gameId: string): Promise<Record<string, S
 }
 
 export async function getFactInputs(teamId: string, gameId: string): Promise<FactInputs> {
-  const inputs = readSnapshot<FactInputs>(`fact-inputs-${teamId}-${gameId}`) ?? mockFactInputs;
-  return { ...inputs, teamId, gameId };
+  return { ...mockFactInputs, teamId, gameId };
 }
