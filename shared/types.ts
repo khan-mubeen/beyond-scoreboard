@@ -157,7 +157,12 @@ export interface Content {
 }
 
 export type ValidationErrorType =
-  "uncited_sentence" | "model_typed_number" | "unknown_name" | "quote" | "off_ice_claim";
+  | "uncited_sentence"
+  | "model_typed_number"
+  | "unknown_name"
+  | "quote"
+  | "off_ice_claim"
+  | "betting_language";
 
 export interface VerifiedClaim {
   text: string;
@@ -295,6 +300,16 @@ export interface ApiError {
 // ---------- site (kaleva sports pages) ----------
 // percentages here are whole numbers 0-100 ("66" means 66%), changes are percentage points
 
+/** where a site response came from: the live liiga api, its saved snapshot, mock data, config or the db */
+export type DataSource = "live" | "snapshot" | "mock" | "config" | "db";
+
+/** every /api/site response carries these */
+export interface ApiMeta {
+  /** iso time the data is valid for */
+  asOf: string;
+  source: DataSource;
+}
+
 /** a team as the site shows it. logo is an image path, today a placeholder */
 export interface TeamRef {
   id: string;
@@ -424,8 +439,8 @@ export interface LiigaTableRow extends ProjectedRow {
 export interface LiigaTableData {
   rows: LiigaTableRow[];
   highlightTeamId: string;
-  /** "11th if it ends now" next to the highlighted row */
-  highlightNote: string;
+  /** "11th if it ends now" next to the highlighted row, null when the team isn't playing */
+  highlightNote: string | null;
   fullTableHref: string;
 }
 
@@ -442,7 +457,12 @@ export interface HeroData {
 export interface HomePage {
   hero: HeroData;
   dateLabel: string;
-  featured: FeaturedMatch;
+  /** the live game to show big, else the favourite team's next game; null on an empty day */
+  featured: FeaturedMatch | null;
+  /** the viewer's points (the api fills it; the mock uses chrome.user) */
+  user?: UserSummary;
+  /** favourites with real logos (the api fills it) */
+  favorites?: FavoriteTeam[];
   seasonStakesToday: StakesStripItem[];
   live: MatchSummary[];
   upcoming: MatchSummary[];
@@ -461,11 +481,14 @@ export interface VideoInfo {
   poster: string;
   /** "Match highlights · 3:12" */
   title: string;
+  /** the playable clip (liiga goal clips are hls .m3u8), null for the placeholder */
+  src?: string | null;
 }
 
 /** a goal or other event in the match feed, newest first */
 export interface MatchEvent {
   id: string;
+  kind?: "goal" | "penalty";
   /** "11:40" in the period */
   time: string;
   /** "2nd period" */
@@ -474,7 +497,8 @@ export interface MatchEvent {
   detail: string;
   /** playoff chance effect in percentage points, null when none */
   effect: number | null;
-  video: VideoInfo;
+  /** null when the feed has no clip */
+  video: VideoInfo | null;
 }
 
 /** one match statistic. null values render as "Data pending" */
@@ -484,6 +508,15 @@ export interface MatchStat {
   home: number | null;
   away: number | null;
   unit?: string;
+  /** shown instead of the numbers, e.g. ["1/3", "0/2"] for power play */
+  display?: [string, string] | null;
+}
+
+export interface LineupPlayer {
+  name: string;
+  jersey: number | null;
+  role: string | null;
+  line: number | null;
 }
 
 export interface StakesStep {
@@ -523,6 +556,9 @@ export interface Comment {
   id: string;
   author: string;
   text: string;
+  likes?: number;
+  /** iso */
+  createdAt?: string;
 }
 
 /** the call it! card. mock only: the real api sends result after the call locks */
@@ -562,7 +598,8 @@ interface MatchDetailBase {
   match: MatchSummary;
   venue: string;
   dateLabel: string;
-  spectators: number;
+  /** null until the feed reports it */
+  spectators: number | null;
   stakesSummary: StakesChipData[];
   video: VideoInfo;
   seasonStakes: SeasonStakes;
@@ -571,14 +608,20 @@ interface MatchDetailBase {
   stats: MatchStat[];
   statsSource: string;
   statsNote: string;
+  /** null until the feed has lineups */
+  lineups?: { home: LineupPlayer[]; away: LineupPlayer[] } | null;
+  /** true while the server replays a finished game as live (demo) */
+  isReplay?: boolean;
 }
 
 export interface LiveMatchDetail extends MatchDetailBase {
-  status: "live";
+  /** a scheduled game uses the live page before puck drop */
+  status: "live" | "scheduled";
   whatItMeans: string;
   discussion: Comment[];
   guidelinesHref: string;
-  callIt: CallItState;
+  /** null when no call is open */
+  callIt: CallItState | null;
   room: RoomSummary;
 }
 
@@ -594,6 +637,7 @@ export interface FinishedMatchDetail extends MatchDetailBase {
     story: Content;
     chips: { label: string; tone: "neutral" | "good" }[];
   };
+  /** null for a game without goals */
   goalOfTheGame: {
     thumbnail: string;
     meta: string;
@@ -601,14 +645,66 @@ export interface FinishedMatchDetail extends MatchDetailBase {
     effectText: string;
     chip: string;
     video: VideoInfo;
-  };
-  yourNight: { points: number; callsCorrect: number; callsTotal: number; rank: number; of: number; bestCall: string };
+  } | null;
+  /** null for a viewer who didn't play along */
+  yourNight: { points: number; callsCorrect: number; callsTotal: number; rank: number; of: number; bestCall: string } | null;
   room: RoomSummary;
   discussionHighlights: Comment[];
-  nextUp: { title: string; when: string; worth: string };
+  /** null when the team has no games left */
+  nextUp: { title: string; when: string; worth: string; matchId?: string } | null;
 }
 
 export type MatchDetail = LiveMatchDetail | FinishedMatchDetail;
+
+// ---------- live match state (GET /api/site/matches/:id/state and realtime "match:{id}") ----------
+
+export type LiveCallStatus = "open" | "locked" | "resolved" | "cancelled";
+
+/** a call as fans see it. the correct option only appears once it is resolved */
+export interface LiveCall {
+  id: string;
+  type: string;
+  question: string;
+  options: CallOption[];
+  stakesLine: string | null;
+  points: number;
+  status: LiveCallStatus;
+  /** ms epoch, server time */
+  openedAt: number;
+  locksAt: number;
+  /** share of answers per option in %, once locked */
+  split: Record<string, number> | null;
+  /** only when resolved */
+  correctOptionId: string | null;
+  /** why a call was cancelled */
+  reason: string | null;
+}
+
+export interface LiveStakes {
+  chips: StakesChipData[];
+  seasonStakes: SeasonStakes;
+  whatItMeans: string;
+}
+
+export interface LiveState {
+  matchId: string;
+  /** ms epoch on the server, for countdowns */
+  serverNow: number;
+  isReplay: boolean;
+  status: "scheduled" | "live" | "final";
+  clock: { period: number; gameTime: number; label: string; clock: string };
+  score: Score;
+  periodScores: (Score | null)[];
+  events: MatchEvent[];
+  stakes: LiveStakes;
+  call: LiveCall | null;
+  /** the most recent resolved or cancelled call */
+  lastCall: LiveCall | null;
+  leaderboard: RoomLeaderboardRow[];
+  watching: number;
+  /** only with ?player= (the viewer): their answer to the current and last call, and points */
+  me: { userId: string; nickname: string | null; matchPoints: number; answers: Record<string, string> } | null;
+}
 
 export interface Subscription {
   id: string;
@@ -639,6 +735,8 @@ export interface Achievement {
 }
 
 export interface RewardsPage {
+  /** the viewer's points from the ledger (the api fills it; the mock uses chrome.user) */
+  user?: UserSummary;
   titleLead: string;
   titleAccent: string;
   subtitle: string;

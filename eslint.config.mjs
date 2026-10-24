@@ -4,7 +4,7 @@ import reactHooks from "eslint-plugin-react-hooks";
 import globals from "globals";
 import tseslint from "typescript-eslint";
 
-const FEATURES = ["stakes", "live", "story", "site"];
+const FEATURES = ["stakes", "live", "story", "site", "liiga"];
 
 // flat config replaces (not merges) a rule per matching block,
 // so every block below carries the full list of patterns for its files
@@ -15,9 +15,9 @@ const relativeInto = (names) => ({
 });
 
 const noServer = {
-  regex: "(^|/)server(/|$)",
+  regex: "(^|/)server(/|$)|^@/shared/db(/|$)",
   message:
-    "browser and pure code must not import server/ code. keep the logic outside server/ as a pure function, or call the api",
+    "browser and pure code must not import server/ code or @/shared/db (it holds the service-role key). keep the logic outside server/ as a pure function, or call the api",
 };
 
 const noNode = {
@@ -57,6 +57,13 @@ const featureBlocks = FEATURES.flatMap((f) => [
   {
     name: `${f}/server`,
     files: [`features/${f}/server/**/*.ts`],
+    rules: restrict(...crossFeature(f, { allowServer: true })),
+  },
+  {
+    // node scripts (snapshot recorder, pregen) and tests may use server entries and the db,
+    // never the browser bundle
+    name: `${f}/scripts`,
+    files: [`features/${f}/scripts/**/*.ts`, `features/${f}/tests/**/*.ts`],
     rules: restrict(...crossFeature(f, { allowServer: true })),
   },
 ]);
