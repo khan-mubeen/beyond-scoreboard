@@ -1,10 +1,10 @@
 # live
 
-The room: replay clock, live calls, joining, answers, scoring, and the phone and host screens.
+The live engine for Kaleva Sports matches (Call It! on real and replayed Liiga games), plus the older watch party room: replay clock, live calls, joining, answers, scoring, and the phone and host screens.
 
 ## Public API
 
-Browser-safe, `@/features/live`:
+Browser-safe, `@/features/live` (watch party):
 
 - `stateAt(events, t, game)`, `scheduleCalls(events, t, game)`, `resolveCall(call, events)`, `isLate(call, t)`, `isOpen(call, t)`, `toPublicCall(call)`
 - `formatGameClock`, `periodAt`, `gameTimeAt`, `CALL_POINTS`
@@ -12,40 +12,37 @@ Browser-safe, `@/features/live`:
 
 Server only, `@/features/live/server`:
 
-- `getRoomState(code, playerId?)`, `store`
+- watch party: `getRoomState(code, playerId?)`, `store`
+- engine: `startEngine(renderer)`, `engineMatch(id)`, `ensureLiveLoop(id, game)`, `activeReplays()`, `matchSince(id)`, `controlReplay(id, action)`
+- `answerCall(callId, userId, optionId)`, `publish(matchId, messages)`, `recentBroadcasts`, `phraseProblem`, `PHRASE_VARS`, `BUILT_IN`
 
-Route handlers (`server/routes/`): create, join, control, state, answers. They are wired up in `server/api.ts`.
+Route handlers (`server/routes/`): the watch party's create, join, control, state, answers, wired up in `server/api.ts`. The engine's routes are in `features/site/server/routes/site.ts`.
 
 ## Layout
 
-- `replay/`: pure. `state-at.ts`, `clock.ts` (stub: 1 game second per second), `control.ts` (what host actions do)
-- `calls/`: pure. `templates.ts`, `schedule.ts`, `resolve.ts`, `scoring.ts`, `lock.ts`, `public.ts`
-- `components/`: `CallCard`, `Countdown`, `JoinForm`, `FinalCard`, `HostControls`, plus the polling and session hooks
-- `screens/`: `PhoneRoom.tsx`, `HostRoom.tsx`, `DevLive.tsx`, `Landing.tsx`
-- `server/`: `index.ts`, `store.ts` (in memory, lost on restart), `routes/`
-- `scripts/fake-players.ts`: talks to a running server over http only
+- `engine/`: pure. `replay.ts` (a finished game as it stood at game time t, the replay clock), `rules.ts` (when a call opens, how it resolves, when it is cancelled), `phrases.ts` (call wordings)
+- `server/engine.ts`: one `MatchLoop` per match. A live game ticks every 5 s on the cached api, a replay every 1 s. Each tick locks, cancels or resolves calls, pays points, maybe opens the next call, re-renders on change and broadcasts. The site injects the renderer, so this feature never imports site
+- `server/realtime.ts`: Supabase Realtime broadcast over REST on private `match:{id}` channels
+- `server/calls.ts`: answering a call
+- `replay/`, `calls/`, `components/`, `screens/`, `server/store.ts`: the watch party (in memory)
+- `scripts/fake-players.ts`: fans over http only, each with its own cookie
 
 ## Rules that must hold
 
-- Nothing after the current game time ever reaches a phone (`tests/no-leak.test.ts`).
-- `correctOptionId` never leaves the server before resolution. Clients only get `PublicCall`.
-- Answers at or after `locksAt` get a 409.
+- Nothing after the replay clock reaches a fan: no future goals, no final totals, no video (`tests/replay.test.ts`, on every recorded game).
+- An open call never carries its answer or the split (`tests/server.test.ts` checks every broadcast).
+- Only events after the lock decide a call; one that decides it while answers are open cancels it (`tests/rules.test.ts`).
+- One answer per fan per call, none after the lock, 20 points once per correct call (`tests/ledger.test.ts`).
+- A replay runs at 1x while a call takes answers, so the window is as long in game time as in a live game.
 
 ## Test alone
 
-- `npm run dev`, then open `/dev/live` and step through all 13 mock states.
-- `/room/TEST/host` to drive the TEST room, with `/room/TEST` on your phone.
-- `npm run fake-players -- TEST 30` while the dev server runs.
 - `npm test -- features/live`
-
-## Done when
-
-- [ ] the no-leak test passes
-- [ ] late answers are rejected
-- [ ] 30 fake players complete a full replay
+- `DEMO_REPLAY_MATCH_ID=2027-2701404 HOST_TOKEN=x npm run dev`, then `HOST_TOKEN=x npm run fake-players -- 2027-2701404 30`
+- `/match/2027-2701404?host=1` to drive the replay by hand
+- watch party: `/dev/live`, `/room/TEST/host` with `/room/TEST` on your phone
 
 ## Todo
 
-- resolve `none` / `no` / regulation results after `resolvesAt` (`calls/resolve.ts`)
-- real replay speed and intermission gaps (`replay/clock.ts`)
-- host auth on the control route
+- Intermissions in the replay (it runs straight through).
+- Speeds above about 60x skip call windows (the engine samples once a second).

@@ -13,6 +13,24 @@ import { type Room, store } from "./store";
 export { store };
 export type { Room };
 
+// kaleva sports matches: answers, realtime publishing (and the live engine, see ./engine)
+export { answerCall, type AnswerResult } from "./calls";
+export { publish, recentBroadcasts, type MatchEvent as BroadcastEvent } from "./realtime";
+export {
+  activeReplays,
+  CALL_POINTS,
+  controlReplay,
+  engineMatch,
+  ensureLiveLoop,
+  matchSince,
+  startEngine,
+  type MatchRenderer,
+  type RenderedMatch,
+} from "./engine";
+export type { CallDraft, CallKind } from "../engine/rules";
+// for npm run pregen:phrases (story): the rules a stored wording must pass
+export { BUILT_IN, PHRASE_VARS, phraseProblem, type PhraseLang } from "../engine/phrases";
+
 /** the game being replayed. stub: always the mock demo game. todo: liiga data via stakes */
 export function replayGame(room: Room): { game: GameTeams; goals: GoalEvent[] } {
   const final = mockRoomStates[mockRoomStates.length - 1];

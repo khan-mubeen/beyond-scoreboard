@@ -1,57 +1,159 @@
-// joins fake players to a running server and answers every open call.
-// talks to the server over http only, never imports server/.
-// run: npm run fake-players -- [roomCode] [count]   (needs `npm run dev` running)
-import type { JoinResponse, RoomState } from "@/shared/types";
+// joins fake fans to a match on a running server and answers every open call. talks http only
+// (never imports server code); each fan has its own ks_anon cookie. with HOST_TOKEN set it resets
+// and starts the demo replay first, otherwise it waits for the host. exits 1 on any error.
+// run: npm run fake-players -- <matchId> [count]   (needs `npm run dev` with DEMO_REPLAY_MATCH_ID)
+import type { FinishedMatchDetail, LiveCall, LiveState } from "@/shared/types";
 
 const BASE = process.env.BASE_URL ?? "http://localhost:3000";
-const code = process.argv[2] ?? "TEST";
-const count = Number(process.argv[3] ?? 30);
-const MAX_MINUTES = 90;
+const HOST_TOKEN = process.env.HOST_TOKEN;
+const [matchId, countArg] = process.argv.slice(2);
+const count = Number(countArg ?? 30);
+const MAX_MINUTES = 30;
+const ANSWER_RATE = 0.9;
 
-async function post(path: string, body: unknown) {
+if (!matchId || !/^\d{4}-\d+$/.test(matchId) || !(count > 0)) {
+  console.error("usage: npm run fake-players -- <matchId like 2027-2701404> [count]");
+  process.exit(1);
+}
+
+interface Fan {
+  name: string;
+  cookie: string;
+  answered: Set<string>;
+}
+
+const errors: string[] = [];
+
+async function call(path: string, opts: { method?: string; body?: unknown; cookie?: string; host?: boolean } = {}) {
   const res = await fetch(`${BASE}${path}`, {
-    method: "POST",
-    headers: { "content-type": "application/json" },
-    body: JSON.stringify(body),
+    method: opts.method ?? "GET",
+    headers: {
+      ...(opts.body !== undefined && { "content-type": "application/json" }),
+      ...(opts.cookie && { cookie: opts.cookie }),
+      ...(opts.host && HOST_TOKEN && { "x-host-token": HOST_TOKEN }),
+    },
+    body: opts.body === undefined ? undefined : JSON.stringify(opts.body),
   });
-  return { status: res.status, body: await res.json() };
+  const body = (await res.json().catch(() => ({}))) as Record<string, unknown>;
+  const cookie = res.headers.getSetCookie().map((c) => c.split(";")[0]).find((c) => c.startsWith("ks_anon="));
+  return { status: res.status, body, cookie };
 }
 
-const players: string[] = [];
+const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
+
+// 1. every fan gets a cookie and a nickname, and joins the match room
+const fans: Fan[] = [];
 for (let i = 1; i <= count; i++) {
-  const { status, body } = await post(`/api/rooms/${code}/join`, { nickname: `fan${i}` });
-  if (status !== 201) throw new Error(`join failed: ${status} ${JSON.stringify(body)}`);
-  players.push((body as JoinResponse).playerId);
+  const name = `Fan ${String(i).padStart(2, "0")}`;
+  const r = await call(`/api/site/matches/${matchId}/join`, { method: "POST", body: { nickname: name } });
+  if (r.status !== 200 || !r.cookie) throw new Error(`join failed for ${name}: ${r.status} ${JSON.stringify(r.body)}`);
+  fans.push({ name, cookie: r.cookie, answered: new Set() });
 }
-console.log(`${players.length} players joined room ${code}. waiting for calls (start the replay from the host page)`);
+console.log(`${fans.length} fans joined ${matchId}`);
 
-const answered = new Set<string>();
-const started = Date.now();
-for (;;) {
-  const res = await fetch(`${BASE}/api/rooms/${code}/state`);
-  const state = (await res.json()) as RoomState;
-  const call = state.activeCall;
-  if (call && !answered.has(call.id)) {
-    answered.add(call.id);
-    const results = await Promise.all(
-      players.map((playerId) => {
-        const option = call.options[Math.floor(Math.random() * call.options.length)];
-        return post(`/api/rooms/${code}/answers`, { playerId, callId: call.id, optionId: option.id });
-      }),
-    );
-    const ok = results.filter((r) => r.status === 201).length;
-    console.log(`${call.id}: ${ok}/${players.length} answers accepted`);
+// 2. a fresh run of the replay
+if (HOST_TOKEN) {
+  for (const action of ["reset", "start"]) {
+    const r = await call(`/api/site/matches/${matchId}/control`, { method: "POST", body: { action }, host: true });
+    if (r.status !== 200) throw new Error(`host ${action} failed: ${r.status} ${JSON.stringify(r.body)}`);
   }
-  if (state.phase === "final") {
-    console.log(
-      "final. top 3:",
-      state.leaderboard
-        .slice(0, 3)
-        .map((e) => `${e.nickname} ${e.score}`)
-        .join(", "),
-    );
+  console.log("replay reset and started");
+} else {
+  console.log("no HOST_TOKEN: waiting for the host to start the replay (/match/<id>?host=1)");
+}
+
+// 3. follow the state, answer each call once, log every call's life
+const lastStatus = new Map<string, string>();
+const track = (c: LiveCall | null) => {
+  if (!c || lastStatus.get(c.id) === c.status) return;
+  lastStatus.set(c.id, c.status);
+  const split = c.split ? ` split ${JSON.stringify(c.split)}` : "";
+  if (c.status === "open") console.log(`  open      ${c.question} [${c.options.map((o) => o.label).join(" / ")}]`);
+  else if (c.status === "locked") console.log(`  locked   ${split}`);
+  else if (c.status === "resolved") console.log(`  resolved  ${c.question} -> ${c.options.find((o) => o.id === c.correctOptionId)?.label}${split}`);
+  else console.log(`  cancelled ${c.question} (${c.reason})`);
+};
+
+async function answerAll(c: LiveCall) {
+  const results = await Promise.all(
+    fans.map(async (f) => {
+      if (Math.random() > ANSWER_RATE) return "skipped";
+      const option = c.options[Math.floor(Math.random() * c.options.length)];
+      const r = await call(`/api/site/calls/${c.id}/answer`, { method: "POST", body: { optionId: option.id }, cookie: f.cookie });
+      if (r.status === 201) f.answered.add(c.id);
+      // the call can lock between our poll and the answer; that 409 is fair, anything else is a bug
+      else if (!(r.status === 409 && /locked|cancelled/.test(String(r.body.error)))) errors.push(`${f.name} answer ${c.id}: ${r.status} ${JSON.stringify(r.body)}`);
+      return r.status;
+    }),
+  );
+  const accepted = results.filter((s) => s === 201).length;
+  // a second answer must be refused
+  const first = fans.find((f) => f.answered.has(c.id));
+  if (first) {
+    const again = await call(`/api/site/calls/${c.id}/answer`, { method: "POST", body: { optionId: c.options[0].id }, cookie: first.cookie });
+    if (again.status !== 409) errors.push(`duplicate answer to ${c.id} got ${again.status}, expected 409`);
+  }
+  console.log(`            ${accepted}/${fans.length} answers accepted`);
+}
+
+const answeredCalls = new Set<string>();
+const started = Date.now();
+let finalSeenAt: number | null = null;
+let state: LiveState | null = null;
+for (;;) {
+  const r = await call(`/api/site/matches/${matchId}/state`, { cookie: fans[0].cookie });
+  if (r.status !== 200) errors.push(`state: ${r.status} ${JSON.stringify(r.body)}`);
+  else {
+    state = r.body as unknown as LiveState;
+    track(state.lastCall);
+    track(state.call);
+    if (state.call?.status === "open" && !answeredCalls.has(state.call.id)) {
+      answeredCalls.add(state.call.id);
+      await answerAll(state.call);
+    }
+    // final, with nothing left to resolve, a moment after the end
+    if (state.status === "final" && !state.call) finalSeenAt ??= Date.now();
+    if (finalSeenAt && Date.now() - finalSeenAt > 2000) break;
+  }
+  if (Date.now() - started > MAX_MINUTES * 60_000) {
+    errors.push(`replay did not finish in ${MAX_MINUTES} minutes`);
     break;
   }
-  if (Date.now() - started > MAX_MINUTES * 60_000) throw new Error("replay did not finish in time");
-  await new Promise((r) => setTimeout(r, 1000));
+  await sleep(1000);
 }
+
+// 4. the books: 20 points per correct call, the same total on /state and on the finished page
+let checked = 0;
+for (const f of fans) {
+  const d = await call(`/api/site/matches/${matchId}`, { cookie: f.cookie });
+  const night = (d.body as unknown as FinishedMatchDetail).yourNight;
+  if (d.status !== 200) {
+    errors.push(`${f.name} match page: ${d.status}`);
+    continue;
+  }
+  if (!night) {
+    if (f.answered.size) {
+      const s = await call(`/api/site/matches/${matchId}/state`, { cookie: f.cookie });
+      if ((s.body as unknown as LiveState).me?.matchPoints) errors.push(`${f.name} has points but no "your night"`);
+    }
+    continue;
+  }
+  checked++;
+  if (night.points !== night.callsCorrect * 20) errors.push(`${f.name}: ${night.points} points for ${night.callsCorrect} correct calls`);
+  if (night.callsTotal > f.answered.size) errors.push(`${f.name}: ${night.callsTotal} calls counted, only ${f.answered.size} answered`);
+  const s = await call(`/api/site/matches/${matchId}/state`, { cookie: f.cookie });
+  const me = (s.body as unknown as LiveState).me;
+  if (me?.matchPoints !== night.points) errors.push(`${f.name}: /state says ${me?.matchPoints} points, the match page ${night.points}`);
+}
+
+const calls = [...lastStatus.values()];
+const by = (s: string) => calls.filter((v) => v === s).length;
+// polling sees the last call to change; several can resolve in one tick (the final whistle)
+console.log(`\nfinal ${state?.score.home}-${state?.score.away}. calls: ${calls.length}, last seen ${by("resolved")} resolved, ${by("cancelled")} cancelled`);
+console.log(`room leaderboard: ${(state?.leaderboard ?? []).slice(0, 3).map((e) => `${e.name} ${e.score}`).join(", ")}`);
+console.log(`points checked for ${checked} fans`);
+if (errors.length) {
+  console.error(`\n${errors.length} errors:\n${errors.slice(0, 20).join("\n")}`);
+  process.exit(1);
+}
+console.log("no errors");
