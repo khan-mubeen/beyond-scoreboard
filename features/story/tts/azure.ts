@@ -11,6 +11,17 @@ const BITS_PER_SECOND = 96_000;
 
 const LOCALE: Record<Language, string> = { en: "en-GB", fi: "fi-FI" };
 
+/** a calm read: about 10% slower than the voice's default, on top of any length adjustment */
+export const BASE_RATE = -10;
+/** a short pause between sentences */
+export const SENTENCE_BREAK = "350ms";
+/**
+ * the newscast style, only for voices that have it (Microsoft's voice table, checked 2026-10-24:
+ * en-US-GuyNeural and en-US-JennyNeural "newscast", en-US-AriaNeural "newscast-formal"; no fi-FI
+ * voice and no en-GB voice we'd pick has a newscast style)
+ */
+export const NEWSCAST_STYLE: Record<string, string> = { "en-US-GuyNeural": "newscast", "en-US-JennyNeural": "newscast", "en-US-AriaNeural": "newscast-formal" };
+
 const STATUS: Record<number, string> = {
   400: "a required parameter is missing or invalid",
   401: "the key isn't valid, or not for this region",
@@ -22,11 +33,23 @@ const STATUS: Record<number, string> = {
 
 const escapeXml = (s: string) => s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;").replace(/'/g, "&apos;");
 
-/** ssml for one voice; a rate (percent) wraps the text in <prosody> */
+/**
+ * ssml for one voice: the sentences with a short break between them, read at BASE_RATE plus
+ * `rate` (percent, to land in 50-75 s), in the newscast style when the voice has one
+ */
 export function ssml(text: string, lang: Language, voice: string, rate = 0): string {
-  const locale = LOCALE[lang];
-  const body = rate ? `<prosody rate='${rate > 0 ? "+" : ""}${Math.round(rate)}%'>${escapeXml(text)}</prosody>` : escapeXml(text);
-  return `<speak version='1.0' xml:lang='${locale}'><voice xml:lang='${locale}' name='${voice}'>${body}</voice></speak>`;
+  // the voice's own locale (en-US-GuyNeural reads en-US), else the language's
+  const locale = /^[a-z]{2}-[A-Z]{2}-/.test(voice) ? voice.slice(0, 5) : LOCALE[lang];
+  const sentences = text
+    .split(/(?<=[.!?])\s+/)
+    .filter(Boolean)
+    .map(escapeXml)
+    .join(`<break time="${SENTENCE_BREAK}"/>`);
+  const total = Math.round(BASE_RATE + rate);
+  const prosody = `<prosody rate="${total > 0 ? "+" : ""}${total}%">${sentences}</prosody>`;
+  const style = NEWSCAST_STYLE[voice];
+  const body = style ? `<mstts:express-as style="${style}">${prosody}</mstts:express-as>` : prosody;
+  return `<speak version="1.0" xmlns="http://www.w3.org/2001/10/synthesis" xmlns:mstts="https://www.w3.org/2001/mstts" xml:lang="${locale}"><voice name="${voice}">${body}</voice></speak>`;
 }
 
 export interface AzureOptions {

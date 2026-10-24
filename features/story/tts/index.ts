@@ -9,7 +9,8 @@ export type { Speech, Tts } from "./types";
 
 const PLACEHOLDER_KEY = "your-azure-speech-key";
 
-export const DEFAULT_VOICES: Record<Language, string> = { fi: "fi-FI-HarriNeural", en: "en-GB-RyanNeural" };
+/** fi: Harri (calm, clear); en: Guy, a newsreader voice with Microsoft's "newscast" style */
+export const DEFAULT_VOICES: Record<Language, string> = { fi: "fi-FI-HarriNeural", en: "en-US-GuyNeural" };
 
 /** the running server may synthesize speech */
 export const ttsEnabled = () => process.env.TTS_ENABLED === "true";

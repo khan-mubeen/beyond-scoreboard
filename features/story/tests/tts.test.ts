@@ -5,7 +5,7 @@ import { createMemoryDb, setDb } from "@/shared/db";
 import { buildMatchLedger, type MatchFactsInput } from "../ledger/match-ledger";
 import { spokenSummary } from "../server/match-content";
 import { AZURE_FORMAT, azureTts, ssml } from "../tts/azure";
-import { hasAzureKey, ttsFromEnv } from "../tts";
+import { DEFAULT_VOICES, hasAzureKey, ttsFromEnv } from "../tts";
 
 const facts: MatchFactsInput = {
   matchId: "2027-2701400",
@@ -40,12 +40,32 @@ describe("azure tts (mocked http)", () => {
       "X-Microsoft-OutputFormat": AZURE_FORMAT,
       "User-Agent": "kaleva-sports",
     });
-    expect(init?.body).toBe("<speak version='1.0' xml:lang='fi-FI'><voice xml:lang='fi-FI' name='fi-FI-HarriNeural'>Kärpät &amp; HIFK &lt;3</voice></speak>");
+    expect(init?.body).toBe(
+      '<speak version="1.0" xmlns="http://www.w3.org/2001/10/synthesis" xmlns:mstts="https://www.w3.org/2001/mstts" xml:lang="fi-FI"><voice name="fi-FI-HarriNeural"><prosody rate="-10%">Kärpät &amp; HIFK &lt;3</prosody></voice></speak>',
+    );
     expect(speech).toMatchObject({ voice: "fi-FI-HarriNeural", durationSec: 60 });
   });
 
-  it("slows or speeds the voice with prosody, and says what a failed status means", async () => {
-    expect(ssml("Hei", "fi", "fi-FI-HarriNeural", -8)).toContain("<prosody rate='-8%'>Hei</prosody>");
+  it("reads calmly: -10% on top of any length adjustment, a short break between sentences", () => {
+    expect(ssml("Hei", "fi", "fi-FI-HarriNeural", -8)).toContain('<prosody rate="-18%">Hei</prosody>');
+    expect(ssml("Hei", "fi", "fi-FI-HarriNeural", 25)).toContain('<prosody rate="+15%">');
+    expect(ssml("Kärpät voitti. Seuraava peli on perjantaina! Hyvä.", "fi", "fi-FI-HarriNeural")).toContain(
+      'Kärpät voitti.<break time="350ms"/>Seuraava peli on perjantaina!<break time="350ms"/>Hyvä.',
+    );
+  });
+
+  it("uses the newscast style only for voices that have it (Microsoft's voice table)", () => {
+    const en = ssml("TPS beat Ilves.", "en", "en-US-GuyNeural");
+    expect(en).toContain('xml:lang="en-US"');
+    expect(en).toContain('<mstts:express-as style="newscast"><prosody rate="-10%">TPS beat Ilves.</prosody></mstts:express-as>');
+    // no fi-FI voice and no en-GB voice we'd pick has a newscast style
+    for (const [lang, voice] of [["fi", "fi-FI-HarriNeural"], ["fi", "fi-FI-NooraNeural"], ["en", "en-GB-RyanNeural"]] as const) {
+      expect(ssml("Hei.", lang, voice)).not.toContain("express-as");
+    }
+    expect(DEFAULT_VOICES).toEqual({ fi: "fi-FI-HarriNeural", en: "en-US-GuyNeural" });
+  });
+
+  it("says what a failed status means", async () => {
     const fetch = vi.fn(async () => new Response("", { status: 401 }));
     const tts = azureTts({ key: "k".repeat(32), region: "westeurope", voices: { fi: "fi-FI-HarriNeural", en: "en-GB-RyanNeural" }, fetch: fetch as unknown as typeof globalThis.fetch });
     await expect(tts.synthesize("Hei", "fi")).rejects.toThrow(/401.*key/);

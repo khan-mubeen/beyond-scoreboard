@@ -8,7 +8,7 @@ Words fans can trust: the fact ledger, templates, the LLM writer, the validator,
 2. The LLM writer (`writer/llm-writer.ts`) gets only the ledger and returns sentences with placeholders like `{F5}`. `fill()` swaps in the values, so the model never types a number.
 3. `validator/verify()` checks every sentence, one file per error type in `validator/checks/`: uncited sentence, a typed number, an unknown name, a quote, an off-ice claim, betting language. Blocked sentences never ship. There is no LLM reviewer.
 4. `npm run pregen -- --match <id>` writes stories that pass into `content_cache`. The site reads the cache, re-verifies it against the current ledger, and otherwise uses the templates (`templates/match.ts`), which pass the same validator.
-5. `npm run pregen:phrases` asks for other wordings of each call it! question and stores them in `phrase_bank`, approved only when they pass `phraseProblem` (live) and the guardrails.
+5. `npm run pregen:phrases` asks for other wordings of each Your Call! question and stores them in `phrase_bank`, approved only when they pass `phraseProblem` (live) and the guardrails.
 
 The LLM client (`llm/client.ts`) is openai-compatible, off by default (`LLM_ENABLED=false`), and returns null on any error or timeout, so nothing waits on it.
 
