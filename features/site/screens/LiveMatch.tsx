@@ -119,7 +119,7 @@ export function LiveMatch({ match: initial, source, onChange }: { match: LiveMat
   const [tab, setTab] = useState<Tab>("overview");
   const [video, setVideo] = useState<VideoInfo | null>(null);
   const [inviteOpen, setInviteOpen] = useState(false);
-  const [partyTab, setPartyTab] = useState<PartyTab>(() => (isPhone() ? "chat" : "call"));
+  const [partyTab, setPartyTab] = useState<PartyTab>("chat");
   // the phone sheet: your last choice, unless a new call has arrived since (then it opens)
   const [sheet, setSheet] = useState<{ open: boolean; forCall: string | null }>(() => ({ open: startsOnCallIt(), forCall: null }));
   // the nickname sheet, and the party action waiting for it
@@ -205,7 +205,6 @@ export function LiveMatch({ match: initial, source, onChange }: { match: LiveMat
   function goTo(section: Section) {
     if (section === "call-it") {
       setSheetOpen(true);
-      setPartyTab("call");
       return scrollTo("call-it");
     }
     if (section === "chat" || section === "party") {
@@ -321,19 +320,18 @@ export function LiveMatch({ match: initial, source, onChange }: { match: LiveMat
             </div>
           </div>
 
-          <div className="min-w-0 [grid-area:party] xl:sticky xl:top-20 xl:h-[calc(100vh-8rem)] xl:self-start">
+          {/* your call! on top (the bottom sheet on phones), the watch party (chat, party) under it */}
+          <div className="flex min-w-0 flex-col gap-4 [grid-area:party] xl:self-start">
+            {callCard}
             <WatchPartyPanel
-              className="xl:h-full"
               tab={partyTab}
-              onTab={(t) => (t === "call" && isPhone() ? goTo("call-it") : setPartyTab(t))}
+              onTab={setPartyTab}
               watching={match.room.watching}
               members={live?.members ?? match.room.members ?? []}
               board={match.room.leaderboard}
               feed={live?.feed ?? match.discussion}
               myId={live?.myId ?? null}
               friends={me?.friends ?? []}
-              callCard={callCard}
-              callOpen={callView?.phase === "open"}
               trivia={trivia}
               pulse={!!live?.roomPulse}
               onInvite={() => void named(async () => setInviteOpen(true))}

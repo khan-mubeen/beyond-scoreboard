@@ -1,5 +1,5 @@
 // the watch party panel, the right column of a live match: who's here and an invite on top, then
-// Your Call! (first) · Chat · Party. chat is the match discussion grown into the party feed:
+// Chat · Party (Your Call! is its own box above it). chat is the match discussion grown into the party feed:
 // messages with names and avatars, emoji on messages, system lines (goals, results), "ask the
 // match" fact cards, trivia cards, reaction bursts and quick-ask chips. party: everyone here and
 // the board (0 points too), with a friends filter
@@ -13,7 +13,7 @@ import { Icon } from "./Icon";
 import { InitialAvatar } from "./TeamLogo";
 import type { TriviaView } from "./use-live-match";
 
-export type PartyTab = "call" | "chat" | "party";
+export type PartyTab = "chat" | "party";
 
 export const BURST_EMOJI = ["🔥", "👏", "😱", "🏒"] as const;
 const REACTIONS = ["🔥", "👏", "😱", "🏒", "😂", "👍"] as const;
@@ -114,29 +114,8 @@ function PartyHeader({
   );
 }
 
-function TabBar({
-  tab,
-  onTab,
-  callOpen,
-  unread,
-  people,
-}: {
-  tab: PartyTab;
-  onTab: (t: PartyTab) => void;
-  callOpen: boolean;
-  unread: number;
-  people: number;
-}) {
-  const tabs: { id: PartyTab; label: ReactNode; phoneHidden?: boolean }[] = [
-    {
-      id: "call",
-      label: (
-        <>
-          {NAMES.call}
-          {callOpen && <span aria-label="question open" className="size-2 rounded-full bg-accent" />}
-        </>
-      ),
-    },
+function TabBar({ tab, onTab, unread, people }: { tab: PartyTab; onTab: (t: PartyTab) => void; unread: number; people: number }) {
+  const tabs: { id: PartyTab; label: ReactNode }[] = [
     {
       id: "chat",
       label: (
@@ -160,7 +139,7 @@ function TabBar({
     },
   ];
   return (
-    <div role="tablist" aria-label="Watch party" className="grid grid-cols-3 border-b border-line">
+    <div role="tablist" aria-label="Watch party" className="grid grid-cols-2 border-b border-line">
       {tabs.map((t) => (
         <button
           key={t.id}
@@ -445,7 +424,7 @@ function Chat({
           const el = e.currentTarget;
           stick.current = el.scrollHeight - el.scrollTop - el.clientHeight < 60;
         }}
-        className="max-h-[50vh] min-h-48 flex-1 overflow-y-auto px-4 xl:max-h-none"
+        className="max-h-[28rem] min-h-48 flex-1 overflow-y-auto px-4"
       >
         {feed.length === 0 ? (
           <p className="py-6 text-center text-sm text-muted">
@@ -646,8 +625,6 @@ export function WatchPartyPanel({
   feed,
   myId,
   friends,
-  callCard,
-  callOpen,
   trivia,
   pulse,
   onInvite,
@@ -663,9 +640,6 @@ export function WatchPartyPanel({
   myId: string | null;
   /** accepted friends' user ids */
   friends: string[];
-  /** the your call! card (a sheet on phones: always mounted there) */
-  callCard: ReactNode;
-  callOpen: boolean;
   trivia: TriviaView | null;
   pulse: boolean;
   onInvite: () => void;
@@ -685,15 +659,7 @@ export function WatchPartyPanel({
       className={`flex min-h-0 scroll-mt-20 flex-col overflow-hidden rounded-card border border-line bg-surface shadow-card ${className}`}
     >
       <PartyHeader watching={watching} members={members} friendsHere={friendsHere} onInvite={onInvite} pulse={pulse} />
-      <TabBar tab={tab} onTab={onTab} callOpen={callOpen} unread={unread} people={board.length} />
-      {/* phones keep your call! in its bottom sheet, mounted whatever the tab */}
-      <div
-        id="call-it-tab"
-        className={tab === "call" ? "flex min-h-0 flex-col gap-3 overflow-y-auto p-3" : "max-md:block md:hidden"}
-      >
-        {callCard}
-        {tab === "call" && trivia && trivia.phase !== "revealed" && <TriviaCard t={trivia} />}
-      </div>
+      <TabBar tab={tab} onTab={onTab} unread={unread} people={board.length} />
       <AnimatePresence initial={false} mode="wait">
         {tab === "chat" && (
           <motion.div
