@@ -190,7 +190,7 @@ Every request is validated with zod (400 with the reason). Every response has `a
 | route                              | method | body / query                       | returns                                                        |
 | ---------------------------------- | ------ | ---------------------------------- | -------------------------------------------------------------- |
 | `/api/site/home`                   | GET    | `?team=&date=YYYY-MM-DD`           | 200 `HomePage`                                                 |
-| `/api/site/me`                     | GET    |                                    | 200 `MeResponse` (user, follows, language, notification prefs, unread count, open call answers, demo chip) |
+| `/api/site/me`                     | GET    |                                    | 200 `MeResponse` (user, follows, language, notification prefs, unread count, open call answers, demo chip, `wallet.balance`, running `plans`) |
 | `/api/site/settings`               | POST   | `{ nickname?, language?: en\|fi, notificationPrefs? }` | 200 `MeResponse`, 400                       |
 | `/api/site/me/reset`               | POST   |                                    | 200, removes the fan and everything of theirs, clears the cookie |
 | `/api/site/notifications`          | GET    |                                    | 200 `NotificationsResponse` (made lazily: favourites, reminders, call results) |
@@ -216,7 +216,10 @@ Every request is validated with zod (400 with the reason). Every response has `a
 | `/api/site/reminders`              | GET    |                                    | 200 `{ reminders }`                                            |
 | `/api/site/reminders`              | POST   | `{ matchId, on }`                  | 200 `{ matchId, on, reminders }`                               |
 | `/api/site/standings`              | GET    | `?live=true\|false`                | 200 standings                                                  |
-| `/api/site/rewards`                | GET    |                                    | 200 `RewardsPage`                                              |
+| `/api/site/rewards`                | GET    |                                    | 200 `RewardsPage` (the plans with the fan's running ones, offers with the fan's codes, purchase history) |
+| `/api/site/subscriptions`          | POST   | `{ planId, pointsToUse, idempotencyKey }` | 200 `SubscriptionResult` (demo money + points, atomic), 400 cap / 50% rule, 404 plan, 409 not enough points ([rewards.md](rewards.md)) |
+| `/api/site/subscriptions/cancel`   | POST   | `{ planId }`                       | 200 `{ cancelled, until }` (stays active until it ends)        |
+| `/api/site/offers/:id/redeem`      | POST   |                                    | 200 `OfferResult` (a demo code, once per fan), 403 members only without a plan, 404, 409 |
 
 ## Realtime (`match:{id}`, private, broadcast)
 
@@ -237,7 +240,7 @@ Sent by the server only (REST, secret key). Browsers subscribe with the publisha
 
 ## Database (`supabase/migrations/`)
 
-`users` (+ `is_bot`, `language`, `notification_prefs`), `match_rooms`, `room_members`, `calls` (+ `i18n`: the Finnish wording), `answers` (unique per call and user), `points_ledger` (unique per user and call), `comments`, `comment_likes`, `reminders`, `content_cache`, `phrase_bank`, `notifications` (unique `dedupe_key`), `settings` (key → jsonb: the rotation clock), `user_favorites`. Storage: public buckets `highlights` (rotation videos and posters) and `match-audio` (summary MP3s). RLS is on for every table with no policies: only the server's secret key reads or writes. Repositories: `shared/db` (`Db` interface, Supabase and memory implementations).
+`users` (+ `is_bot`, `language`, `notification_prefs`), `match_rooms`, `room_members`, `calls` (+ `i18n`: the Finnish wording), `answers` (unique per call and user), `points_ledger` (unique per user and call), `comments`, `comment_likes`, `reminders`, `content_cache`, `phrase_bank`, `notifications` (unique `dedupe_key`), `settings` (key → jsonb: the rotation clock), `user_favorites`, `user_subscriptions` (demo money + points; unique `idempotency_key`), `offer_redemptions` (unique per fan and offer). `points_ledger` has a `ref` and negative rows for spending (reasons `subscription`, `offer`). Functions: `purchase_subscription` and `redeem_offer`, one transaction each behind `pg_advisory_xact_lock` per fan, executable by the service role only. Storage: public buckets `highlights` (rotation videos and posters) and `match-audio` (summary MP3s). RLS is on for every table with no policies: only the server's secret key reads or writes. Repositories: `shared/db` (`Db` interface, Supabase and memory implementations).
 
 ## Mock data (`shared/mock/`)
 
