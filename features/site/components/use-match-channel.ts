@@ -73,6 +73,14 @@ function sendPresence(id: string, leave = false) {
   void fetch(url, { method: "POST", credentials: "same-origin", headers: { "content-type": "application/json" }, body, keepalive: true }).catch(() => {});
 }
 
+/**
+ * leaving a match page in the app sends its leave a moment later: a remount of the same match
+ * (react's strict mode in development mounts twice, or a quick back-and-forth) cancels it, so a
+ * stale leave never races the new heartbeat. closing or hiding the page leaves at once
+ */
+const LEAVE_DELAY_MS = 400;
+const pendingLeave = new Map<string, ReturnType<typeof setTimeout>>();
+
 export interface MatchChannelOptions {
   /** a broadcast arrived; return true when it was handled here and the state should not merge it */
   onMessage?: (event: string, payload: Record<string, unknown>) => boolean | void;
@@ -165,6 +173,8 @@ export function useMatchChannel(id: string | null, opts: MatchChannelOptions = {
   useEffect(() => {
     if (!id || !presence || typeof document === "undefined") return;
     let beat: ReturnType<typeof setInterval> | null = null;
+    clearTimeout(pendingLeave.get(id));
+    pendingLeave.delete(id);
     const start = () => {
       if (beat) return;
       sendPresence(id);
@@ -183,7 +193,14 @@ export function useMatchChannel(id: string | null, opts: MatchChannelOptions = {
     return () => {
       document.removeEventListener("visibilitychange", onVisibility);
       window.removeEventListener("pagehide", onHide);
-      stop(true);
+      stop(false);
+      pendingLeave.set(
+        id,
+        setTimeout(() => {
+          pendingLeave.delete(id);
+          sendPresence(id, true);
+        }, LEAVE_DELAY_MS),
+      );
     };
   }, [id, presence]);
 
