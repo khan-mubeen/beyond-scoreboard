@@ -15,9 +15,9 @@ const relativeInto = (names) => ({
 });
 
 const noServer = {
-  regex: "(^|/)server(/|$)|^@/shared/db(/|$)",
+  regex: "(^|/)server(/|$)|^@/shared/(db|clock|demo|storage)(/|$)",
   message:
-    "browser and pure code must not import server/ code or @/shared/db (it holds the service-role key). keep the logic outside server/ as a pure function, or call the api",
+    "browser and pure code must not import server/ code, @/shared/db (it holds the service-role key) or @/shared/clock|demo (node fs). keep the logic outside server/ as a pure function, or call the api",
 };
 
 const noNode = {
@@ -69,7 +69,7 @@ const featureBlocks = FEATURES.flatMap((f) => [
 ]);
 
 export default defineConfig(
-  { ignores: ["dist/**", "node_modules/**"] },
+  { ignores: ["dist/**", "node_modules/**", "demo/work/**"] },
   js.configs.recommended,
   ...tseslint.configs.recommended,
   reactHooks.configs.flat.recommended,

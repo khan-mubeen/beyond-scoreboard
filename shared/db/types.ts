@@ -1,11 +1,35 @@
 // repositories over the tables in supabase/migrations. server only.
 // one interface, two implementations: supabase (production) and memory (tests, DB_MODE=memory)
 
+import type { NotificationPrefs } from "../types";
+
+export type { NotificationPrefs };
+
+export const DEFAULT_PREFS: NotificationPrefs = { callResults: true, favoriteReminders: true, favoriteResults: true };
+
 export interface DbUser {
   id: string;
   anonId: string;
   nickname: string | null;
   createdAt: string;
+  /** npm run fake-players: never on leaderboards, watching counts or notifications */
+  isBot: boolean;
+  /** words call it! and picks the summary's audio */
+  language: "en" | "fi";
+  notificationPrefs: NotificationPrefs;
+}
+
+export interface DbNotification {
+  id: string;
+  userId: string;
+  type: string;
+  title: string;
+  body: string;
+  link: string | null;
+  createdAt: string;
+  readAt: string | null;
+  /** one row per event per user */
+  dedupeKey: string;
 }
 
 export interface DbRoom {
@@ -41,6 +65,8 @@ export interface DbCall {
   status: CallStatus;
   correctOptionId: string | null;
   resolvedAt: string | null;
+  /** the finnish wording of the question and options */
+  i18n?: { fi?: { question: string; options: DbCallOption[] } } | null;
 }
 
 export interface DbAnswer {
@@ -76,9 +102,19 @@ export interface Db {
   mode: "memory" | "supabase";
   users: {
     getByAnonId(anonId: string): Promise<DbUser | null>;
-    create(anonId: string, nickname: string | null): Promise<DbUser>;
+    create(anonId: string, nickname: string | null, isBot?: boolean): Promise<DbUser>;
+    /** the fake players' ids (a few dozen at most), to leave them out of every count */
+    botIds(): Promise<string[]>;
     setNickname(id: string, nickname: string): Promise<void>;
+    update(id: string, patch: Partial<Pick<DbUser, "nickname" | "language" | "notificationPrefs">>): Promise<DbUser | null>;
+    /** the fan and everything of theirs (answers, points, comments, favourites... cascade) */
+    remove(id: string): Promise<void>;
     getMany(ids: string[]): Promise<DbUser[]>;
+  };
+  favorites: {
+    /** liiga team ids, oldest first */
+    list(userId: string): Promise<string[]>;
+    set(userId: string, teamId: string, on: boolean): Promise<void>;
   };
   rooms: {
     getByCode(code: string): Promise<DbRoom | null>;
@@ -91,12 +127,15 @@ export interface Db {
     create(c: Omit<DbCall, "id">): Promise<DbCall>;
     update(id: string, patch: Partial<Omit<DbCall, "id">>): Promise<DbCall | null>;
     get(id: string): Promise<DbCall | null>;
+    getMany(ids: string[]): Promise<DbCall[]>;
     listForMatch(matchId: string): Promise<DbCall[]>;
   };
   answers: {
     create(a: Omit<DbAnswer, "id" | "correct">): Promise<"ok" | "duplicate">;
     listForCall(callId: string): Promise<DbAnswer[]>;
     listForUser(userId: string, callIds: string[]): Promise<DbAnswer[]>;
+    /** a fan's answers, newest first */
+    recentForUser(userId: string, limit: number): Promise<DbAnswer[]>;
     setCorrect(callId: string, correctOptionId: string): Promise<void>;
   };
   points: {
@@ -123,5 +162,25 @@ export interface Db {
   phrases: {
     listApproved(callType: string, lang: string): Promise<string[]>;
     insert(rows: { callType: string; lang: string; template: string; approved: boolean }[]): Promise<void>;
+  };
+  notifications: {
+    /** bulk insert; rows whose dedupe key already exists are skipped */
+    create(rows: Omit<DbNotification, "id" | "createdAt" | "readAt">[]): Promise<void>;
+    list(userId: string, limit: number): Promise<DbNotification[]>;
+    unreadCount(userId: string): Promise<number>;
+    /** one notification, or all of the user's when id is omitted */
+    markRead(userId: string, id?: string): Promise<void>;
+  };
+  settings: {
+    get<T>(key: string): Promise<T | null>;
+    set(key: string, value: unknown): Promise<void>;
+  };
+  admin: {
+    /**
+     * npm run demo:reset: deletes bots, and every answer, point, notification, comment, call and
+     * room membership since `since` (all of them when omitted) that isn't seeded data
+     * (users whose anon id starts with "seed:"). returns what was deleted, per table
+     */
+    resetDemo(since?: string): Promise<Record<string, number>>;
   };
 }

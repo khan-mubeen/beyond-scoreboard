@@ -27,7 +27,7 @@ export interface Score {
 /** one liiga game */
 export interface Game {
   id: string;
-  /** iso date-time of puck drop */
+  /** iso date-time the game starts */
   date: string;
   homeTeamId: string;
   awayTeamId: string;
@@ -48,7 +48,7 @@ export interface GoalEvent {
   gameId: string;
   /** team that scored */
   teamId: string;
-  /** seconds since puck drop on the game clock (0-3600 in regulation) */
+  /** seconds since the start on the game clock (0-3600 in regulation) */
   gameTimeSeconds: number;
   period: number;
   scorer?: string;
@@ -327,7 +327,7 @@ export interface NavLink {
   hasMenu?: boolean;
 }
 
-export type QuickLinkIcon = "home" | "calls" | "history" | "rewards" | "achievements" | "settings";
+export type QuickLinkIcon = "home" | "calls" | "history" | "rewards" | "achievements" | "settings" | "leaderboard" | "teams" | "profile";
 
 export interface QuickLink {
   id: string;
@@ -384,7 +384,7 @@ export interface MatchSummary {
   status: GameStatus;
   home: TeamRef;
   away: TeamRef;
-  /** null before puck drop */
+  /** null before the game starts */
   score: Score | null;
   /** one entry per period, null for a period not played yet */
   periodScores: (Score | null)[];
@@ -397,6 +397,8 @@ export interface MatchSummary {
   /** short "what it's worth" line */
   note?: string;
   href: string;
+  /** a demo rotation match not on yet: when it starts (ms, server clock), for a countdown */
+  startsAt?: number;
 }
 
 /** a sport we don't cover yet, shown greyed out */
@@ -439,6 +441,8 @@ export interface LiigaTableRow extends ProjectedRow {
 export interface LiigaTableData {
   rows: LiigaTableRow[];
   highlightTeamId: string;
+  /** every team the viewer follows */
+  highlightTeamIds?: string[];
   /** "11th if it ends now" next to the highlighted row, null when the team isn't playing */
   highlightNote: string | null;
   fullTableHref: string;
@@ -459,10 +463,6 @@ export interface HomePage {
   dateLabel: string;
   /** the live game to show big, else the favourite team's next game; null on an empty day */
   featured: FeaturedMatch | null;
-  /** the viewer's points (the api fills it; the mock uses chrome.user) */
-  user?: UserSummary;
-  /** favourites with real logos (the api fills it) */
-  favorites?: FavoriteTeam[];
   seasonStakesToday: StakesStripItem[];
   live: MatchSummary[];
   upcoming: MatchSummary[];
@@ -470,6 +470,8 @@ export interface HomePage {
   comingSoon: ComingSoonCard[];
   leaderboard: { title: string; sponsor: string; entries: SiteLeaderboardEntry[]; href: string };
   table: LiigaTableData;
+  /** the viewer's teams and their next games */
+  yourTeams: { team: TeamRef; slug: string; next: TeamNextGame | null }[];
 }
 
 export interface Breadcrumb {
@@ -481,8 +483,12 @@ export interface VideoInfo {
   poster: string;
   /** "Match highlights · 3:12" */
   title: string;
-  /** the playable clip (liiga goal clips are hls .m3u8), null for the placeholder */
+  /** the playable clip (liiga goal clips are hls .m3u8, rotation highlights mp4), null for the placeholder */
   src?: string | null;
+  /** start the clip here (seconds): a goal in a rotation highlight opens 4 s before it */
+  startAt?: number;
+  /** the original liiga stream, for "Clip not playing? Open the stream" */
+  streamUrl?: string | null;
 }
 
 /** a goal or other event in the match feed, newest first */
@@ -549,6 +555,52 @@ export interface SeasonStakes {
   rows: StakesTableRow[];
   /** playoff chance for each way the game can end */
   worth: Record<GameOutcome, number>;
+  /** the games "what if?" can set; null once the match is decided */
+  whatIf?: WhatIfOptions | null;
+}
+
+/** a game "what if?" can set */
+export interface WhatIfGame {
+  gameId: string;
+  home: TeamRef;
+  away: TeamRef;
+  /** "Tue 20 Oct · 18:30" */
+  when: string;
+}
+
+export interface WhatIfOptions {
+  /** this match first, then the other unplayed games on its date */
+  games: WhatIfGame[];
+  /** most results set at once */
+  max: number;
+}
+
+/** a set result, from the home team's view */
+export interface WhatIfOverride {
+  gameId: string;
+  outcome: GameOutcome;
+}
+
+export interface WhatIfChances {
+  playoffs: number;
+  top4: number;
+  relegation: number;
+}
+
+export interface WhatIfTeam {
+  team: TeamRef;
+  /** percent, as the season stands */
+  before: WhatIfChances;
+  /** percent, with the set results */
+  after: WhatIfChances;
+}
+
+/** POST /api/site/whatif */
+export interface WhatIfResult extends ApiMeta {
+  matchId: string;
+  overrides: WhatIfOverride[];
+  /** the match's two teams first, then the other set games' teams */
+  teams: WhatIfTeam[];
 }
 
 /** someone's comment in the match discussion */
@@ -612,10 +664,13 @@ interface MatchDetailBase {
   lineups?: { home: LineupPlayer[]; away: LineupPlayer[] } | null;
   /** true while the server replays a finished game as live (demo) */
   isReplay?: boolean;
+  /** demo rotation matches: the highlight (null: none yet) and the phase when the page loaded */
+  highlight?: HighlightVideo | null;
+  rotation?: LiveRotation | null;
 }
 
 export interface LiveMatchDetail extends MatchDetailBase {
-  /** a scheduled game uses the live page before puck drop */
+  /** a scheduled game uses the live page before it starts */
   status: "live" | "scheduled";
   whatItMeans: string;
   discussion: Comment[];
@@ -649,9 +704,22 @@ export interface FinishedMatchDetail extends MatchDetailBase {
   /** null for a viewer who didn't play along */
   yourNight: { points: number; callsCorrect: number; callsTotal: number; rank: number; of: number; bestCall: string } | null;
   room: RoomSummary;
-  discussionHighlights: Comment[];
+  /** the match discussion, oldest first (read only once the game is over) */
+  discussion: Comment[];
   /** null when the team has no games left */
   nextUp: { title: string; when: string; worth: string; matchId?: string } | null;
+  /** the ~60-second spoken summary, in english and finnish */
+  summary?: { en: SpokenSummary; fi: SpokenSummary } | null;
+}
+
+/**
+ * a spoken summary: the transcript, and the stored audio of exactly that transcript (generated
+ * once at prep time). no audio: the browser's own voice reads the transcript, if it has one
+ */
+export interface SpokenSummary {
+  lang: Language;
+  transcript: string;
+  audio: { url: string; durationSec: number; voice: string; source: "azure" | "azure-portal" } | null;
 }
 
 export type MatchDetail = LiveMatchDetail | FinishedMatchDetail;
@@ -678,7 +746,40 @@ export interface LiveCall {
   correctOptionId: string | null;
   /** why a call was cancelled */
   reason: string | null;
+  /** the same call in finnish (same option ids) */
+  fi?: { question: string; options: CallOption[] } | null;
 }
+
+export type RotationPhaseName = "lobby" | "live" | "summary" | "idle";
+
+/** a demo rotation match's place in the loop. times are ms, server clock */
+export interface LiveRotation {
+  /** idle: another match is on */
+  phase: RotationPhaseName;
+  phaseEndsAt: number;
+  /** when this match's highlight starts (or started) this cycle */
+  liveStartedAt: number;
+  /** live only: the highlight's second at serverNow (it holds while paused) */
+  videoSec: number | null;
+  durationSec: number;
+  paused: boolean;
+  next: { matchId: string; title: string; startsAt: number } | null;
+}
+
+/** GET /api/site/rotation: the whole loop, for the home page, the host page and tv mode */
+export interface RotationInfo extends ApiMeta {
+  serverNow: number;
+  cycle: number;
+  paused: boolean;
+  current: { matchId: string; title: string; phase: "lobby" | "live" | "summary"; phaseStartedAt: number; phaseEndsAt: number };
+  next: { matchId: string; title: string; startsAt: number };
+  matches: { matchId: string; title: string; lobbyAt: number; liveAt: number; summaryAt: number; endsAt: number }[];
+}
+
+/** a rotation match's highlight. never carries the goal cues */
+export type HighlightVideo =
+  | { type: "mp4"; url: string; poster: string | null; durationSec: number; streamUrl: string | null }
+  | { type: "youtube"; id: string; poster: string | null; durationSec: number; streamUrl: string | null };
 
 export interface LiveStakes {
   chips: StakesChipData[];
@@ -702,8 +803,19 @@ export interface LiveState {
   lastCall: LiveCall | null;
   leaderboard: RoomLeaderboardRow[];
   watching: number;
-  /** only with ?player= (the viewer): their answer to the current and last call, and points */
-  me: { userId: string; nickname: string | null; matchPoints: number; answers: Record<string, string> } | null;
+  /** demo rotation matches only: this match's phase and the video clock */
+  rotation?: LiveRotation | null;
+  /** the viewer (from the cookie): their answer to the current and last call, points, and room rank */
+  me: {
+    userId: string;
+    nickname: string | null;
+    matchPoints: number;
+    answers: Record<string, string>;
+    /** place in the watch together room, null before their first points */
+    rank: number | null;
+    /** fans in the room */
+    of: number;
+  } | null;
 }
 
 export interface Subscription {
@@ -735,8 +847,6 @@ export interface Achievement {
 }
 
 export interface RewardsPage {
-  /** the viewer's points from the ledger (the api fills it; the mock uses chrome.user) */
-  user?: UserSummary;
   titleLead: string;
   titleAccent: string;
   subtitle: string;
@@ -746,4 +856,154 @@ export interface RewardsPage {
   offers: RewardOffer[];
   achievements: Achievement[];
   footnote: string;
+}
+
+// ---------- the viewer, notifications, leaderboards ----------
+
+export interface NotificationPrefs {
+  /** a call they answered resolved */
+  callResults: boolean;
+  /** a followed team plays within 24 h, or is live */
+  favoriteReminders: boolean;
+  /** a followed team's final result and what it meant */
+  favoriteResults: boolean;
+}
+
+/** a team's next game, for the teams pages and "your teams" */
+export interface TeamNextGame {
+  matchId: string;
+  opponent: TeamRef;
+  home: boolean;
+  /** "Tue 20 Oct · 18:30" */
+  when: string;
+  /** "Win → 72% playoff chance", null when the stakes can't be worked out */
+  worth: string | null;
+}
+
+export interface TeamListItem {
+  team: TeamRef;
+  /** "kärpät", for /teams/:slug */
+  slug: string;
+  rank: number;
+  points: number;
+  gamesPlayed: number;
+  zone: Zone;
+  zoneLabel: string;
+  playoffChance: number;
+  next: TeamNextGame | null;
+  followed: boolean;
+}
+
+/** GET /api/site/teams */
+export interface TeamsPageData extends ApiMeta {
+  teams: TeamListItem[];
+  /** "Standings before Tue 20 Oct" in demo mode */
+  note: string;
+}
+
+/** GET /api/site/teams/:slug */
+export interface TeamPageData extends ApiMeta {
+  item: TeamListItem;
+  top4Chance: number;
+  relegationChance: number;
+  /** newest first */
+  last5: { matchId: string; opponent: TeamRef; home: boolean; result: FormResult; score: string; date: string }[];
+  next3: TeamNextGame[];
+}
+
+export interface CallStats {
+  answered: number;
+  correct: number;
+  /** 0-100 of the resolved calls answered */
+  correctPct: number;
+  bestStreak: number;
+  matches: number;
+}
+
+export interface AchievementItem {
+  id: string;
+  title: string;
+  description: string;
+  icon: AchievementIcon;
+  unlocked: boolean;
+  progress: { have: number; need: number };
+}
+
+/** GET /api/site/profile */
+export interface ProfileData extends ApiMeta {
+  stats: CallStats;
+  achievements: AchievementItem[];
+}
+
+export type MyCallStatus = "open" | "locked" | "won" | "missed" | "cancelled";
+
+export interface MyCallRow {
+  callId: string;
+  matchId: string;
+  matchTitle: string;
+  question: string;
+  myAnswer: string | null;
+  /** once resolved */
+  answer: string | null;
+  status: MyCallStatus;
+  points: number;
+  /** iso */
+  openedAt: string;
+}
+
+/** GET /api/site/calls?view=recent|history&match= */
+export interface MyCallsData extends ApiMeta {
+  calls: MyCallRow[];
+  /** the matches in the list, for the history filter */
+  matches: { matchId: string; title: string }[];
+  totals: { answered: number; won: number; points: number };
+}
+
+/** GET /api/site/me: everything the chrome shows about the viewer */
+export interface MeResponse extends ApiMeta {
+  /** a guest (or the seeded demo fan) until they join */
+  user: UserSummary;
+  joined: boolean;
+  nickname: string | null;
+  language: Language;
+  favorites: FavoriteTeam[];
+  unreadNotifications: number;
+  /** callId -> optionId for every call that is open or locked right now */
+  openCallAnswers: Record<string, string>;
+  /** liiga team ids the viewer chose to follow (empty for a guest, who sees the site's team) */
+  follows: string[];
+  notificationPrefs: NotificationPrefs;
+  /** the pinned demo clock when DEMO_MODE is on */
+  demo: { label: string; now: string } | null;
+}
+
+export interface NotificationItem {
+  id: string;
+  type: string;
+  title: string;
+  body: string;
+  link: string | null;
+  /** iso */
+  createdAt: string;
+  read: boolean;
+}
+
+export interface NotificationsResponse extends ApiMeta {
+  items: NotificationItem[];
+  unread: number;
+}
+
+export type LeaderboardScope = "weekly" | "season" | "room";
+
+/** GET /api/site/leaderboard?scope= */
+export interface LeaderboardPageData extends ApiMeta {
+  scope: LeaderboardScope;
+  title: string;
+  note: string;
+  /** the top 20 */
+  entries: SiteLeaderboardEntry[];
+  /** the viewer's row when it isn't in the top 20 */
+  you: SiteLeaderboardEntry | null;
+  /** fans on this board */
+  total: number;
 }

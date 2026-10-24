@@ -19,7 +19,14 @@
     "pregen": "tsx features/story/scripts/pregenerate-content.ts",
     "pregen:phrases": "tsx features/story/scripts/pregenerate-phrases.ts",
     "db:migrate": "tsx shared/db/migrate.ts",
-    "db:seed": "tsx shared/db/seed.ts"
+    "db:seed": "tsx shared/db/seed.ts",
+    "demo:reset": "tsx features/live/scripts/demo-reset.ts",
+    "demo:pick": "tsx features/live/scripts/demo-pick.ts",
+    "demo:videos": "tsx features/live/scripts/demo-videos.ts",
+    "demo:cues": "tsx features/live/scripts/demo-cues.ts",
+    "pregen:demo": "tsx features/story/scripts/pregenerate-content.ts --demo",
+    "audio:generate": "tsx features/story/scripts/audio-generate.ts",
+    "audio:import": "tsx features/story/scripts/audio-import.ts"
   },
   "dependencies": {
     "@supabase/realtime-js": "^2.118.0",
@@ -42,6 +49,8 @@
     "@vitejs/plugin-react": "^6.1.2",
     "eslint": "^10.13.0",
     "eslint-plugin-react-hooks": "^7.1.1",
+    "ffmpeg-static": "^5.2.0",
+    "ffprobe-static": "^3.1.0",
     "globals": "^17.13.0",
     "postgres": "^3.4.9",
     "prettier": "^3.9.10",

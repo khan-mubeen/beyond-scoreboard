@@ -1,10 +1,29 @@
 // supabase repositories. server only: uses the service-role (secret) key, which bypasses rls
 import { createClient, type SupabaseClient } from "@supabase/supabase-js";
-import type { Db, DbAnswer, DbCall, DbComment, DbPoints, DbRoom, DbUser } from "./types";
+import { DEFAULT_PREFS, type Db, type DbAnswer, type DbCall, type DbComment, type DbNotification, type DbPoints, type DbRoom, type DbUser } from "./types";
 
 type Row = Record<string, unknown>;
 
-const user = (r: Row): DbUser => ({ id: r.id as string, anonId: r.anon_id as string, nickname: (r.nickname as string) ?? null, createdAt: r.created_at as string });
+const user = (r: Row): DbUser => ({
+  id: r.id as string,
+  anonId: r.anon_id as string,
+  nickname: (r.nickname as string) ?? null,
+  createdAt: r.created_at as string,
+  isBot: !!r.is_bot,
+  language: r.language === "fi" ? "fi" : "en",
+  notificationPrefs: { ...DEFAULT_PREFS, ...((r.notification_prefs as object | null) ?? {}) },
+});
+const notification = (r: Row): DbNotification => ({
+  id: r.id as string,
+  userId: r.user_id as string,
+  type: r.type as string,
+  title: r.title as string,
+  body: (r.body as string) ?? "",
+  link: (r.link as string) ?? null,
+  createdAt: r.created_at as string,
+  readAt: (r.read_at as string) ?? null,
+  dedupeKey: r.dedupe_key as string,
+});
 const room = (r: Row): DbRoom => ({ id: r.id as string, matchId: r.match_id as string, code: r.code as string, createdAt: r.created_at as string });
 const call = (r: Row): DbCall => ({
   id: r.id as string,
@@ -22,6 +41,7 @@ const call = (r: Row): DbCall => ({
   status: r.status as DbCall["status"],
   correctOptionId: (r.correct_option_id as string) ?? null,
   resolvedAt: (r.resolved_at as string) ?? null,
+  i18n: (r.i18n as DbCall["i18n"]) ?? null,
 });
 const callRow = (c: Partial<Omit<DbCall, "id">>): Row => {
   const map: Record<string, string> = {
@@ -39,6 +59,7 @@ const callRow = (c: Partial<Omit<DbCall, "id">>): Row => {
     status: "status",
     correctOptionId: "correct_option_id",
     resolvedAt: "resolved_at",
+    i18n: "i18n",
   };
   return Object.fromEntries(Object.entries(c).map(([k, v]) => [map[k] ?? k, v]));
 };
@@ -88,15 +109,39 @@ export function createSupabaseDb(sb: SupabaseClient): Db {
         const r = must(await sb.from("users").select("*").eq("anon_id", anonId).maybeSingle());
         return r ? user(r) : null;
       },
-      async create(anonId, nickname) {
-        return user(must(await sb.from("users").insert({ anon_id: anonId, nickname }).select().single()));
+      async create(anonId, nickname, isBot = false) {
+        return user(must(await sb.from("users").insert({ anon_id: anonId, nickname, is_bot: isBot }).select().single()));
+      },
+      async botIds() {
+        return must(await sb.from("users").select("id").eq("is_bot", true)).map((r) => r.id as string);
       },
       async setNickname(id, nickname) {
         must(await sb.from("users").update({ nickname }).eq("id", id));
       },
+      async update(id, patch) {
+        const row = {
+          ...(patch.nickname !== undefined && { nickname: patch.nickname }),
+          ...(patch.language && { language: patch.language }),
+          ...(patch.notificationPrefs && { notification_prefs: patch.notificationPrefs }),
+        };
+        const r = must(await sb.from("users").update(row).eq("id", id).select().maybeSingle());
+        return r ? user(r) : null;
+      },
+      async remove(id) {
+        must(await sb.from("users").delete().eq("id", id));
+      },
       async getMany(ids) {
         if (!ids.length) return [];
         return must(await sb.from("users").select("*").in("id", ids)).map(user);
+      },
+    },
+    favorites: {
+      async list(userId) {
+        return must(await sb.from("user_favorites").select("team_id").eq("user_id", userId).order("created_at")).map((r) => r.team_id as string);
+      },
+      async set(userId, teamId, on) {
+        if (on) must(await sb.from("user_favorites").upsert({ user_id: userId, team_id: teamId }, { onConflict: "user_id,team_id", ignoreDuplicates: true }));
+        else must(await sb.from("user_favorites").delete().eq("user_id", userId).eq("team_id", teamId));
       },
     },
     rooms: {
@@ -130,6 +175,10 @@ export function createSupabaseDb(sb: SupabaseClient): Db {
         const r = must(await sb.from("calls").select("*").eq("id", id).maybeSingle());
         return r ? call(r) : null;
       },
+      async getMany(ids) {
+        if (!ids.length) return [];
+        return must(await sb.from("calls").select("*").in("id", ids)).map(call);
+      },
       async listForMatch(matchId) {
         return must(await sb.from("calls").select("*").eq("match_id", matchId).order("opened_at")).map(call);
       },
@@ -147,6 +196,9 @@ export function createSupabaseDb(sb: SupabaseClient): Db {
       async listForUser(userId, callIds) {
         if (!callIds.length) return [];
         return must(await sb.from("answers").select("*").eq("user_id", userId).in("call_id", callIds)).map(answer);
+      },
+      async recentForUser(userId, limit) {
+        return must(await sb.from("answers").select("*").eq("user_id", userId).order("answered_at", { ascending: false }).limit(limit)).map(answer);
       },
       async setCorrect(callId, correctOptionId) {
         must(await sb.from("answers").update({ correct: true }).eq("call_id", callId).eq("option_id", correctOptionId));
@@ -231,6 +283,59 @@ export function createSupabaseDb(sb: SupabaseClient): Db {
       async insert(rows) {
         if (!rows.length) return;
         must(await sb.from("phrase_bank").insert(rows.map((r) => ({ call_type: r.callType, lang: r.lang, template: r.template, approved: r.approved }))));
+      },
+    },
+    notifications: {
+      async create(rows) {
+        if (!rows.length) return;
+        const values = rows.map((r) => ({ user_id: r.userId, type: r.type, title: r.title, body: r.body, link: r.link, dedupe_key: r.dedupeKey }));
+        must(await sb.from("notifications").upsert(values, { onConflict: "dedupe_key", ignoreDuplicates: true }));
+      },
+      async list(userId, limit) {
+        return must(await sb.from("notifications").select("*").eq("user_id", userId).order("created_at", { ascending: false }).limit(limit)).map(
+          notification,
+        );
+      },
+      async unreadCount(userId) {
+        const res = await sb.from("notifications").select("id", { count: "exact", head: true }).eq("user_id", userId).is("read_at", null);
+        if (res.error) throw new Error(`supabase: ${res.error.message}`);
+        return res.count ?? 0;
+      },
+      async markRead(userId, id) {
+        let q = sb.from("notifications").update({ read_at: new Date().toISOString() }).eq("user_id", userId).is("read_at", null);
+        if (id) q = q.eq("id", id);
+        must(await q);
+      },
+    },
+    settings: {
+      async get<T>(key: string) {
+        const r = must(await sb.from("settings").select("value").eq("key", key).maybeSingle()) as Row | null;
+        return (r?.value ?? null) as T | null;
+      },
+      async set(key, value) {
+        must(await sb.from("settings").upsert({ key, value, updated_at: new Date().toISOString() }, { onConflict: "key" }));
+      },
+    },
+    admin: {
+      async resetDemo(since = "1970-01-01T00:00:00Z") {
+        const seeded = must(await sb.from("users").select("id").like("anon_id", "seed:%")).map((r) => r.id as string);
+        const notSeeded = `(${seeded.join(",")})`;
+        // supabase refuses a delete without a filter, so every one carries a time or id filter
+        const count = async (q: PromiseLike<{ error: { message: string } | null; count: number | null }>) => {
+          const res = await q;
+          if (res.error) throw new Error(`supabase: ${res.error.message}`);
+          return res.count ?? 0;
+        };
+        const unseeded = <Q,>(q: Q): Q => (seeded.length ? (q as unknown as { not(c: string, op: string, v: string): Q }).not("user_id", "in", notSeeded) : q);
+        const out: Record<string, number> = {};
+        out.users = await count(sb.from("users").delete({ count: "exact" }).eq("is_bot", true));
+        out.answers = await count(unseeded(sb.from("answers").delete({ count: "exact" }).gte("answered_at", since)));
+        out.points = await count(unseeded(sb.from("points_ledger").delete({ count: "exact" }).gte("created_at", since)));
+        out.notifications = await count(sb.from("notifications").delete({ count: "exact" }).gte("created_at", since));
+        out.comments = await count(unseeded(sb.from("comments").delete({ count: "exact" }).gte("created_at", since)));
+        out.calls = await count(sb.from("calls").delete({ count: "exact" }).gte("opened_at", since));
+        out.roomMembers = await count(unseeded(sb.from("room_members").delete({ count: "exact" }).gte("joined_at", "1970-01-01T00:00:00Z")));
+        return out;
       },
     },
   };

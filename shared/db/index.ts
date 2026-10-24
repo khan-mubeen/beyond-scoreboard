@@ -6,6 +6,7 @@ import { createSupabaseDb, supabaseAdmin } from "./supabase";
 import type { Db } from "./types";
 
 export type * from "./types";
+export { DEFAULT_PREFS } from "./types";
 export { createMemoryDb } from "./memory";
 
 const url = process.env.SUPABASE_URL;

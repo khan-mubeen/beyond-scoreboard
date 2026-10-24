@@ -153,3 +153,5 @@ vite.config.ts.timestamp-*
 *.pem
 .DS_Store
 .prompt-report/
+# demo:videos downloads and encodes here
+demo/work/

@@ -19,7 +19,7 @@
         "factIds": ["F1", "F17"]
       },
       {
-        "text": "Their playoff chance is now 76%, up from 52% before puck drop.",
+        "text": "Their playoff chance is now 76%, up from 52% before the game.",
         "factIds": ["F18", "F5"]
       }
     ],
@@ -346,7 +346,7 @@
         "reason": null
       },
       {
-        "text": "Their playoff chance is now 76%, up from 52% before puck drop.",
+        "text": "Their playoff chance is now 76%, up from 52% before the game.",
         "factIds": ["F18", "F5"],
         "passed": true,
         "errorType": null,
