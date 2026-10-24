@@ -16,9 +16,13 @@ export function highlightOf(matchId: string): HighlightVideo | null {
   return m.video.type === "mp4" ? { type: "mp4", url: m.video.url, ...base } : { type: "youtube", id: m.video.id, ...base };
 }
 
-/** a goal's "Watch" video: in a rotation match, its moment in the highlight (mp4 only) */
-export function clipOf(matchId: string, href: string) {
-  const h = highlightOf(matchId);
+/**
+ * a goal's "Watch" video: in a rotation match, its moment in the highlight (mp4 only). hosted
+ * false (the live stream is locked, or the text goes to everyone over realtime while the match is
+ * on) leaves our highlight's url out: "Watch on liiga.fi" instead
+ */
+export function clipOf(matchId: string, href: string, hosted = true) {
+  const h = hosted ? highlightOf(matchId) : null;
   return (goal: LiigaGame["goals"][number], title: string): VideoInfo | null => {
     const at = h?.type === "mp4" ? goalVideoSec(matchId, goal.id) : null;
     if (h?.type === "mp4" && at !== null) return { poster: h.poster ?? POSTER, title, src: h.url, startAt: Math.max(0, at - 4), href };

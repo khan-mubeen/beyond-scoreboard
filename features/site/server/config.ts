@@ -1,5 +1,5 @@
 // site settings that aren't liiga data: the favourite team, hero copy, sponsor, levels.
-// rewards (subscriptions, offers, achievements) live in rewards.config.json
+// rewards (offers, achievements) live in rewards.config.json; the plans in shared/config/plans.ts
 import { readFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 import type { ComingSoonCard, HeroData, RewardsPage } from "@/shared/types";
@@ -26,7 +26,8 @@ export const SITE = {
   demoAnonId: "seed:mikko-korhonen",
 } as const;
 
-type RewardsConfig = Omit<RewardsPage, "user">;
+/** subscriptions come from shared/config/plans.ts, the history from the db */
+type RewardsConfig = Omit<RewardsPage, "subscriptions" | "history">;
 const file = fileURLToPath(new URL("./rewards.config.json", import.meta.url));
 export const rewardsConfig = JSON.parse(readFileSync(file, "utf8")) as RewardsConfig;
 

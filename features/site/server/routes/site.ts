@@ -25,6 +25,7 @@ import { liveStateFor } from "../state";
 import { allowWhatIf, WHAT_IF_MAX, whatIf, WhatIfError } from "../whatif";
 import { heartbeat, leave, roomChanged, watchingCount } from "../presence";
 import { matchStarted, NOT_STARTED } from "../started";
+import { cancel, purchase, redeemOffer, WalletError } from "../wallet";
 
 const matchId = z.string().regex(/^\d{4}-\d+$/, "match ids look like 2027-2701404");
 const nickname = z.string().trim().min(1).max(24);
@@ -43,6 +44,13 @@ const schemas = {
   favorite: z.object({ teamId: z.string().regex(/^\d+:[\p{L}\p{N}-]+$/u, "a liiga team id"), on: z.boolean() }),
   calls: z.object({ view: z.enum(["recent", "history"]).default("recent"), match: matchId.optional() }),
   presence: z.object({ leave: z.boolean().default(false) }),
+  purchase: z.object({
+    planId: z.string().min(1).max(40),
+    pointsToUse: z.number().int().min(0).max(1_000_000),
+    idempotencyKey: z.string().min(8).max(100),
+  }),
+  cancel: z.object({ planId: z.string().min(1).max(40) }),
+  offerId: z.string().regex(/^[a-z0-9-]{1,40}$/),
   whatIf: z.object({
     matchId,
     overrides: z
@@ -178,7 +186,8 @@ siteRouter.get(
   "/matches/:id",
   handle(async (req, res) => {
     const id = matchId.parse(req.params.id);
-    const detail = await matchDetail(id, await viewerOf(req, res));
+    // tv mode (?tv=1) with the host's token always shows the live stream
+    const detail = await matchDetail(id, await viewerOf(req, res), { host: req.query.tv === "1" && isHost(req) });
     if (!detail) return void res.status(404).json({ error: "match not found" });
     return detail;
   }),
@@ -383,7 +392,37 @@ siteRouter.post(
 
 siteRouter.get(
   "/rewards",
-  handle(async () => rewardsPage()),
+  handle(async (req, res) => rewardsPage(await viewerOf(req, res))),
+);
+
+/** a wallet error is the fan's answer (400 / 403 / 404 / 409), anything else a server error */
+const wallet =
+  (fn: (req: Request, res: Response) => Promise<unknown>) =>
+  async (req: Request, res: Response) => {
+    try {
+      return await fn(req, res);
+    } catch (err) {
+      if (err instanceof WalletError) return void res.status(err.status).json({ error: err.message });
+      throw err;
+    }
+  };
+
+/** a subscription, paid in demo money plus up to the plan's points cap (no real payment) */
+siteRouter.post(
+  "/subscriptions",
+  handle(wallet(async (req, res) => purchase(await viewerOf(req, res), schemas.purchase.parse(req.body ?? {})))),
+);
+
+/** stops renewal; the plan stays valid until it expires */
+siteRouter.post(
+  "/subscriptions/cancel",
+  handle(wallet(async (req, res) => ({ ...(await cancel(await viewerOf(req, res), schemas.cancel.parse(req.body ?? {}).planId)), ...asOfNow() }))),
+);
+
+/** a partner offer's demo code, once per fan */
+siteRouter.post(
+  "/offers/:id/redeem",
+  handle(wallet(async (req, res) => redeemOffer(await viewerOf(req, res), schemas.offerId.parse(req.params.id)))),
 );
 
 siteRouter.use((_req, res) => {

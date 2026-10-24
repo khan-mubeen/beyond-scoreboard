@@ -26,6 +26,7 @@ import { SITE } from "./config";
 import { teamBook, type TeamBook } from "./teams";
 import { whatIfOptions } from "./whatif";
 import { previewDetail } from "./preview";
+import { hasLiveStream, streamLockFor } from "./wallet";
 import { matchStarted } from "./started";
 
 export type Side = "home" | "away";
@@ -217,7 +218,7 @@ async function yourNight(matchId: string, youId: string | null): Promise<Finishe
   };
 }
 
-export async function matchDetail(id: string, viewer: Viewer): Promise<(MatchDetail & ApiMeta) | null> {
+export async function matchDetail(id: string, viewer: Viewer, opts: { host?: boolean } = {}): Promise<(MatchDetail & ApiMeta) | null> {
   const ids = parseMatchId(id);
   if (!ids) return null;
   const res = await getGame(ids.season, ids.gameId).catch(() => null);
@@ -250,9 +251,13 @@ export async function matchDetail(id: string, viewer: Viewer): Promise<(MatchDet
   const source: DataSource = res.source === "snapshot" || ctx.source === "snapshot" ? "snapshot" : "live";
   const latestGoal = g.goals.at(-1);
   const rotation = eng?.rotation ?? null;
-  const highlight = highlightOf(id);
+  const hosted = highlightOf(id);
   const liigaUrl = liigaGameUrl(g);
-  const clip = clipOf(id, liigaUrl);
+  // the live stream (our hosted highlight while the match is on) needs a plan with it; the host's
+  // tv never locks, and the finished match's highlights are free. a locked fan never gets the url
+  const locked = !!hosted && g.status !== "final" && !opts.host && !(await hasLiveStream(viewer.user));
+  const highlight = locked ? null : hosted;
+  const clip = clipOf(id, liigaUrl, !locked);
   const summary = summaryOf(g, book, now);
   if (rotation?.phase === "lobby") Object.assign(summary, { whenLabel: "Starting soon", startsAt: rotation.liveStartedAt });
   const base = {
@@ -277,6 +282,7 @@ export async function matchDetail(id: string, viewer: Viewer): Promise<(MatchDet
     seasonStakes: s ? { ...seasonStakesCard(s, g, side, book), whatIf: g.status === "final" ? null : await whatIfOptions(ctx, g.id) } : emptyStakes(g[side].name),
     isReplay,
     highlight,
+    streamLock: locked ? streamLockFor(hosted!.poster) : null,
     rotation,
     asOf: res.asOf,
     source,

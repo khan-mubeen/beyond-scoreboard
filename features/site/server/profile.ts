@@ -7,6 +7,7 @@ import { followedIds } from "./favorites";
 import type { Viewer } from "./identity";
 import { teamBook } from "./teams";
 import { NAMES } from "@/shared/copy/names";
+import { balanceOf, isEarned } from "@/shared/points";
 
 const CALL_POINTS = 20;
 
@@ -110,7 +111,7 @@ export async function profilePage(viewer: Viewer): Promise<ProfileData> {
   const stats = callStats(list);
   return {
     stats,
-    achievements: achievementsOf(stats, { points: points.reduce((s, p) => s + p.points, 0), follows: follows.length, joined: !!user.nickname }),
+    achievements: achievementsOf(stats, { points: balanceOf(points.filter(isEarned)), follows: follows.length, joined: !!user.nickname }),
     asOf,
     source: "db",
   };

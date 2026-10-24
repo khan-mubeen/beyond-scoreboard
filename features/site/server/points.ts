@@ -1,5 +1,7 @@
-// season total, weekly total (mon-sun, europe/helsinki) and level, all from points_ledger
+// the balance (the sum of the whole ledger: earned, the welcome balance, minus spending), and
+// the earned totals that boards, levels and the weekly figure use (mon-sun, europe/helsinki)
 import { getDb, type DbPoints, type DbUser } from "@/shared/db";
+import { balanceOf, isEarned } from "@/shared/points";
 import type { SiteLeaderboardEntry, UserSummary } from "@/shared/types";
 import { levelFor, SITE } from "./config";
 import { displayName } from "./identity";
@@ -17,11 +19,12 @@ export const avatarFor = (name: string) => AVATARS[name] ?? initialsAvatar();
 
 export async function userSummary(user: DbUser, now = new Date()): Promise<UserSummary> {
   const rows = await getDb().points.listForUser(user.id);
-  const season = rows.reduce((a, r) => a + r.points, 0);
+  const earned = rows.filter(isEarned);
   const since = weekStart(now).toISOString();
-  const week = rows.filter((r) => r.createdAt >= since).reduce((a, r) => a + r.points, 0);
+  const week = balanceOf(earned.filter((r) => r.createdAt >= since));
   const name = displayName(user);
-  return { id: user.id, name, role: "Sports fan", avatar: avatarFor(name), points: season, pointsThisWeek: week, ...levelFor(season) };
+  // points: what the fan can spend; the level grows with earned points only
+  return { id: user.id, name, role: "Sports fan", avatar: avatarFor(name), points: balanceOf(rows), pointsThisWeek: week, ...levelFor(balanceOf(earned)) };
 }
 
 /** the sidebar profile: the viewer once they joined, else the seeded demo profile, else a guest */
@@ -47,11 +50,11 @@ export function botIds(): Promise<Set<string>> {
   return bots.ids;
 }
 
-/** points per user (bots left out), highest first, equal points share a rank */
+/** earned points per user (bots, the welcome balance and spending left out), highest first, equal points share a rank */
 export async function rankPoints(rows: DbPoints[], limit: number, youId?: string | null): Promise<SiteLeaderboardEntry[]> {
   const skip = await botIds();
   const totals = new Map<string, number>();
-  for (const r of rows) if (!skip.has(r.userId)) totals.set(r.userId, (totals.get(r.userId) ?? 0) + r.points);
+  for (const r of rows) if (!skip.has(r.userId) && isEarned(r)) totals.set(r.userId, (totals.get(r.userId) ?? 0) + r.points);
   const sorted = [...totals.entries()].sort((a, b) => b[1] - a[1]);
   const users = new Map((await getDb().users.getMany(sorted.slice(0, limit).map(([id]) => id).concat(youId ? [youId] : []))).map((u) => [u.id, u]));
   const rankOf = (score: number) => 1 + sorted.filter(([, s]) => s > score).length;

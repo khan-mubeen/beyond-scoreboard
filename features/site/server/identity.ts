@@ -3,6 +3,13 @@
 import { randomUUID } from "node:crypto";
 import type { Request, Response } from "express";
 import { getDb, type DbUser } from "@/shared/db";
+import { POINT_REASONS, WELCOME_POINTS_DEFAULT } from "@/shared/points";
+
+/** a new fan's starting balance (WELCOME_POINTS, default 1,250; 0 turns it off) */
+export const welcomePoints = () => {
+  const n = Number(process.env.WELCOME_POINTS ?? WELCOME_POINTS_DEFAULT);
+  return Number.isFinite(n) && n > 0 ? Math.floor(n) : 0;
+};
 
 const COOKIE = "ks_anon";
 const YEAR = 365 * 24 * 60 * 60 * 1000;
@@ -42,6 +49,9 @@ export async function ensureUser(viewer: Viewer, nickname?: string, isBot = fals
     return viewer.user;
   }
   viewer.user = await db.users.create(viewer.anonId, nickname ?? null, isBot);
+  // the demo's starting balance: one welcome row in the ledger (not earned, so no board counts it)
+  const welcome = welcomePoints();
+  if (!isBot && welcome > 0) await db.points.award({ userId: viewer.user.id, matchId: null, callId: null, points: welcome, reason: POINT_REASONS.welcome });
   return viewer.user;
 }
 

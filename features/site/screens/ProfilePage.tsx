@@ -1,11 +1,38 @@
+import { useState } from "react";
 import { AchievementCard } from "../components/Follow";
 import { FavoriteTeams } from "../components/FavoriteTeams";
 import { PointsCard } from "../components/PointsCard";
 import { ActionLink, SectionCard } from "../components/SectionCard";
 import { Breadcrumbs, SiteLayout } from "../components/SiteLayout";
 import { DataUnavailable, PageSkeleton } from "../components/Skeleton";
-import { useMe, useProfile } from "../data";
+import { PurchaseHistory, SubscriptionCard } from "../components/RewardCards";
+import { CheckoutModal } from "../components/Checkout";
+import { useMe, useProfile, useRewardsPage } from "../data";
 import { NicknameForm } from "./SettingsPage";
+
+/** the fan's running plans (cancel stops renewal; they stay active until they end) and purchases */
+function PlansSection() {
+  const page = useRewardsPage().data;
+  const [checkout, setCheckout] = useState<string | null>(null);
+  const active = page?.subscriptions.filter((s) => s.active) ?? [];
+  return (
+    <SectionCard title="Your subscriptions" action={<ActionLink href="/rewards#plans">See plans</ActionLink>}>
+      {!page ? (
+        <p className="text-sm text-muted">Loading…</p>
+      ) : (
+        <div className="flex flex-col gap-4">
+          {active.length === 0 ? (
+            <p className="text-sm text-muted">No subscription yet. Kaleva Sports Pass lets you watch the games live.</p>
+          ) : (
+            active.map((s) => <SubscriptionCard key={s.id} sub={s} onSubscribe={() => setCheckout(s.id)} />)
+          )}
+          {page.history && page.history.length > 0 && <PurchaseHistory items={page.history} />}
+        </div>
+      )}
+      <CheckoutModal planId={checkout} open={checkout !== null} onClose={() => setCheckout(null)} />
+    </SectionCard>
+  );
+}
 
 /** /profile: name, level and points, teams, how the calls went, badges */
 export function ProfilePage() {
@@ -30,6 +57,7 @@ export function ProfilePage() {
                 <NicknameForm current={me.nickname} />
               </SectionCard>
               <PointsCard user={me.user} />
+              <PlansSection />
               <FavoriteTeams teams={me.favorites} />
             </div>
             <div className="flex flex-col gap-4">

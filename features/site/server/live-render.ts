@@ -31,7 +31,8 @@ export const siteRenderer: MatchRenderer = {
         seasonStakes: s ? seasonStakesCard(s, game, side, book) : emptyStakes(game[side].name),
         whatItMeans: whatItMeansText(factsFor(game, s, side, book)),
       },
-      events: eventsOf(game, names, timeline, book, clipOf(_matchId, liigaGameUrl(game))),
+      // broadcast to everyone: our highlight's url only once the match is over (free highlights)
+      events: eventsOf(game, names, timeline, book, clipOf(_matchId, liigaGameUrl(game), game.status === "final")),
       periodScores: game.status === "scheduled" ? [] : periodScoresOf(game),
     };
   },

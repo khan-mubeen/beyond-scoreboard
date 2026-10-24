@@ -1,18 +1,18 @@
-import type { ReactNode } from "react";
+import { type ReactNode, useState } from "react";
 import type { RewardsPage, UserSummary } from "@/shared/types";
 import { Icon } from "../components/Icon";
 import { PointsBalanceCard } from "../components/PointsCard";
-import { AchievementBadge, OfferCard, SubscriptionCard } from "../components/RewardCards";
+import { CheckoutModal } from "../components/Checkout";
+import { AchievementBadge, OfferCard, PurchaseHistory, SubscriptionCard } from "../components/RewardCards";
 import { ActionLink } from "../components/SectionCard";
 import { Breadcrumbs, SiteLayout } from "../components/SiteLayout";
 import { Bone, DataUnavailable, PageSkeleton } from "../components/Skeleton";
-import { useToast } from "../components/Toast";
 import { useMe, useRewardsPage } from "../data";
 import { NAMES } from "@/shared/copy/names";
 
-function Section({ title, link, children }: { title: string; link?: { label: string; href: string }; children: ReactNode }) {
+function Section({ title, link, children, id }: { title: string; link?: { label: string; href: string }; children: ReactNode; id?: string }) {
   return (
-    <section aria-label={title} className="mt-8">
+    <section id={id} aria-label={title} className="mt-8 scroll-mt-20">
       <div className="mb-4 flex items-center justify-between gap-3">
         <h2 className="font-serif text-2xl font-bold">{title}</h2>
         {link && (
@@ -33,8 +33,7 @@ const EARN = [
 ];
 
 function RewardsBody({ page, user }: { page: RewardsPage; user: UserSummary | null }) {
-  const toast = useToast();
-  const soon = () => toast("Coming soon");
+  const [checkout, setCheckout] = useState<string | null>(null);
 
   return (
     <div className="px-4 pb-12 md:px-6">
@@ -56,21 +55,29 @@ function RewardsBody({ page, user }: { page: RewardsPage; user: UserSummary | nu
 
         <div className="mt-5">{user ? <PointsBalanceCard user={user} earnChips={page.earnChips} /> : <Bone className="h-36 rounded-card" />}</div>
 
-        <Section title="Subscriptions">
+        <Section title="Subscriptions" id="plans">
+          <p className="-mt-2 mb-4 text-sm text-muted">Pay part of a plan with your points: 100 points = €1, up to half of the price.</p>
           <div className="grid gap-4 md:grid-cols-3">
             {page.subscriptions.map((s) => (
-              <SubscriptionCard key={s.id} sub={s} onSubscribe={soon} />
+              <SubscriptionCard key={s.id} sub={s} onSubscribe={() => setCheckout(s.id)} />
             ))}
           </div>
+          {page.history && page.history.length > 0 && (
+            <div className="mt-5">
+              <h3 className="mb-2 font-semibold">Your purchases</h3>
+              <PurchaseHistory items={page.history} />
+            </div>
+          )}
         </Section>
 
         <Section title="Partner offers">
           <div className="grid gap-4 md:grid-cols-3">
             {page.offers.map((o) => (
-              <OfferCard key={o.id} offer={o} onAction={soon} />
+              <OfferCard key={o.id} offer={o} />
             ))}
           </div>
         </Section>
+        <CheckoutModal planId={checkout} open={checkout !== null} onClose={() => setCheckout(null)} />
 
         <Section title="Your achievements" link={{ label: "View all", href: "/achievements" }}>
           <div className="grid gap-4 md:grid-cols-3">

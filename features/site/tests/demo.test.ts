@@ -6,9 +6,11 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import type { HomePage, LiveState, MatchDetail, MeResponse, RotationInfo } from "@/shared/types";
+import { WELCOME_POINTS_DEFAULT } from "@/shared/points";
 
 const HOST = "test-host-token";
 const ROTATION = ["2027-2701398", "2027-2701399", "2027-2701400"];
+const HIGHLIGHT_URL = "https://storage.example/highlights/match-1.mp4";
 const file = join(mkdtempSync(join(tmpdir(), "ks-demo-")), "rotation.json");
 writeFileSync(
   file,
@@ -16,7 +18,8 @@ writeFileSync(
     demoNow: "2026-10-20T17:30:00+03:00",
     lobbySeconds: 4,
     summarySeconds: 4,
-    matches: ROTATION.map((matchId, i) => ({ matchId, title: `Match ${i + 1}`, video: "PLACEHOLDER", durationSec: 6, cues: [], cuesSource: "linear" })),
+    // match 1 has a hosted highlight (the live stream the lock is about); the others are placeholders
+    matches: ROTATION.map((matchId, i) => ({ matchId, title: `Match ${i + 1}`, video: i === 0 ? { type: "mp4", url: HIGHLIGHT_URL } : "PLACEHOLDER", durationSec: 6, cues: [], cuesSource: "linear" })),
   }),
 );
 
@@ -216,7 +219,10 @@ describe("rotation", () => {
     await control("restart");
     expect((await rotation()).cycle).toBeGreaterThanOrEqual(0);
     expect(await board()).toEqual([]);
-    expect(((await http("/me")).body as MeResponse).user.points).toBe(20);
+    // the balance is the welcome balance plus what was earned; the season board counts earned points only
+    expect(((await http("/me")).body as MeResponse).user.points).toBe(WELCOME_POINTS_DEFAULT + 20);
+    const season = (await http("/leaderboard?scope=season")).body.entries.find((e: { nickname: string }) => e.nickname === "Ada");
+    expect(season.score).toBe(20);
   }, 40_000);
 
   it("pause holds the phase, and the controls need the host token", async () => {
@@ -229,4 +235,48 @@ describe("rotation", () => {
     expect([b.current.matchId, b.current.phase, b.current.phaseEndsAt]).toEqual([a.current.matchId, a.current.phase, a.current.phaseEndsAt]);
     await control("resume");
   });
+});
+
+describe("live stream lock", () => {
+  it("the live stream: no plan, no video url anywhere; a plan unlocks it; the host's tv never locks", async () => {
+    const fresh = async () => (await fetch(`${base}/api/site/me`)).headers.getSetCookie().map((c) => c.split(";")[0]).find((c) => c.startsWith("ks_anon="))!;
+    const get = async (path: string, cookie: string, headers: Record<string, string> = {}) => (await fetch(`${base}/api/site${path}`, { headers: { cookie, ...headers } })).json();
+    const live = await import("@/features/live/server");
+    await control("restart");
+    const before = new Set(live.recentBroadcasts);
+    await until("live", async () => (await rotation()).current.phase === "live");
+    await control("pause");
+    const fan = await fresh();
+    const id = ROTATION[0];
+    const locked = await get(`/matches/${id}`, fan);
+    expect(locked.highlight).toBeNull();
+    expect(locked.streamLock).toMatchObject({ planId: "sports-pass", planName: "Kaleva Sports Pass" });
+    // the url isn't in the page, the live state, or anything broadcast to everyone
+    // (a finished match's highlights are free, so only what was sent since this run's lobby counts)
+    const sent = live.recentBroadcasts.filter((m) => !before.has(m));
+    expect(sent.length).toBeGreaterThan(0);
+    for (const body of [locked, await get(`/matches/${id}/state`, fan), sent]) expect(JSON.stringify(body)).not.toContain(HIGHLIGHT_URL);
+    // the host's tv: always the stream; ?tv=1 without the token is just a fan
+    expect((await get(`/matches/${id}?tv=1`, await fresh(), { "x-host-token": HOST })).highlight?.url).toBe(HIGHLIGHT_URL);
+    expect((await get(`/matches/${id}?tv=1`, await fresh())).highlight).toBeNull();
+    // the fan subscribes (points + demo money): the next page load carries the stream
+    const bought = await fetch(`${base}/api/site/subscriptions`, {
+      method: "POST",
+      headers: { "content-type": "application/json", cookie: fan },
+      body: JSON.stringify({ planId: "sports-pass", pointsToUse: 350, idempotencyKey: "demo-test-live-1" }),
+    });
+    expect(bought.status).toBe(200);
+    const open = await get(`/matches/${id}`, fan);
+    expect(open.streamLock).toBeNull();
+    expect(open.highlight?.url).toBe(HIGHLIGHT_URL);
+    // a plan without the live stream doesn't unlock it
+    const reader = await fresh();
+    await fetch(`${base}/api/site/subscriptions`, {
+      method: "POST",
+      headers: { "content-type": "application/json", cookie: reader },
+      body: JSON.stringify({ planId: "digital", pointsToUse: 0, idempotencyKey: "demo-test-digital-1" }),
+    });
+    expect((await get(`/matches/${id}`, reader)).streamLock).not.toBeNull();
+    await control("resume");
+  }, 40_000);
 });

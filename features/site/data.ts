@@ -13,9 +13,11 @@ import type {
   MeResponse,
   MyCallsData,
   NotificationsResponse,
+  OfferResult,
   ProfileData,
   RewardsPage,
   RotationInfo,
+  SubscriptionResult,
   TeamPageData,
   TeamsPageData,
 } from "@/shared/types";
@@ -85,7 +87,9 @@ export function load(url: string): Promise<void> {
       const data = mock ? await mock() : null;
       return put(url, { data, status: data ? "ready" : "notfound", source: data ? "mock" : null, asOf: null });
     }
-    const r = await fetch(url, { credentials: "same-origin", cache: "no-store" });
+    // tv mode sends the host's token: the host's screen always shows the live stream
+    const host = url.includes("tv=1") ? readHostToken() : "";
+    const r = await fetch(url, { credentials: "same-origin", cache: "no-store", ...(host && { headers: { "x-host-token": host } }) });
     if (r.status === 404) return put(url, { data: null, status: "notfound" });
     if (!r.ok) throw new Error(`http ${r.status}`);
     const body = (await r.json()) as { source?: DataSource; asOf?: string; serverNow?: number };
@@ -105,6 +109,11 @@ export const readCache = (url: string) => {
   const e = cache.get(url);
   return e ? { data: e.data, status: e.status, source: e.source } : null;
 };
+
+/** invalidate every cached url that starts with a prefix (all match pages after a purchase) */
+export function invalidatePrefix(prefix: string) {
+  for (const url of [...cache.keys()]) if (url.startsWith(prefix)) invalidate(url);
+}
 
 /** refetch a url if a screen shows it, else forget it so the next visit loads it fresh */
 export function invalidate(url: string) {
@@ -172,6 +181,8 @@ const mockMe = async (): Promise<MeResponse> => {
     favorites: chrome.favorites,
     unreadNotifications: 0,
     openCallAnswers: {},
+    wallet: { balance: chrome.user.points },
+    plans: [],
     follows: [],
     notificationPrefs: { callResults: true, favoriteReminders: true, favoriteResults: true },
     demo: null,
@@ -188,7 +199,8 @@ export const NOTIFICATIONS_URL = "/api/site/notifications";
 export const useMe = () => useQuery<MeResponse>(ME_URL, { mock: mockMe });
 export const useHomePage = () => useQuery<HomePage>("/api/site/home", { mock: async () => (await mockModule()).mockHome });
 export const useRewardsPage = () => useQuery<RewardsPage>("/api/site/rewards", { mock: async () => (await mockModule()).mockRewards });
-export const useMatchDetail = (id: string) => useQuery<MatchDetail>(`/api/site/matches/${encodeURIComponent(id)}`, { mock: mockMatch(id) });
+export const useMatchDetail = (id: string, opts: { tv?: boolean } = {}) =>
+  useQuery<MatchDetail>(`/api/site/matches/${encodeURIComponent(id)}${opts.tv ? "?tv=1" : ""}`, { mock: mockMatch(id) });
 export const useLeaderboard = (scope: LeaderboardScope) => useQuery<LeaderboardPageData>(`/api/site/leaderboard?scope=${scope}`);
 export const useNotifications = () => useQuery<NotificationsResponse>(USE_MOCKS ? null : NOTIFICATIONS_URL, { refreshMs: 30_000 });
 export const useTeams = () => useQuery<TeamsPageData>(USE_MOCKS ? null : TEAMS_URL);
@@ -228,6 +240,36 @@ export async function saveSettings(patch: Partial<Pick<MeResponse, "nickname" | 
   else if (before) setData<MeResponse>(ME_URL, () => before);
   // anything else that shows the name (profile, boards) reloads; /me confirms
   for (const url of [ME_URL, "/api/site/profile"]) invalidate(url);
+  return res;
+}
+
+/**
+ * a subscription (demo money plus points). the new balance shows everywhere at once, then /me,
+ * rewards, the profile and every open match page refetch (a live stream unlocks in place)
+ */
+export async function buyPlan(planId: string, pointsToUse: number, idempotencyKey: string) {
+  const res = await postJson<SubscriptionResult>("/api/site/subscriptions", { planId, pointsToUse, idempotencyKey });
+  if (res.ok) {
+    setData<MeResponse>(ME_URL, (me) => (me ? { ...me, wallet: { balance: res.data.balance }, user: { ...me.user, points: res.data.balance } } : me!));
+    for (const url of [ME_URL, "/api/site/rewards", "/api/site/profile", NOTIFICATIONS_URL]) invalidate(url);
+    invalidatePrefix("/api/site/matches/");
+  }
+  return res;
+}
+
+export async function cancelPlan(planId: string) {
+  const res = await postJson<{ cancelled: number; until: string | null }>("/api/site/subscriptions/cancel", { planId });
+  if (res.ok) for (const url of [ME_URL, "/api/site/rewards", "/api/site/profile"]) invalidate(url);
+  return res;
+}
+
+/** a partner offer's demo code; points (if any) leave the balance at once */
+export async function redeemOfferApi(offerId: string) {
+  const res = await postJson<OfferResult>(`/api/site/offers/${encodeURIComponent(offerId)}/redeem`, {});
+  if (res.ok) {
+    setData<MeResponse>(ME_URL, (me) => (me ? { ...me, wallet: { balance: res.data.balance }, user: { ...me.user, points: res.data.balance } } : me!));
+    for (const url of [ME_URL, "/api/site/rewards"]) invalidate(url);
+  }
   return res;
 }
 

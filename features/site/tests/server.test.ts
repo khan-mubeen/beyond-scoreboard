@@ -111,6 +111,86 @@ describe("site api responses", () => {
   });
 });
 
+describe("subscriptions and offers: demo money plus points", () => {
+  const buy = (cookie: string, body: Json) => http("/subscriptions", { method: "POST", cookie, body });
+  const newFan = async () => (await http("/me")).cookie!;
+
+  it("the server enforces the cap and the 50% rule, whatever the client sends", async () => {
+    const fan = await newFan();
+    expect((await http("/me", { cookie: fan })).body.wallet.balance).toBe(1250);
+    for (const [planId, pointsToUse] of [["sports-pass", 351], ["sports-pass", 790], ["weekend", 151], ["digital", 1290]] as const) {
+      const r = await buy(fan, { planId, pointsToUse, idempotencyKey: `cap-${planId}-${pointsToUse}` });
+      expect(r.status, `${planId} ${pointsToUse}`).toBe(400);
+    }
+    expect((await buy(fan, { planId: "gold", pointsToUse: 0, idempotencyKey: "cap-gold-0000" })).status).toBe(404);
+    expect((await buy(fan, { planId: "sports-pass", pointsToUse: -1, idempotencyKey: "cap-neg-0000" })).status).toBe(400);
+    expect((await buy(fan, { planId: "sports-pass", pointsToUse: 1.5, idempotencyKey: "cap-frac-000" })).status).toBe(400);
+    // nothing was spent
+    expect((await http("/me", { cookie: fan })).body.wallet.balance).toBe(1250);
+  });
+
+  it("buys with points + demo money; the same key again is the same purchase; a second buy extends", async () => {
+    const fan = await newFan();
+    const first = await buy(fan, { planId: "sports-pass", pointsToUse: 350, idempotencyKey: "pass-key-0001" });
+    expect(first.status).toBe(200);
+    expect(first.body).toMatchObject({ balance: 900, replayed: false, purchase: { planName: "Kaleva Sports Pass", pointsUsed: 350, amountLabel: "€4.40", includesLiveStream: true } });
+    const again = await buy(fan, { planId: "sports-pass", pointsToUse: 350, idempotencyKey: "pass-key-0001" });
+    expect(again.body).toMatchObject({ balance: 900, replayed: true });
+    expect(again.body.purchase.id).toBe(first.body.purchase.id);
+    const me = (await http("/me", { cookie: fan })).body;
+    expect([me.wallet.balance, me.user.points]).toEqual([900, 900]);
+    expect(me.plans).toEqual([expect.objectContaining({ planId: "sports-pass", cancelled: false, includesLiveStream: true })]);
+    // extended, not a second plan
+    const more = await buy(fan, { planId: "sports-pass", pointsToUse: 100, idempotencyKey: "pass-key-0002" });
+    expect(Date.parse(more.body.until) - Date.parse(first.body.until)).toBeCloseTo(30 * 86_400_000, -5);
+    const after = (await http("/me", { cookie: fan })).body;
+    expect(after.plans).toHaveLength(1);
+    expect(after.wallet.balance).toBe(800);
+    const rewards = (await http("/rewards", { cookie: fan })).body;
+    expect(rewards.history).toHaveLength(2);
+    expect(rewards.subscriptions.find((x: Json) => x.id === "sports-pass").active.until).toBe(more.body.until);
+    expect((await http("/notifications", { cookie: fan })).body.items.some((n: Json) => n.type === "subscription")).toBe(true);
+    // cancel: stays active until it ends
+    const cancelled = await http("/subscriptions/cancel", { method: "POST", cookie: fan, body: { planId: "sports-pass" } });
+    expect(cancelled.status).toBe(200);
+    expect(cancelled.body.until).toBe(more.body.until);
+    expect((await http("/me", { cookie: fan })).body.plans).toEqual([expect.objectContaining({ planId: "sports-pass", cancelled: true })]);
+  });
+
+  it("not enough points is refused; spending never moves a board", async () => {
+    const fan = await newFan();
+    expect((await buy(fan, { planId: "digital", pointsToUse: 600, idempotencyKey: "poor-key-001" })).status).toBe(200);
+    expect((await http("/offers/tickets/redeem", { method: "POST", cookie: fan, body: {} })).status).toBe(200);
+    // 1,250 − 600 − 500 = 150 left
+    const r = await buy(fan, { planId: "sports-pass", pointsToUse: 350, idempotencyKey: "poor-key-002" });
+    expect(r.status).toBe(409);
+    expect(r.body.error).toMatch(/not enough points: you have 150/);
+    expect((await http("/me", { cookie: fan })).body.wallet.balance).toBe(150);
+    const season = (await http("/leaderboard?scope=season", { cookie: fan })).body;
+    expect(season.entries.every((e: Json) => e.score >= 0)).toBe(true);
+  });
+
+  it("offers: a points offer once per fan; members only needs a plan", async () => {
+    const fan = await newFan();
+    const one = await http("/offers/tickets/redeem", { method: "POST", cookie: fan, body: {} });
+    expect(one.status).toBe(200);
+    expect(one.body.code).toMatch(/^KALEVA-DEMO-[2-9A-Z]{6}$/);
+    expect(one.body).toMatchObject({ pointsUsed: 500, balance: 750, partnerUrl: "https://www.karpat.fi/" });
+    const two = await http("/offers/tickets/redeem", { method: "POST", cookie: fan, body: {} });
+    expect(two.body).toMatchObject({ code: one.body.code, replayed: true, balance: 750 });
+    // members only
+    expect((await http("/offers/fan-shop/redeem", { method: "POST", cookie: fan, body: {} })).status).toBe(403);
+    await buy(fan, { planId: "weekend", pointsToUse: 0, idempotencyKey: "member-key-01" });
+    const member = await http("/offers/fan-shop/redeem", { method: "POST", cookie: fan, body: {} });
+    expect(member.status).toBe(200);
+    expect(member.body).toMatchObject({ pointsUsed: 0, partnerUrl: "https://kauppa.karpat.fi/" });
+    expect((await http("/offers/nope/redeem", { method: "POST", cookie: fan, body: {} })).status).toBe(404);
+    const offers = (await http("/rewards", { cookie: fan })).body.offers;
+    expect(offers.find((o: Json) => o.id === "tickets").redemption.code).toBe(one.body.code);
+    expect(offers.find((o: Json) => o.id === "local").partnerUrl).toBeNull();
+  });
+});
+
 describe("round 3 fixes", () => {
   it("a game that hasn't started is a preview; its state, join and presence are 409", async () => {
     const id = "2027-2701410";

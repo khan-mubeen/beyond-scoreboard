@@ -113,7 +113,8 @@ function TvSummary({ detail }: { detail: FinishedMatchDetail }) {
  * follows the rotation by itself. the host presses play for any sound
  */
 export function TvMatch({ id }: { id: string }) {
-  const { data, refresh } = useMatchDetail(id);
+  // the host's tv sends the host token: never locked
+  const { data, refresh } = useMatchDetail(id, { tv: true });
   const current = useRotation().data?.current.matchId;
   useEffect(() => {
     if (current && current !== id) navigate(`/match/${current}?tv=1`);

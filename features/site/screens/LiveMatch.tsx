@@ -4,6 +4,8 @@ import type { DataSource, LiveMatchDetail, LiveRotation, VideoInfo } from "@/sha
 import { CallBanner, CallItCard } from "../components/CallItCard";
 import { EventList } from "../components/EventList";
 import { HighlightPlayer } from "../components/HighlightPlayer";
+import { StreamLock } from "../components/StreamLock";
+import { CheckoutModal } from "../components/Checkout";
 import { HostBar } from "../components/HostBar";
 import { LobbyStage } from "../components/LobbyStage";
 import { Icon } from "../components/Icon";
@@ -57,22 +59,32 @@ const isPhone = () => typeof window !== "undefined" && window.matchMedia("(max-w
  */
 function RotationStage({ match, rotation, onSeeStakes }: { match: LiveMatchDetail; rotation: LiveRotation; onSeeStakes: () => void }) {
   const now = useServerNow(1000);
-  if (rotation.phase === "lobby") return <LobbyStage match={match.match} rotation={rotation} roomCode={match.room.code} />;
+  // here, not in the lock: the success screen stays up while the stream unlocks underneath
+  const [checkout, setCheckout] = useState<string | null>(null);
+  const modal = <CheckoutModal planId={checkout} open={checkout !== null} onClose={() => setCheckout(null)} liveHref={`/match/${match.id}`} />;
+  if (rotation.phase === "lobby")
+    return (
+      <>
+        <LobbyStage match={match.match} rotation={rotation} roomCode={match.room.code} />
+        {modal}
+      </>
+    );
   const live = rotation.phase === "live";
+  const badges = (
+    <p className="absolute top-4 left-4 flex items-center gap-3 text-sm font-semibold">
+      {live ? <LiveBadge /> : <span className="rounded-md bg-dark/70 px-2.5 py-1 text-xs font-bold">Starts in {fmtCountdown(rotation.phaseEndsAt - now)}</span>}
+      {live && <span className="rounded-md bg-dark/70 px-2 py-0.5">{`${match.match.periodLabel ?? ""} ${match.match.clock ?? ""}`}</span>}
+    </p>
+  );
   return (
     <>
-      <HighlightPlayer
-        video={match.highlight ?? null}
-        rotation={rotation}
-        liigaUrl={match.liigaUrl}
-        className="aspect-video"
-        overlay={
-          <p className="absolute top-4 left-4 flex items-center gap-3 text-sm font-semibold">
-            {live ? <LiveBadge /> : <span className="rounded-md bg-dark/70 px-2.5 py-1 text-xs font-bold">Starts in {fmtCountdown(rotation.phaseEndsAt - now)}</span>}
-            {live && <span className="rounded-md bg-dark/70 px-2 py-0.5">{`${match.match.periodLabel ?? ""} ${match.match.clock ?? ""}`}</span>}
-          </p>
-        }
-      />
+      {/* no plan with the live stream: the poster and a lock (the server sent no video) */}
+      {match.streamLock ? (
+        <StreamLock lock={match.streamLock} onSubscribe={() => setCheckout(match.streamLock!.planId)} overlay={badges} />
+      ) : (
+        <HighlightPlayer video={match.highlight ?? null} rotation={rotation} liigaUrl={match.liigaUrl} className="aspect-video" overlay={badges} />
+      )}
+      {modal}
       <section className="flex flex-col gap-3 rounded-card border border-line bg-surface p-4 shadow-card md:flex-row md:items-end md:justify-between">
         <div className="max-w-2xl">
           <h2 className="text-lg font-bold">What it means</h2>

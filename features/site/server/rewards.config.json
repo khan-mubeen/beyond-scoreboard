@@ -17,53 +17,30 @@
       "label": "Watch Together"
     }
   ],
-  "subscriptions": [
-    {
-      "id": "digital",
-      "tag": "News + journalism",
-      "title": "Kaleva Digital",
-      "description": "Local news, sport, and trusted stories from Northern Finland.",
-      "priceLabel": "Monthly price to be announced",
-      "included": false
-    },
-    {
-      "id": "sports-pass",
-      "tag": "Included in your subscription",
-      "title": "Kaleva Sports Pass",
-      "description": "Deeper season stakes, personalised match stories and audio.",
-      "priceLabel": "Monthly price to be announced",
-      "included": true
-    },
-    {
-      "id": "weekend",
-      "tag": "Flexible access",
-      "title": "Weekend Pass",
-      "description": "Sports stories and analysis for a match-filled weekend.",
-      "priceLabel": "Price to be announced",
-      "included": false
-    }
-  ],
   "offers": [
     {
       "id": "tickets",
       "tag": "Hockey",
       "title": "Kärpät home game ticket discount",
       "description": "Partner reward concept",
-      "costPoints": 500
+      "costPoints": 500,
+      "partnerUrl": "https://www.karpat.fi/"
     },
     {
       "id": "fan-shop",
       "tag": "Fan merchandise",
       "title": "Kärpät fan shop −15%",
       "description": "For eligible members",
-      "costPoints": null
+      "costPoints": null,
+      "partnerUrl": "https://kauppa.karpat.fi/"
     },
     {
       "id": "local",
       "tag": "Local businesses",
       "title": "Local partner offer",
       "description": "Explore neighbourhood benefits",
-      "costPoints": null
+      "costPoints": null,
+      "partnerUrl": null
     }
   ],
   "achievements": [
@@ -86,5 +63,5 @@
       "icon": "rook"
     }
   ],
-  "footnote": "Points have no cash value. Offers are subject to terms. Pricing and rewards are illustrative concepts pending sponsor approval."
+  "footnote": "Demo — no real payments. Points have no cash value and can cover at most half of a subscription price."
 }
