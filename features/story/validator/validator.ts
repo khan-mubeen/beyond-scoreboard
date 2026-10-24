@@ -1,4 +1,5 @@
-import type { Content, Fact, VerificationReport } from "@/shared/types";
+import type { Content, ContentSentence, Fact, VerificationReport } from "@/shared/types";
+import { bettingLanguage } from "./checks/betting-language";
 import { modelTypedNumber } from "./checks/model-typed-number";
 import { offIceClaim } from "./checks/off-ice-claim";
 import { quote } from "./checks/quote";
@@ -7,12 +8,16 @@ import { uncitedSentence } from "./checks/uncited-sentence";
 import { unknownName } from "./checks/unknown-name";
 
 /** order matters: the first failing check names the error */
-export const CHECKS: Check[] = [uncitedSentence, modelTypedNumber, unknownName, quote, offIceClaim];
+export const CHECKS: Check[] = [uncitedSentence, bettingLanguage, quote, offIceClaim, unknownName, modelTypedNumber];
+
+export function checkSentence(s: ContentSentence, ledger: Fact[]) {
+  return CHECKS.map((check) => check(s, ledger)).find((f) => f !== null) ?? null;
+}
 
 /** the only judge of whether content may be shown. deterministic, no llm */
 export function verify(content: Content, ledger: Fact[]): VerificationReport {
   const claims = content.sentences.map((s) => {
-    const failure = CHECKS.map((check) => check(s, ledger)).find((f) => f !== null) ?? null;
+    const failure = checkSentence(s, ledger);
     return {
       text: s.text,
       factIds: s.factIds,

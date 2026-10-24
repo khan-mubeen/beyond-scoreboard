@@ -8,6 +8,9 @@ import { fallbackContent } from "../templates/fallback";
 import { verify } from "../validator/validator";
 import { readCache } from "./cache";
 
+// real matches: ledger, story (content_cache or template) and the live "what it means" line
+export { buildMatchLedger, contentKey, matchStory, whatItMeansText, type MatchFactsInput, type MatchLedger } from "./match-content";
+
 async function ledgerFor(teamId: string, gameId: string): Promise<Fact[]> {
   return buildLedger(await getFactInputs(teamId, gameId));
 }

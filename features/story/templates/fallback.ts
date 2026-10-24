@@ -31,8 +31,9 @@ const BRIEF: Line[] = [
   },
   {
     needs: ["form"],
-    en: "Form over the last five, oldest first: {form}.",
-    fi: "Viiden viime ottelun vire vanhimmasta alkaen: {form}.",
+    // no "last five": the number would not be backed by a fact
+    en: "Recent form, oldest first: {form}.",
+    fi: "Viimeaikainen vire vanhimmasta alkaen: {form}.",
   },
 ];
 

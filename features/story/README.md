@@ -1,13 +1,16 @@
 # story
 
-Words fans can trust: the fact ledger, the LLM writer, the validator, and the components that show where every number came from.
+Words fans can trust: the fact ledger, templates, the LLM writer, the validator, and the components that show where every number came from.
 
 ## How it works
 
-1. `ledger/build-ledger.ts` turns stakes' `FactInputs` into numbered facts (`F1`, `F2`, ...).
-2. The writer (`writer/`) asks the LLM for sentences with placeholders like `{F5}` or `{F1:ord}`. `fill.ts` swaps in the values, so the model never types a number.
-3. `validator/verify()` checks every sentence, with one file per error type in `validator/checks/`. Blocked sentences never ship. There is no LLM reviewer.
-4. `scripts/pregenerate-content.ts` writes the result to `cache/`. The app only reads the cache, falling back to `templates/fallback.ts`.
+1. `ledger/match-ledger.ts` turns a match's facts (score, goals, chance before and after, table position) into numbered facts (`F1`, `F2`, ...). `ledger/build-ledger.ts` does the same for the watch party's `FactInputs`.
+2. The LLM writer (`writer/llm-writer.ts`) gets only the ledger and returns sentences with placeholders like `{F5}`. `fill()` swaps in the values, so the model never types a number.
+3. `validator/verify()` checks every sentence, one file per error type in `validator/checks/`: uncited sentence, a typed number, an unknown name, a quote, an off-ice claim, betting language. Blocked sentences never ship. There is no LLM reviewer.
+4. `npm run pregen -- --match <id>` writes stories that pass into `content_cache`. The site reads the cache, re-verifies it against the current ledger, and otherwise uses the templates (`templates/match.ts`), which pass the same validator.
+5. `npm run pregen:phrases` asks for other wordings of each call it! question and stores them in `phrase_bank`, approved only when they pass `phraseProblem` (live) and the guardrails.
+
+The LLM client (`llm/client.ts`) is openai-compatible, off by default (`LLM_ENABLED=false`), and returns null on any error or timeout, so nothing waits on it.
 
 ## Public API
 
@@ -18,22 +21,13 @@ Browser-safe, `@/features/story`:
 
 Server only, `@/features/story/server`:
 
-- `generateBrief(teamId, gameId, language)`, `generateStory(teamId, gameId, language)`, `getVerification(contentId)`
+- `matchStory(facts)`, `whatItMeansText(facts)`, `buildMatchLedger`, `contentKey`
+- watch party: `generateBrief`, `generateStory`, `getVerification`
 
 Route handlers (`server/routes/`): `content.ts` (brief and story) and `verification.ts`.
 
 ## Test alone
 
-- `npm run dev`, then open `/dev/story`: edit the ledger, load the brief (template) or the story (cache), and re-check. The cached story shows one blocked claim.
-- `npm test -- features/story`
-- `npm run pregen` with `LLM_ENABLED=true` and `LLM_BASE_URL` set (the client is still a stub).
-
-## Done when
-
-- [ ] the validator catches all five planted error types (only `uncited_sentence` is written, the rest are `it.todo`)
-- [ ] the fallback works with the LLM off
-- [ ] content loads from the cache instantly
-
-## Open question
-
-Post-game facts (final score, winning goal time) are in the mock ledger as `F13`-`F18`, but `FactInputs` has no game result yet. Decide whether stakes or live provides them.
+- `npm test -- features/story`: each error type is caught, and the templates pass.
+- `npm run pregen -- --match 2027-2701404` with `LLM_ENABLED=true` and `LLM_BASE_URL` set.
+- `npm run dev`, then open `/dev/story` (the watch party's ledger and verification panel).
