@@ -41,6 +41,22 @@ export interface TriggerContext {
   used: Set<string>;
 }
 
+/** "who wins?": at the start of a game, or before it (the demo rotation's lobby) */
+export function whoWinsDraft(g: LiigaGame): CallDraft {
+  const names = { home: g.home.name, away: g.away.name };
+  return {
+    kind: "who_wins",
+    trigger: "who_wins",
+    rule: { kind: "who_wins" },
+    options: [
+      { id: "home_reg", label: `${names.home} in regulation` },
+      { id: "away_reg", label: `${names.away} in regulation` },
+      { id: "overtime", label: "Goes to overtime" },
+    ],
+    vars: names,
+  };
+}
+
 /** the call to open now, if any: at most one open, 60 s of game time apart, each trigger once */
 export function nextCall(g: LiigaGame, ctx: TriggerContext): CallDraft | null {
   if (g.status !== "live" || ctx.hasOpenCall) return null;
@@ -50,20 +66,8 @@ export function nextCall(g: LiigaGame, ctx: TriggerContext): CallDraft | null {
   const names = { home: g.home.name, away: g.away.name };
   const score = { home: g.home.goals, away: g.away.goals };
 
-  // puck drop: who wins?
-  if (t <= 120 && fresh("who_wins")) {
-    return {
-      kind: "who_wins",
-      trigger: "who_wins",
-      rule: { kind: "who_wins" },
-      options: [
-        { id: "home_reg", label: `${names.home} in regulation` },
-        { id: "away_reg", label: `${names.away} in regulation` },
-        { id: "overtime", label: "Goes to overtime" },
-      ],
-      vars: names,
-    };
-  }
+  // the game starts: who wins?
+  if (t <= 120 && fresh("who_wins")) return whoWinsDraft(g);
 
   // late in the third and tied: overtime?
   if (t >= REGULATION - 300 && t < REGULATION - 30 && score.home === score.away && fresh("overtime")) {
@@ -71,7 +75,8 @@ export function nextCall(g: LiigaGame, ctx: TriggerContext): CallDraft | null {
   }
 
   // a new 2- or 5-minute penalty that gives a real power play
-  const pen = [...g.penalties].reverse().find((p) => (p.minutes === 2 || p.minutes === 5) && t - p.gameTime <= 60 && p.end > t);
+  // not in the last minute of regulation (or overtime): the answers would still be open at the horn
+  const pen = t < REGULATION - 60 ? [...g.penalties].reverse().find((p) => (p.minutes === 2 || p.minutes === 5) && t - p.gameTime <= 60 && p.end > t) : undefined;
   if (pen && fresh(`power_play:${pen.id}`)) {
     const offsetting = g.penalties.some((p) => p.side !== pen.side && p.gameTime === pen.gameTime && p.minutes === pen.minutes);
     const pp = other(pen.side);

@@ -1,0 +1,121 @@
+{
+  "2027-2701379": {
+    "title": "TPS – Ilves",
+    "cues": [
+      {
+        "goalId": "g19",
+        "videoSec": 16.4,
+        "confidence": "high",
+        "cut": 17.4,
+        "peak": 16.6,
+        "prominence": 5
+      },
+      {
+        "goalId": "g100",
+        "videoSec": 79.4,
+        "confidence": "high",
+        "cut": 80.4,
+        "peak": 78.4,
+        "prominence": 4.5
+      },
+      {
+        "goalId": "g126",
+        "videoSec": 143.2,
+        "confidence": "high",
+        "cut": 144.2,
+        "peak": 143.1,
+        "prominence": 5.1
+      },
+      {
+        "goalId": "g137",
+        "videoSec": 203.9,
+        "confidence": "high",
+        "cut": 204.9,
+        "peak": 203.9,
+        "prominence": 6.4
+      },
+      {
+        "goalId": "g203",
+        "videoSec": 273.9,
+        "confidence": "high",
+        "cut": 274.9,
+        "peak": 274.8,
+        "prominence": 4.7
+      },
+      {
+        "goalId": "g217",
+        "videoSec": 339.7,
+        "confidence": "high",
+        "cut": 340.7,
+        "peak": 338.5,
+        "prominence": 5.1
+      },
+      {
+        "goalId": "g225",
+        "videoSec": 404.9,
+        "confidence": "high",
+        "cut": 405.9,
+        "peak": 403.8,
+        "prominence": 4.4
+      }
+    ]
+  },
+  "2027-2701398": {
+    "title": "KooKoo – Tappara",
+    "cues": [
+      {
+        "goalId": "g18",
+        "videoSec": 12.9,
+        "confidence": "high",
+        "cut": 13.9,
+        "peak": 14,
+        "prominence": 3.4
+      },
+      {
+        "goalId": "g71",
+        "videoSec": 76.3,
+        "confidence": "high",
+        "cut": 77.3,
+        "peak": 76.7,
+        "prominence": 4.7
+      },
+      {
+        "goalId": "g118",
+        "videoSec": 142.5,
+        "confidence": "high",
+        "cut": 143.5,
+        "peak": 144.3,
+        "prominence": 3.8
+      },
+      {
+        "goalId": "g167",
+        "videoSec": 211,
+        "confidence": "high",
+        "cut": 212,
+        "peak": 211.1,
+        "prominence": 3.8
+      }
+    ]
+  },
+  "2027-2701400": {
+    "title": "SaiPa – Kärpät",
+    "cues": [
+      {
+        "goalId": "g128",
+        "videoSec": 14.4,
+        "confidence": "high",
+        "cut": 15.4,
+        "peak": 13.9,
+        "prominence": 7.8
+      },
+      {
+        "goalId": "g154",
+        "videoSec": 80.7,
+        "confidence": "high",
+        "cut": 81.7,
+        "peak": 80.9,
+        "prominence": 6.9
+      }
+    ]
+  }
+}

@@ -50,7 +50,7 @@ function game(t: number, opts: { goals?: [Side, number][]; penalties?: [Side, nu
 const fresh = () => ({ lastOpenedAt: null as number | null, hasOpenCall: false, used: new Set<string>() });
 
 describe("when a call opens", () => {
-  it("asks who wins at puck drop, once", () => {
+  it("asks who wins when the game starts, once", () => {
     const draft = nextCall(game(30), fresh());
     expect(draft?.kind).toBe("who_wins");
     expect(draft?.options.map((o) => o.id)).toEqual(["home_reg", "away_reg", "overtime"]);

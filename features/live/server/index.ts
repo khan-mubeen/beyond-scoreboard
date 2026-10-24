@@ -22,11 +22,20 @@ export {
   controlReplay,
   engineMatch,
   ensureLiveLoop,
+  goalVideoSec,
   matchSince,
+  openCalls,
+  refreshRotation,
+  roomMatchNow,
+  roomScope,
   startEngine,
+  type RoomScope,
   type MatchRenderer,
   type RenderedMatch,
 } from "./engine";
+// the demo rotation (DEMO_MODE=true)
+export { controlRotation, isRotationMatch, phaseOf, ROTATION_KEY, rotationConfig, rotationMatch, rotationNow } from "./rotation";
+export type { RotationAction, RotationNow } from "../engine/rotation";
 export type { CallDraft, CallKind } from "../engine/rules";
 // for npm run pregen:phrases (story): the rules a stored wording must pass
 export { BUILT_IN, PHRASE_VARS, phraseProblem, type PhraseLang } from "../engine/phrases";

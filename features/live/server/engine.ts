@@ -1,15 +1,21 @@
 // the live engine: one loop per active match, owned by the server (the only authority).
-// real live game: tick every 5 s on the cached api (10 s ttl). demo replay: tick every 1 s on
-// a finished game replayed at DEMO_REPLAY_SPEED. each tick: lock, cancel or resolve calls,
-// maybe open the next one, re-render on changes, and broadcast to "match:{id}"
-import { parseMatchId, type LiigaGame } from "@/features/liiga";
+// real live game: tick every 5 s on the cached api (10 s ttl). demo replay (DEMO_REPLAY_MATCH_ID):
+// tick every 1 s on a finished game replayed at DEMO_REPLAY_SPEED. demo rotation (DEMO_MODE):
+// tick every 0.5 s; the game follows its highlight video and calls are planned ahead from the cues.
+// each tick: lock, cancel or resolve calls, maybe open the next one, re-render on changes,
+// and broadcast to "match:{id}"
+import { parseMatchId, unplayedGame, type LiigaGame } from "@/features/liiga";
 import { getGame, getGamesOn, helsinkiDate, liigaNow } from "@/features/liiga/server";
+import { demoMode } from "@/shared/clock";
 import { getDb, type DbCall } from "@/shared/db";
-import type { LiveCall, LiveStakes, LiveState, MatchEvent, RoomLeaderboardRow, Score } from "@/shared/types";
-import { wordCall } from "../engine/phrases";
+import type { RotationMatchConfig } from "@/shared/demo";
+import type { LiveCall, LiveRotation, LiveStakes, LiveState, MatchEvent, RoomLeaderboardRow, Score } from "@/shared/types";
+import { optionsFi, wordCall } from "../engine/phrases";
 import { gameAt, nextMomentAfter, replayEnd, replayTime, type ReplayClock } from "../engine/replay";
-import { decidedInWindow, nextCall, resolve, type CallDraft, type ResolveRule } from "../engine/rules";
+import { gameAtVideo, goalVideoTimes, planCalls, type PlannedCall } from "../engine/rotation";
+import { decidedInWindow, nextCall, resolve, whoWinsDraft, type CallDraft, type ResolveRule } from "../engine/rules";
 import { publish, type MatchEvent as Broadcast } from "./realtime";
+import { initRotation, isRotationMatch, phaseOf, rotationConfig, rotationMatch, rotationNow } from "./rotation";
 
 export interface RenderedMatch {
   stakes: LiveStakes;
@@ -31,8 +37,33 @@ export interface MatchRenderer {
 let renderer: MatchRenderer | null = null;
 const ANSWER_MS = Number(process.env.CALL_ANSWER_SECONDS ?? 20) * 1000;
 export const CALL_POINTS = 20;
+/** a planned call more than this late (a restart mid-highlight) is skipped, not opened late */
+const PLAN_LATE_MS = 2000;
 
 type Message = { event: Broadcast; payload: Record<string, unknown> };
+type Kind = "live" | "replay" | "rotation";
+
+/** one in-app notification per fan who answered and wants them (bots never get one), in one insert */
+async function notifyResults(matchId: string, c: DbCall, correct: string, answers: { userId: string; optionId: string }[]) {
+  const db = getDb();
+  const wants = new Set((await db.users.getMany([...new Set(answers.map((a) => a.userId))])).filter((u) => !u.isBot && u.notificationPrefs.callResults).map((u) => u.id));
+  const answer = c.options.find((o) => o.id === correct)?.label ?? correct;
+  await db.notifications.create(
+    answers
+      .filter((a) => wants.has(a.userId))
+      .map((a) => {
+        const won = a.optionId === correct;
+        return {
+          userId: a.userId,
+          type: "call_result",
+          title: won ? `You got it! +${CALL_POINTS} pts` : "Not this time",
+          body: won ? `${c.question} ${answer}.` : `${c.question} The answer was ${answer}.`,
+          link: `/match/${matchId}`,
+          dedupeKey: `call:${c.id}:${a.userId}`,
+        };
+      }),
+  );
+}
 
 const splitOf = (options: { id: string }[], answers: { optionId: string }[]) =>
   Object.fromEntries(options.map((o) => [o.id, answers.length ? Math.round((100 * answers.filter((a) => a.optionId === o.id).length) / answers.length) : 0]));
@@ -47,6 +78,12 @@ class MatchLoop {
   private lastOpenedAt: number | null = null;
   private rendered: RenderedMatch | null = null;
   private board: { rows: RoomLeaderboardRow[]; watching: number } = { rows: [], watching: 0 };
+  // rotation only: the calls planned from the cues, the next one, and the cycle they belong to
+  private plan: PlannedCall[] = [];
+  private planIndex = 0;
+  private cycle: string | null = null;
+  private lastPublishedAt = 0;
+  private rotation: LiveRotation | null = null;
   visible: LiigaGame | null = null;
   state: LiveState | null = null;
   /** a replay can run many times: the match leaderboard counts points from this run on */
@@ -54,12 +91,14 @@ class MatchLoop {
 
   constructor(
     readonly matchId: string,
-    readonly kind: "live" | "replay",
+    readonly kind: Kind,
     public names: Map<number, string>,
     private full: LiigaGame | null = null,
     readonly clock: ReplayClock = { startedAt: null, pausedAt: null, offset: 0, speed: 1 },
+    private rot: RotationMatchConfig | null = null,
   ) {
     this.baseSpeed = clock.speed;
+    if (rot && full) this.plan = planCalls(full, rot.cues, rot.durationSec, { answerSeconds: ANSWER_MS / 1000 });
   }
 
   private baseSpeed: number;
@@ -79,13 +118,13 @@ class MatchLoop {
     const db = getDb();
     const stored = await db.calls.listForMatch(this.matchId);
     for (const c of stored.filter((x) => x.status === "open" || x.status === "locked")) {
-      // a replay starts over; a live game keeps calls that were locked before a restart
-      if (this.kind === "replay" || c.status === "open") await db.calls.update(c.id, { status: "cancelled", resolvedAt: new Date().toISOString() });
+      // a replay or rotation starts over; a live game keeps calls that were locked before a restart
+      if (this.kind !== "live" || c.status === "open") await db.calls.update(c.id, { status: "cancelled", resolvedAt: new Date().toISOString() });
     }
     // a live game remembers its calls (no trigger fires twice after a restart); a replay starts clean
     this.calls = this.kind === "live" ? await db.calls.listForMatch(this.matchId) : [];
     this.lastOpenedAt = this.calls.length ? Math.max(...this.calls.map((c) => c.openedGameTime)) : null;
-    this.timer = setInterval(() => void this.tick(), this.kind === "replay" ? 1000 : 5000);
+    this.timer = setInterval(() => void this.tick(), this.kind === "live" ? 5000 : this.kind === "replay" ? 1000 : 500);
     await this.tick();
   }
 
@@ -94,12 +133,42 @@ class MatchLoop {
     this.timer = null;
   }
 
-  get replayClockSeconds() {
-    return replayTime(this.clock, Date.now());
+  /** the rotation's view of this match right now, and the game as it stands in it */
+  private rotationGame(now: number): LiigaGame | null {
+    const p = phaseOf(this.matchId, now);
+    if (!p || !this.full || !this.rot) return null;
+    const { phase, slot, r } = p;
+    // a new cycle: everything about the last one (calls, splits, seen events) starts over
+    if (this.cycle !== r.cycleKey) {
+      this.cycle = r.cycleKey;
+      this.calls = [];
+      this.splits.clear();
+      this.seenEvents.clear();
+      this.planIndex = 0;
+      this.rendered = null;
+      this.board = { rows: [], watching: 0 };
+    }
+    const next = rotationMatch(r.next.matchId);
+    // r.at is now, or the moment of the pause: a paused highlight stays on its second
+    const videoSec = phase === "live" ? Math.max(0, (r.at - slot.liveAt) / 1000) : null;
+    this.rotation = {
+      phase,
+      phaseEndsAt: phase === "idle" ? slot.lobbyAt : r.phaseEnd,
+      liveStartedAt: slot.liveAt,
+      videoSec,
+      durationSec: this.rot.durationSec,
+      paused: r.paused,
+      next: next ? { matchId: next.matchId, title: next.title, startsAt: r.next.lobbyAt } : null,
+    };
+    // idle and lobby: a game not played yet; live: where the highlight is; summary: the result
+    if (phase === "idle" || phase === "lobby") return unplayedGame(this.full);
+    if (phase === "summary") return gameAt(this.full, replayEnd(this.full));
+    return gameAtVideo(this.full, this.rot.cues, this.rot.durationSec, videoSec ?? 0);
   }
 
-  private async currentGame(): Promise<LiigaGame | null> {
-    if (this.kind === "replay" && this.full) return gameAt(this.full, replayTime(this.clock, Date.now()));
+  private async currentGame(now: number): Promise<LiigaGame | null> {
+    if (this.kind === "rotation") return this.rotationGame(now);
+    if (this.kind === "replay" && this.full) return gameAt(this.full, replayTime(this.clock, now));
     const ids = parseMatchId(this.matchId);
     if (!ids) return null;
     const res = await getGame(ids.season, ids.gameId).catch(() => null);
@@ -117,20 +186,25 @@ class MatchLoop {
     this.busy = true;
     try {
       const now = Date.now();
-      const game = await this.currentGame();
+      const game = await this.currentGame(now);
       if (!game) return;
       const prev = this.visible;
+      const prevPhase = this.state?.rotation?.phase;
       this.visible = game;
       const changed =
         force ||
         !prev ||
+        !this.rendered ||
         prev.status !== game.status ||
         prev.goals.length !== game.goals.length ||
         prev.penalties.length !== game.penalties.length ||
-        prev.currentPeriod !== game.currentPeriod;
+        prev.currentPeriod !== game.currentPeriod ||
+        prevPhase !== this.rotation?.phase;
       const messages: Message[] = [];
 
-      await this.updateCalls(game, now, messages);
+      await this.settleCalls(game, now, messages);
+      if (this.kind === "rotation") await this.openRotationCalls(game, now, messages);
+      else await this.openNextCall(game, now, messages);
       this.setSpeed(this.calls.some((c) => c.status === "open") ? 1 : this.baseSpeed, now);
 
       if (changed || !this.rendered) {
@@ -143,18 +217,24 @@ class MatchLoop {
       if (!this.board.rows.length || changed) this.board = await renderer.leaderboard(this.matchId);
 
       this.state = this.buildState(game, now);
-      messages.push({
-        event: "state",
-        payload: {
-          serverNow: now,
-          isReplay: this.kind === "replay",
-          status: this.state.status,
-          clock: this.state.clock,
-          score: this.state.score,
-          periodScores: this.state.periodScores,
-          events: fresh,
-        },
-      });
+      // a rotation match nobody is watching (idle) only says so when something changes
+      const quiet = this.kind === "rotation" && this.rotation?.phase === "idle" && !changed && !messages.length && now - this.lastPublishedAt < 15_000;
+      if (!quiet) {
+        messages.push({
+          event: "state",
+          payload: {
+            serverNow: now,
+            isReplay: this.kind !== "live",
+            status: this.state.status,
+            clock: this.state.clock,
+            score: this.state.score,
+            periodScores: this.state.periodScores,
+            events: fresh,
+            rotation: this.state.rotation ?? null,
+          },
+        });
+        this.lastPublishedAt = now;
+      }
       if (game.status === "final" && prev && prev.status !== "final") {
         messages.push({ event: "game_end", payload: { score: this.state.score, decidedIn: game.decidedIn, serverNow: now } });
       }
@@ -174,7 +254,8 @@ class MatchLoop {
     }
   }
 
-  private async updateCalls(game: LiigaGame, now: number, messages: Message[]) {
+  /** lock calls whose time is up, cancel the ones decided while answers were open, resolve the rest */
+  private async settleCalls(game: LiigaGame, now: number, messages: Message[]) {
     const db = getDb();
     for (const c of this.calls) {
       const rule = c.resolvesRule as ResolveRule;
@@ -198,36 +279,66 @@ class MatchLoop {
       Object.assign(c, await db.calls.update(c.id, { status: "resolved", correctOptionId: correct, resolvedAt: new Date(now).toISOString() }));
       await db.answers.setCorrect(c.id, correct);
       const answers = await db.answers.listForCall(c.id);
-      // our clock, not the db's: runSince is compared against it
+      // our clock, not the db's: room scopes (runSince, a rotation cycle) are compared against it
       const createdAt = new Date(now).toISOString();
       await Promise.all(
         answers
           .filter((x) => x.optionId === correct)
           .map((a) => db.points.award({ userId: a.userId, matchId: this.matchId, callId: c.id, points: CALL_POINTS, reason: `call: ${c.question}`, createdAt })),
       );
+      await notifyResults(this.matchId, c, correct, answers).catch((err) => console.warn(`live: notifications failed: ${(err as Error).message}`));
       const split = this.splits.get(c.id) ?? splitOf(c.options, answers);
       messages.push({ event: "call_resolved", payload: { callId: c.id, correctOptionId: correct, split, serverNow: now } });
       this.board = await renderer!.leaderboard(this.matchId);
       messages.push({ event: "leaderboard", payload: { leaderboard: this.board.rows, watching: this.board.watching } });
     }
+  }
 
+  /** a live game or a speed replay: the trigger rules decide the next call on the spot */
+  private async openNextCall(game: LiigaGame, now: number, messages: Message[]) {
     const draft = nextCall(game, {
       lastOpenedAt: this.lastOpenedAt,
       hasOpenCall: this.calls.some((c) => c.status === "open"),
       used: new Set(this.calls.map((c) => c.trigger)),
     });
-    if (!draft) return;
-    const approved = await db.phrases.listApproved(draft.kind, "en").catch(() => []);
+    if (draft) await this.openCall(draft, game, now, now + ANSWER_MS, messages);
+  }
+
+  /** the rotation: "who wins?" in the lobby (answers close when the game starts), then the planned calls */
+  private async openRotationCalls(game: LiigaGame, now: number, messages: Message[]) {
+    const rot = this.rotation;
+    if (!rot || rot.paused || !this.full) return;
+    if (rot.phase === "lobby" && !this.calls.some((c) => c.type === "who_wins")) {
+      await this.openCall(whoWinsDraft(this.full), game, now, rot.liveStartedAt, messages);
+    }
+    if (rot.phase !== "live" || rot.videoSec === null) return;
+    const videoMs = rot.videoSec * 1000;
+    while (this.planIndex < this.plan.length && this.plan[this.planIndex].videoSec * 1000 <= videoMs) {
+      const p = this.plan[this.planIndex++];
+      if (videoMs - p.videoSec * 1000 > PLAN_LATE_MS || this.calls.some((c) => c.status === "open")) continue;
+      await this.openCall(p.draft, game, now, now + ANSWER_MS, messages);
+    }
+  }
+
+  private async openCall(draft: CallDraft, game: LiigaGame, now: number, locksAt: number, messages: Message[]) {
+    const db = getDb();
+    const [approved, approvedFi] = await Promise.all([
+      db.phrases.listApproved(draft.kind, "en").catch(() => []),
+      db.phrases.listApproved(draft.kind, "fi").catch(() => []),
+    ]);
     const call = await db.calls.create({
+      // every fan gets the same call; a finnish-speaking fan reads it in finnish
+      i18n: { fi: { question: wordCall(draft.kind, draft.vars, approvedFi, "fi"), options: optionsFi(draft.options, draft.vars) } },
       matchId: this.matchId,
       type: draft.kind,
-      trigger: draft.trigger,
+      // a rotation plays the same game every cycle: the cycle keeps each run's calls apart
+      trigger: this.cycle === null ? draft.trigger : `${this.cycle}:${draft.trigger}`,
       question: wordCall(draft.kind, draft.vars, approved),
       options: draft.options,
       stakesLine: await renderer!.stakesLine(this.matchId, game, draft).catch(() => null),
       openedGameTime: game.gameTime,
       openedAt: new Date(now).toISOString(),
-      locksAt: new Date(now + ANSWER_MS).toISOString(),
+      locksAt: new Date(locksAt).toISOString(),
       lockGameTime: null,
       resolvesRule: draft.rule as unknown as Record<string, unknown>,
       status: "open",
@@ -254,6 +365,7 @@ class MatchLoop {
       split: c.status === "open" ? null : (this.splits.get(c.id) ?? null),
       correctOptionId: c.status === "resolved" ? c.correctOptionId : null,
       reason: c.status === "cancelled" ? "decided while answers were open" : null,
+      fi: c.i18n?.fi ?? null,
     };
   }
 
@@ -266,7 +378,7 @@ class MatchLoop {
     return {
       matchId: this.matchId,
       serverNow: now,
-      isReplay: this.kind === "replay",
+      isReplay: this.kind !== "live",
       status: game.status === "final" ? "final" : game.status === "live" ? "live" : "scheduled",
       clock: { period: game.currentPeriod ?? 0, gameTime: game.gameTime, ...clock },
       score: { home: game.home.goals, away: game.away.goals },
@@ -277,6 +389,7 @@ class MatchLoop {
       lastCall: last ? this.toLive(last) : null,
       leaderboard: this.board.rows,
       watching: this.board.watching,
+      rotation: this.rotation,
       me: null,
     };
   }
@@ -288,7 +401,7 @@ class MatchLoop {
     const t = replayTime(c, now);
     switch (action) {
       case "start":
-        // puck drop: the clock starts at 0:01, so the game is live (and the first call open) at once
+        // the game starts: the clock starts at 0:01, so the game is live (and the first call open) at once
         if (c.startedAt === null) Object.assign(c, { startedAt: now, pausedAt: null, offset: Math.max(1, c.offset) });
         else if (c.pausedAt) Object.assign(c, { startedAt: now, pausedAt: null, offset: t });
         break;
@@ -324,9 +437,10 @@ class MatchLoop {
     return null;
   }
 
-  /** true once the replayed game is over */
-  get replayDone() {
-    return this.full ? replayTime(this.clock, Date.now()) >= replayEnd(this.full) : false;
+  /** a goal's second in this rotation match's highlight (only goals already played are asked for) */
+  goalVideoSec(goalId: string): number | null {
+    if (!this.full || !this.rot) return null;
+    return goalVideoTimes(this.full, this.rot.cues, this.rot.durationSec).get(goalId) ?? null;
   }
 }
 
@@ -341,6 +455,22 @@ async function startReplay(matchId: string, speed: number, autostart: boolean) {
   loops.set(matchId, loop);
   await loop.start();
   console.log(`live: demo replay of ${matchId} (${res.data.game.home.name}–${res.data.game.away.name}) at ${speed}x, ${autostart ? "running" : "waiting for host start"}`);
+}
+
+/** the rotation's three matches, each with its full (unmasked) game */
+async function startRotation() {
+  const config = await initRotation();
+  for (const m of config?.matches ?? []) {
+    const ids = parseMatchId(m.matchId)!;
+    const res = await getGame(ids.season, ids.gameId, { unmasked: true }).catch(() => null);
+    if (!res || res.data.game.status !== "final") {
+      console.warn(`demo: rotation match ${m.matchId} is ${res?.data.game.status ?? "missing"}; it needs a finished game (npm run snapshot)`);
+      continue;
+    }
+    const loop = new MatchLoop(m.matchId, "rotation", res.data.names, res.data.game, undefined, m);
+    loops.set(m.matchId, loop);
+    await loop.start();
+  }
 }
 
 /** a loop for a real game that is live now (idempotent) */
@@ -359,6 +489,8 @@ async function discoverLiveGames() {
 
 export async function startEngine(r: MatchRenderer) {
   renderer = r;
+  // demo mode is the rotation; the league clock is frozen, so there are no real live games
+  if (demoMode()) return startRotation();
   const demo = process.env.DEMO_REPLAY_MATCH_ID;
   if (demo) await startReplay(demo, Number(process.env.DEMO_REPLAY_SPEED ?? 15), process.env.DEMO_REPLAY_AUTOSTART === "true");
   await discoverLiveGames();
@@ -370,19 +502,54 @@ export interface EngineMatch {
   visible: LiigaGame | null;
   isReplay: boolean;
   names: Map<number, string>;
+  /** rotation matches: their phase now */
+  rotation: LiveRotation | null;
 }
 
 /** the engine's view of a match, when it runs one */
 export function engineMatch(matchId: string): EngineMatch | null {
   const loop = loops.get(matchId);
   if (!loop) return null;
-  return { state: loop.state, visible: loop.visible, isReplay: loop.kind === "replay", names: loop.names };
+  return { state: loop.state, visible: loop.visible, isReplay: loop.kind !== "live", names: loop.names, rotation: loop.state?.rotation ?? null };
 }
+
+/** a goal's second in a rotation match's highlight, for its "Watch" button */
+export const goalVideoSec = (matchId: string, goalId: string) => loops.get(matchId)?.goalVideoSec(goalId) ?? null;
 
 /** where a match's points and calls start counting: the current replay run, else the beginning */
 export function matchSince(matchId: string): string {
   const loop = loops.get(matchId);
   return loop?.kind === "replay" ? loop.runSince : new Date(0).toISOString();
+}
+
+/** the watch together room a match belongs to: its db key, since when it counts, and its matches */
+export interface RoomScope {
+  key: string;
+  since: string;
+  matchIds: string[];
+}
+
+/**
+ * the rotation's three matches share one room, counted from the start of the current cycle
+ * (so it grows across matches 1-3 and starts over with match 1); any other match is its own room
+ */
+export function roomScope(matchId: string): RoomScope {
+  const r = isRotationMatch(matchId) ? rotationNow() : null;
+  if (r) return { key: "rotation", since: new Date(r.cycleStartedAt).toISOString(), matchIds: rotationConfig()!.matches.map((m) => m.matchId) };
+  return { key: matchId, since: matchSince(matchId), matchIds: [matchId] };
+}
+
+/** the match whose watch together room is on now: the rotation's, else the demo replay */
+export function roomMatchNow(): string | null {
+  return rotationNow()?.current.matchId ?? [...loops.values()].find((l) => l.kind === "replay")?.matchId ?? null;
+}
+
+/** every call taking or waiting on answers right now, across matches */
+export function openCalls(): { id: string; matchId: string }[] {
+  return [...loops.values()].flatMap((l) => {
+    const c = l.state?.call;
+    return c ? [{ id: c.id, matchId: l.matchId }] : [];
+  });
 }
 
 /** the visible state of every demo replay, for the home page */
@@ -397,4 +564,9 @@ export async function controlReplay(matchId: string, action: string): Promise<st
   const loop = loops.get(matchId);
   if (!loop || loop.kind !== "replay") return "no demo replay runs for this match (set DEMO_REPLAY_MATCH_ID)";
   return loop.control(action);
+}
+
+/** re-renders every rotation match now (after a host action), instead of on their next tick */
+export async function refreshRotation() {
+  await Promise.all([...loops.values()].filter((l) => l.kind === "rotation").map((l) => l.tick(true)));
 }

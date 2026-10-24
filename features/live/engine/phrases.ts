@@ -25,6 +25,21 @@ export const BUILT_IN: Record<CallKind, Record<PhraseLang, string>> = {
 export const fillPhrase = (template: string, vars: Record<string, string>) =>
   template.replace(/\{(\w+)\}/g, (whole, k: string) => vars[k] ?? whole);
 
+/** a call's options in finnish, with the same ids (team names stay in the nominative) */
+export function optionsFi(options: { id: string; label: string }[], vars: Record<string, string>): { id: string; label: string }[] {
+  const fi: Record<string, string> = {
+    home_reg: `${vars.home} varsinaisella peliajalla`,
+    away_reg: `${vars.away} varsinaisella peliajalla`,
+    overtime: "Jatkoajalle",
+    home: vars.home,
+    away: vars.away,
+    none: "Ei maalia",
+    yes: "Kyllä",
+    no: "Ei",
+  };
+  return options.map((o) => ({ id: o.id, label: fi[o.id] ?? o.label }));
+}
+
 /** calls answered yes or no */
 const YES_NO: CallKind[] = ["power_play", "answer_back", "overtime"];
 /** what the wording must still be about */

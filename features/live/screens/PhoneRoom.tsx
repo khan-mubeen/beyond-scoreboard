@@ -91,7 +91,7 @@ export function PhoneRoomView({
       {state.phase === "final" ? (
         <FinalCard state={state} />
       ) : state.phase === "lobby" ? (
-        <Card>You're in. Calls start at puck drop.</Card>
+        <Card>You're in. Calls open when the game starts.</Card>
       ) : state.activeCall ? (
         <CallCard
           call={state.activeCall}

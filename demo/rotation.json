@@ -1,0 +1,185 @@
+{
+  "demoNow": "2026-10-20T17:30:00+03:00",
+  "lobbySeconds": 60,
+  "summarySeconds": 600,
+  "matches": [
+    {
+      "matchId": "2027-2701379",
+      "title": "TPS – Ilves",
+      "video": {
+        "type": "mp4",
+        "url": "https://tywyftnyghlzljnhpszq.supabase.co/storage/v1/object/public/highlights/2027-2701379/highlight-1039e9acfa.mp4"
+      },
+      "poster": "https://tywyftnyghlzljnhpszq.supabase.co/storage/v1/object/public/highlights/2027-2701379/poster-cadc39677d.jpg",
+      "durationSec": 454.68,
+      "cues": [
+        {
+          "goalId": "g19",
+          "videoSec": 16.4,
+          "gameTime": 197
+        },
+        {
+          "goalId": "g100",
+          "videoSec": 79.4,
+          "gameTime": 1318
+        },
+        {
+          "goalId": "g126",
+          "videoSec": 143.2,
+          "gameTime": 1649
+        },
+        {
+          "goalId": "g137",
+          "videoSec": 203.9,
+          "gameTime": 1759
+        },
+        {
+          "goalId": "g203",
+          "videoSec": 273.9,
+          "gameTime": 3100
+        },
+        {
+          "goalId": "g217",
+          "videoSec": 339.7,
+          "gameTime": 3455
+        },
+        {
+          "goalId": "g225",
+          "videoSec": 404.9,
+          "gameTime": 3542
+        }
+      ],
+      "segments": [
+        {
+          "goalId": "g19",
+          "startSec": 0,
+          "durationSec": 65.33
+        },
+        {
+          "goalId": "g100",
+          "startSec": 65.33,
+          "durationSec": 63.57
+        },
+        {
+          "goalId": "g126",
+          "startSec": 128.9,
+          "durationSec": 64.13
+        },
+        {
+          "goalId": "g137",
+          "startSec": 193.02,
+          "durationSec": 63.81
+        },
+        {
+          "goalId": "g203",
+          "startSec": 256.83,
+          "durationSec": 67.21
+        },
+        {
+          "goalId": "g217",
+          "startSec": 324.04,
+          "durationSec": 67.73
+        },
+        {
+          "goalId": "g225",
+          "startSec": 391.77,
+          "durationSec": 62.73
+        }
+      ],
+      "cuesSource": "audio-peaks",
+      "streamUrl": "https://tywyftnyghlzljnhpszq.supabase.co/storage/v1/object/public/highlights/2027-2701379/highlight-1039e9acfa.mp4"
+    },
+    {
+      "matchId": "2027-2701398",
+      "title": "KooKoo – Tappara",
+      "video": {
+        "type": "mp4",
+        "url": "https://tywyftnyghlzljnhpszq.supabase.co/storage/v1/object/public/highlights/2027-2701398/highlight-2381a41ee2.mp4"
+      },
+      "poster": "https://tywyftnyghlzljnhpszq.supabase.co/storage/v1/object/public/highlights/2027-2701398/poster-bc05d6b5c7.jpg",
+      "durationSec": 259.22,
+      "cues": [
+        {
+          "goalId": "g18",
+          "videoSec": 12.9,
+          "gameTime": 285
+        },
+        {
+          "goalId": "g71",
+          "videoSec": 76.3,
+          "gameTime": 1548
+        },
+        {
+          "goalId": "g118",
+          "videoSec": 142.5,
+          "gameTime": 2434
+        },
+        {
+          "goalId": "g167",
+          "videoSec": 211,
+          "gameTime": 3545
+        }
+      ],
+      "segments": [
+        {
+          "goalId": "g18",
+          "startSec": 0,
+          "durationSec": 63.02
+        },
+        {
+          "goalId": "g71",
+          "startSec": 63.02,
+          "durationSec": 65.73
+        },
+        {
+          "goalId": "g118",
+          "startSec": 128.75,
+          "durationSec": 67.35
+        },
+        {
+          "goalId": "g167",
+          "startSec": 196.1,
+          "durationSec": 63.01
+        }
+      ],
+      "cuesSource": "audio-peaks",
+      "streamUrl": "https://tywyftnyghlzljnhpszq.supabase.co/storage/v1/object/public/highlights/2027-2701398/highlight-2381a41ee2.mp4"
+    },
+    {
+      "matchId": "2027-2701400",
+      "title": "SaiPa – Kärpät",
+      "video": {
+        "type": "mp4",
+        "url": "https://tywyftnyghlzljnhpszq.supabase.co/storage/v1/object/public/highlights/2027-2701400/highlight-9fc0572076.mp4"
+      },
+      "poster": "https://tywyftnyghlzljnhpszq.supabase.co/storage/v1/object/public/highlights/2027-2701400/poster-2997fe8437.jpg",
+      "durationSec": 131.58,
+      "cues": [
+        {
+          "goalId": "g128",
+          "videoSec": 14.4,
+          "gameTime": 2289
+        },
+        {
+          "goalId": "g154",
+          "videoSec": 80.7,
+          "gameTime": 2851
+        }
+      ],
+      "segments": [
+        {
+          "goalId": "g128",
+          "startSec": 0,
+          "durationSec": 63.65
+        },
+        {
+          "goalId": "g154",
+          "startSec": 63.65,
+          "durationSec": 67.89
+        }
+      ],
+      "cuesSource": "audio-peaks",
+      "streamUrl": "https://tywyftnyghlzljnhpszq.supabase.co/storage/v1/object/public/highlights/2027-2701400/highlight-9fc0572076.mp4"
+    }
+  ]
+}

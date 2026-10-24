@@ -1,8 +1,15 @@
-// joins fake fans to a match on a running server and answers every open call. talks http only
-// (never imports server code); each fan has its own ks_anon cookie. with HOST_TOKEN set it resets
-// and starts the demo replay first, otherwise it waits for the host. exits 1 on any error.
-// run: npm run fake-players -- <matchId> [count]   (needs `npm run dev` with DEMO_REPLAY_MATCH_ID)
+// joins fake fans (bots) to a match on a running server and answers every open call. talks http
+// only (never imports server code); each fan has its own ks_anon cookie. a demo rotation match:
+// skips to its lobby and plays it to its summary; a speed replay: resets and starts it.
+// then checks the points two ways and that no bot shows on a leaderboard. exits 1 on any error.
+// run: npm run fake-players -- <matchId> [count]   (HOST_TOKEN from .env; DEMO_MODE or DEMO_REPLAY_MATCH_ID)
 import type { FinishedMatchDetail, LiveCall, LiveState } from "@/shared/types";
+
+try {
+  process.loadEnvFile(".env");
+} catch {
+  // no .env, use the shell environment
+}
 
 const BASE = process.env.BASE_URL ?? "http://localhost:3000";
 const HOST_TOKEN = process.env.HOST_TOKEN;
@@ -13,6 +20,10 @@ const ANSWER_RATE = 0.9;
 
 if (!matchId || !/^\d{4}-\d+$/.test(matchId) || !(count > 0)) {
   console.error("usage: npm run fake-players -- <matchId like 2027-2701404> [count]");
+  process.exit(1);
+}
+if (!HOST_TOKEN) {
+  console.error("HOST_TOKEN is needed (in .env or the shell): fake players join as bots, which only the host may add");
   process.exit(1);
 }
 
@@ -45,21 +56,30 @@ const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
 const fans: Fan[] = [];
 for (let i = 1; i <= count; i++) {
   const name = `Fan ${String(i).padStart(2, "0")}`;
-  const r = await call(`/api/site/matches/${matchId}/join`, { method: "POST", body: { nickname: name } });
+  // bots: real rows, but never on a leaderboard, in a watching count or a notification
+  const r = await call(`/api/site/matches/${matchId}/join`, { method: "POST", body: { nickname: name, bot: true }, host: true });
   if (r.status !== 200 || !r.cookie) throw new Error(`join failed for ${name}: ${r.status} ${JSON.stringify(r.body)}`);
   fans.push({ name, cookie: r.cookie, answered: new Set() });
 }
 console.log(`${fans.length} fans joined ${matchId}`);
 
-// 2. a fresh run of the replay
-if (HOST_TOKEN) {
+// 2. a demo rotation match (DEMO_MODE): skip to its lobby. a speed replay: a fresh run
+type Rotation = { current: { matchId: string; phase: string }; matches: { matchId: string }[] };
+const rot = await call("/api/site/rotation");
+const rotation = rot.status === 200 && (rot.body as unknown as Rotation).matches.some((m) => m.matchId === matchId);
+if (rotation) {
+  for (let i = 0; i < 12; i++) {
+    const r = (await call("/api/site/rotation")).body as unknown as Rotation;
+    if (r.current.matchId === matchId && r.current.phase === "lobby") break;
+    await call("/api/site/rotation/control", { method: "POST", body: { action: "skip" }, host: true });
+  }
+  console.log("rotation: at the match's lobby; playing it to its summary");
+} else {
   for (const action of ["reset", "start"]) {
     const r = await call(`/api/site/matches/${matchId}/control`, { method: "POST", body: { action }, host: true });
     if (r.status !== 200) throw new Error(`host ${action} failed: ${r.status} ${JSON.stringify(r.body)}`);
   }
   console.log("replay reset and started");
-} else {
-  console.log("no HOST_TOKEN: waiting for the host to start the replay (/match/<id>?host=1)");
 }
 
 // 3. follow the state, answer each call once, log every call's life
@@ -111,8 +131,9 @@ for (;;) {
       answeredCalls.add(state.call.id);
       await answerAll(state.call);
     }
-    // final, with nothing left to resolve, a moment after the end
-    if (state.status === "final" && !state.call) finalSeenAt ??= Date.now();
+    // final (a rotation match: its summary), with nothing left to resolve, a moment after the end
+    const done = rotation ? state.rotation?.phase === "summary" : state.status === "final";
+    if (done && !state.call) finalSeenAt ??= Date.now();
     if (finalSeenAt && Date.now() - finalSeenAt > 2000) break;
   }
   if (Date.now() - started > MAX_MINUTES * 60_000) {
@@ -146,12 +167,20 @@ for (const f of fans) {
   if (me?.matchPoints !== night.points) errors.push(`${f.name}: /state says ${me?.matchPoints} points, the match page ${night.points}`);
 }
 
+// 5. bots never count: no fake fan on a leaderboard, and the room's watching count leaves them out
+const names = new Set(fans.map((f) => f.name));
+for (const scope of ["weekly", "season", "room"]) {
+  const b = (await call(`/api/site/leaderboard?scope=${scope}`)).body as { entries?: { nickname: string }[] };
+  const leaked = (b.entries ?? []).filter((e) => names.has(e.nickname));
+  if (leaked.length) errors.push(`${leaked.length} bots on the ${scope} leaderboard`);
+}
+if ((state?.watching ?? 0) >= fans.length) errors.push(`watching says ${state?.watching}: the bots are counted`);
+
 const calls = [...lastStatus.values()];
 const by = (s: string) => calls.filter((v) => v === s).length;
 // polling sees the last call to change; several can resolve in one tick (the final whistle)
 console.log(`\nfinal ${state?.score.home}-${state?.score.away}. calls: ${calls.length}, last seen ${by("resolved")} resolved, ${by("cancelled")} cancelled`);
-console.log(`room leaderboard: ${(state?.leaderboard ?? []).slice(0, 3).map((e) => `${e.name} ${e.score}`).join(", ")}`);
-console.log(`points checked for ${checked} fans`);
+console.log(`points checked for ${checked} fans; bots on no leaderboard, watching ${state?.watching} (bots left out)`);
 if (errors.length) {
   console.error(`\n${errors.length} errors:\n${errors.slice(0, 20).join("\n")}`);
   process.exit(1);

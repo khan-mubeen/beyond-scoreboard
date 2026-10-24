@@ -1,0 +1,337 @@
+{
+  "date": "2026-10-20",
+  "demoNow": "2026-10-20T17:30:00+03:00",
+  "ranked": [
+    {
+      "matchId": "2027-2701379",
+      "title": "TPS – Ilves",
+      "start": "2026-10-20T15:30:00Z",
+      "score": "4–3",
+      "decidedIn": "regulation",
+      "goals": 7,
+      "clips": [
+        {
+          "goalId": "g19",
+          "period": 1,
+          "gameTime": 197,
+          "scorer": "Otto Latvala",
+          "score": "0–1",
+          "url": "https://videos.liiga.fi/videos/42c28e1c-4b4e-4872-8ec7-9bb8d678ffb2/playlist.m3u8",
+          "thumb": "https://videos.liiga.fi/videos/42c28e1c-4b4e-4872-8ec7-9bb8d678ffb2/thumbnail.jpeg"
+        },
+        {
+          "goalId": "g100",
+          "period": 2,
+          "gameTime": 1318,
+          "scorer": "Arttu Tuhkala",
+          "score": "1–1",
+          "url": "https://videos.liiga.fi/videos/864e0c11-d281-49f3-89fb-0ace86eaad40/playlist.m3u8",
+          "thumb": "https://videos.liiga.fi/videos/864e0c11-d281-49f3-89fb-0ace86eaad40/thumbnail.jpeg"
+        },
+        {
+          "goalId": "g126",
+          "period": 2,
+          "gameTime": 1649,
+          "scorer": "Iivari Heikkinen",
+          "score": "1–2",
+          "url": "https://videos.liiga.fi/videos/64868707-86dd-44c3-ae58-75290cff9974/playlist.m3u8",
+          "thumb": "https://videos.liiga.fi/videos/64868707-86dd-44c3-ae58-75290cff9974/thumbnail.jpeg"
+        },
+        {
+          "goalId": "g137",
+          "period": 2,
+          "gameTime": 1759,
+          "scorer": "Jeremi Virtanen",
+          "score": "2–2",
+          "url": "https://videos.liiga.fi/videos/e2fbe699-49c0-4a2d-b0bf-7a876232bbee/playlist.m3u8",
+          "thumb": "https://videos.liiga.fi/videos/e2fbe699-49c0-4a2d-b0bf-7a876232bbee/thumbnail.jpeg"
+        },
+        {
+          "goalId": "g203",
+          "period": 3,
+          "gameTime": 3100,
+          "scorer": "Sisu Yliniemi",
+          "score": "3–2",
+          "url": "https://videos.liiga.fi/videos/2806fd9c-8e99-4274-9762-0eee77ba4a15/playlist.m3u8",
+          "thumb": "https://videos.liiga.fi/videos/2806fd9c-8e99-4274-9762-0eee77ba4a15/thumbnail.jpeg"
+        },
+        {
+          "goalId": "g217",
+          "period": 3,
+          "gameTime": 3455,
+          "scorer": "Vili Munkki",
+          "score": "4–2",
+          "url": "https://videos.liiga.fi/videos/d36da714-c327-4322-96b9-42261424f154/playlist.m3u8",
+          "thumb": "https://videos.liiga.fi/videos/d36da714-c327-4322-96b9-42261424f154/thumbnail.jpeg"
+        },
+        {
+          "goalId": "g225",
+          "period": 3,
+          "gameTime": 3542,
+          "scorer": "Luke Henman",
+          "score": "4–3",
+          "url": "https://videos.liiga.fi/videos/40e0ef19-60b2-4e64-85d8-c28f5b384b57/playlist.m3u8",
+          "thumb": "https://videos.liiga.fi/videos/40e0ef19-60b2-4e64-85d8-c28f5b384b57/thumbnail.jpeg"
+        }
+      ],
+      "tags": [
+        "7 goals",
+        "a lead change",
+        "a comeback win",
+        "a late goal"
+      ],
+      "points": 11,
+      "teams": [
+        "651304385:tps",
+        "951626834:ilves"
+      ]
+    },
+    {
+      "matchId": "2027-2701398",
+      "title": "KooKoo – Tappara",
+      "start": "2026-10-20T15:30:00Z",
+      "score": "3–2",
+      "decidedIn": "shootout",
+      "goals": 4,
+      "clips": [
+        {
+          "goalId": "g18",
+          "period": 1,
+          "gameTime": 285,
+          "scorer": "Vilho Vanhatalo",
+          "score": "0–1",
+          "url": "https://videos.liiga.fi/videos/3c29d4d0-3cdf-4342-a123-44b53e9fdcc4/playlist.m3u8",
+          "thumb": "https://videos.liiga.fi/videos/3c29d4d0-3cdf-4342-a123-44b53e9fdcc4/thumbnail.jpeg"
+        },
+        {
+          "goalId": "g71",
+          "period": 2,
+          "gameTime": 1548,
+          "scorer": "Vilmos Gallo",
+          "score": "1–1",
+          "url": "https://videos.liiga.fi/videos/9d088a67-d776-4e3f-b8e3-53902294bc83/playlist.m3u8",
+          "thumb": "https://videos.liiga.fi/videos/9d088a67-d776-4e3f-b8e3-53902294bc83/thumbnail.jpeg"
+        },
+        {
+          "goalId": "g118",
+          "period": 3,
+          "gameTime": 2434,
+          "scorer": "Arttu Pelli",
+          "score": "2–1",
+          "url": "https://videos.liiga.fi/videos/27ba451c-32d5-431b-abf9-2457fc6912b3/playlist.m3u8",
+          "thumb": "https://videos.liiga.fi/videos/27ba451c-32d5-431b-abf9-2457fc6912b3/thumbnail.jpeg"
+        },
+        {
+          "goalId": "g167",
+          "period": 3,
+          "gameTime": 3545,
+          "scorer": "Michael Lindqvist",
+          "score": "2–2",
+          "url": "https://videos.liiga.fi/videos/156fc5a4-dabe-43e6-869c-183d7bc22a74/playlist.m3u8",
+          "thumb": "https://videos.liiga.fi/videos/156fc5a4-dabe-43e6-869c-183d7bc22a74/thumbnail.jpeg"
+        }
+      ],
+      "tags": [
+        "a lead change",
+        "a comeback win",
+        "a late goal",
+        "a shootout"
+      ],
+      "points": 7,
+      "teams": [
+        "461765763:kookoo",
+        "362185137:tappara"
+      ]
+    },
+    {
+      "matchId": "2027-2701400",
+      "title": "SaiPa – Kärpät",
+      "start": "2026-10-20T15:30:00Z",
+      "score": "2–1",
+      "decidedIn": "shootout",
+      "goals": 2,
+      "clips": [
+        {
+          "goalId": "g128",
+          "period": 2,
+          "gameTime": 2289,
+          "scorer": "Eetu Päkkilä",
+          "score": "0–1",
+          "url": "https://videos.liiga.fi/videos/31867873-a1af-4ae9-b739-26724c82e47a/playlist.m3u8",
+          "thumb": "https://videos.liiga.fi/videos/31867873-a1af-4ae9-b739-26724c82e47a/thumbnail.jpeg"
+        },
+        {
+          "goalId": "g154",
+          "period": 3,
+          "gameTime": 2851,
+          "scorer": "Saku Salminen",
+          "score": "1–1",
+          "url": "https://videos.liiga.fi/videos/21a4dc12-ff75-4126-bf94-586586a59090/playlist.m3u8",
+          "thumb": "https://videos.liiga.fi/videos/21a4dc12-ff75-4126-bf94-586586a59090/thumbnail.jpeg"
+        }
+      ],
+      "tags": [
+        "a comeback win",
+        "a shootout",
+        "Kärpät"
+      ],
+      "points": 6,
+      "teams": [
+        "933686567:saipa",
+        "495643563:kärpät"
+      ]
+    },
+    {
+      "matchId": "2027-2701399",
+      "title": "Lukko – HIFK",
+      "start": "2026-10-20T15:30:00Z",
+      "score": "3–2",
+      "decidedIn": "shootout",
+      "goals": 4,
+      "clips": [
+        {
+          "goalId": "g29",
+          "period": 1,
+          "gameTime": 288,
+          "scorer": "Lassi Vanhatalo",
+          "score": "0–1",
+          "url": "https://videos.liiga.fi/videos/3a9c720f-c9ca-490a-95a2-53cc22defaf4/playlist.m3u8",
+          "thumb": "https://videos.liiga.fi/videos/3a9c720f-c9ca-490a-95a2-53cc22defaf4/thumbnail.jpeg"
+        },
+        {
+          "goalId": "g55",
+          "period": 1,
+          "gameTime": 901,
+          "scorer": "Iiro Pakarinen",
+          "score": "0–2",
+          "url": "https://videos.liiga.fi/videos/10206703-3134-43df-800b-96f36cd097f2/playlist.m3u8",
+          "thumb": "https://videos.liiga.fi/videos/10206703-3134-43df-800b-96f36cd097f2/thumbnail.jpeg"
+        },
+        {
+          "goalId": "g70",
+          "period": 1,
+          "gameTime": 1061,
+          "scorer": "Topias Haapanen",
+          "score": "1–2",
+          "url": "https://videos.liiga.fi/videos/8e4945b3-090c-4c65-8026-52f4fd0c8830/playlist.m3u8",
+          "thumb": "https://videos.liiga.fi/videos/8e4945b3-090c-4c65-8026-52f4fd0c8830/thumbnail.jpeg"
+        },
+        {
+          "goalId": "g165",
+          "period": 3,
+          "gameTime": 3260,
+          "scorer": "Felix Robert",
+          "score": "2–2",
+          "url": "https://videos.liiga.fi/videos/e4c09bfa-90ca-407b-906a-d07dcbb38dea/playlist.m3u8",
+          "thumb": "https://videos.liiga.fi/videos/e4c09bfa-90ca-407b-906a-d07dcbb38dea/thumbnail.jpeg"
+        }
+      ],
+      "tags": [
+        "a comeback win",
+        "a shootout"
+      ],
+      "points": 3,
+      "teams": [
+        "624554857:lukko",
+        "168761288:hifk"
+      ]
+    },
+    {
+      "matchId": "2027-2701396",
+      "title": "HPK – Pelicans",
+      "start": "2026-10-20T15:30:00Z",
+      "score": "1–3",
+      "decidedIn": "regulation",
+      "goals": 4,
+      "clips": [
+        {
+          "goalId": "g109",
+          "period": 2,
+          "gameTime": 1381,
+          "scorer": "Aatu Pohjalainen",
+          "score": "0–1",
+          "url": "https://videos.liiga.fi/videos/cbb88ee5-f5a5-489c-bebf-34ec83ca5fd6/playlist.m3u8",
+          "thumb": "https://videos.liiga.fi/videos/cbb88ee5-f5a5-489c-bebf-34ec83ca5fd6/thumbnail.jpeg"
+        },
+        {
+          "goalId": "g122",
+          "period": 2,
+          "gameTime": 1547,
+          "scorer": "Oskari Kuusisto",
+          "score": "1–1",
+          "url": "https://videos.liiga.fi/videos/23c4ec31-2c58-494e-ae16-2bb9961d4ca1/playlist.m3u8",
+          "thumb": "https://videos.liiga.fi/videos/23c4ec31-2c58-494e-ae16-2bb9961d4ca1/thumbnail.jpeg"
+        },
+        {
+          "goalId": "g187",
+          "period": 2,
+          "gameTime": 2388,
+          "scorer": "Mikko Kousa",
+          "score": "1–2",
+          "url": "https://videos.liiga.fi/videos/50fa2674-2b44-4c52-b627-833db5300eda/playlist.m3u8",
+          "thumb": "https://videos.liiga.fi/videos/50fa2674-2b44-4c52-b627-833db5300eda/thumbnail.jpeg"
+        },
+        {
+          "goalId": "g261",
+          "period": 3,
+          "gameTime": 3572,
+          "scorer": "Gabriel Fortier",
+          "score": "1–3",
+          "url": "https://videos.liiga.fi/videos/de5ca960-6227-4df3-abf8-dd2aecc27b55/playlist.m3u8",
+          "thumb": "https://videos.liiga.fi/videos/de5ca960-6227-4df3-abf8-dd2aecc27b55/thumbnail.jpeg"
+        }
+      ],
+      "tags": [
+        "a late goal"
+      ],
+      "points": 2,
+      "teams": [
+        "55786244:hpk",
+        "875886777:pelicans"
+      ]
+    },
+    {
+      "matchId": "2027-2701767",
+      "title": "Sport – Jukurit",
+      "start": "2026-10-20T15:30:00Z",
+      "score": "0–3",
+      "decidedIn": "regulation",
+      "goals": 3,
+      "clips": [
+        {
+          "goalId": "g149",
+          "period": 1,
+          "gameTime": 864,
+          "scorer": "Louis Boudon",
+          "score": "0–1",
+          "url": "https://videos.liiga.fi/videos/ba85118e-f2a9-4903-b225-e7a7c2012327/playlist.m3u8",
+          "thumb": "https://videos.liiga.fi/videos/ba85118e-f2a9-4903-b225-e7a7c2012327/thumbnail.jpeg"
+        },
+        {
+          "goalId": "g183",
+          "period": 2,
+          "gameTime": 1228,
+          "scorer": "Justin Addamo",
+          "score": "0–2",
+          "url": "https://videos.liiga.fi/videos/19ddfb41-53ca-4108-8bcd-4a176c8c32d0/playlist.m3u8",
+          "thumb": "https://videos.liiga.fi/videos/19ddfb41-53ca-4108-8bcd-4a176c8c32d0/thumbnail.jpeg"
+        },
+        {
+          "goalId": "g204",
+          "period": 2,
+          "gameTime": 1771,
+          "scorer": "Jeremi Tammela",
+          "score": "0–3",
+          "url": "https://videos.liiga.fi/videos/56e75cc2-4b22-4f42-bc79-1687f691a025/playlist.m3u8",
+          "thumb": "https://videos.liiga.fi/videos/56e75cc2-4b22-4f42-bc79-1687f691a025/thumbnail.jpeg"
+        }
+      ],
+      "tags": [],
+      "points": 0,
+      "teams": [
+        "626537494:sport",
+        "292293444:jukurit"
+      ]
+    }
+  ]
+}
