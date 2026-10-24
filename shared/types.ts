@@ -672,6 +672,8 @@ interface MatchDetailBase {
   rotation?: LiveRotation | null;
   /** the match on liiga.fi ("Watch on liiga.fi", "Video not playing?") */
   liigaUrl?: string;
+  /** the live stream needs a plan: the poster and the plan to offer (the video itself isn't sent) */
+  streamLock?: { planId: string; planName: string; priceLabel: string; poster: string | null } | null;
 }
 
 export interface LiveMatchDetail extends MatchDetailBase {
@@ -856,14 +858,57 @@ export interface LiveState {
   } | null;
 }
 
+/** a plan as the rewards page shows it */
 export interface Subscription {
   id: string;
   tag: string;
   title: string;
   description: string;
+  /** "€7.90 / month" */
   priceLabel: string;
-  /** the fan already has it */
+  /** the fan has it now */
   included: boolean;
+  includes?: string[];
+  /** demo price in euro cents */
+  priceCents?: number;
+  maxPointsUsable?: number;
+  includesLiveStream?: boolean;
+  /** the fan's running period: valid until, and whether it was cancelled (it still runs until then) */
+  active?: { until: string; cancelled: boolean } | null;
+}
+
+/** one purchase, for the history */
+export interface PurchaseRecord {
+  id: string;
+  planId: string;
+  planName: string;
+  startedAt: string;
+  expiresAt: string;
+  pointsUsed: number;
+  /** the demo money paid, "€4.40" */
+  amountLabel: string;
+  status: "active" | "cancelled" | "expired";
+  includesLiveStream: boolean;
+}
+
+/** POST /api/site/subscriptions */
+export interface SubscriptionResult extends ApiMeta {
+  purchase: PurchaseRecord;
+  /** valid until (the plan's last running period) */
+  until: string;
+  balance: number;
+  /** the same idempotency key was sent before: the first result again */
+  replayed: boolean;
+}
+
+/** POST /api/site/offers/:id/redeem */
+export interface OfferResult extends ApiMeta {
+  offerId: string;
+  code: string;
+  pointsUsed: number;
+  partnerUrl: string | null;
+  balance: number;
+  replayed: boolean;
 }
 
 export interface RewardOffer {
@@ -873,6 +918,12 @@ export interface RewardOffer {
   description: string;
   /** null means members only */
   costPoints: number | null;
+  /** the partner's official site; null hides "Go to partner site" */
+  partnerUrl?: string | null;
+  /** the fan's code once unlocked */
+  redemption?: { code: string; at: string } | null;
+  /** members only: the fan has a plan */
+  eligible?: boolean;
 }
 
 export type AchievementIcon = "star" | "bolt" | "rook";
@@ -894,6 +945,8 @@ export interface RewardsPage {
   offers: RewardOffer[];
   achievements: Achievement[];
   footnote: string;
+  /** the fan's purchases, newest first */
+  history?: PurchaseRecord[];
 }
 
 // ---------- the viewer, notifications, leaderboards ----------
@@ -1013,6 +1066,10 @@ export interface MeResponse extends ApiMeta {
   notificationPrefs: NotificationPrefs;
   /** the pinned demo clock when DEMO_MODE is on */
   demo: { label: string; now: string } | null;
+  /** what the fan can spend (a guest: the welcome balance they start with) */
+  wallet: { balance: number };
+  /** running plans, one per plan */
+  plans: { planId: string; name: string; until: string; cancelled: boolean; includesLiveStream: boolean }[];
 }
 
 export interface NotificationItem {

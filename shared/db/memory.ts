@@ -1,6 +1,18 @@
 // in-memory db behind the same interface: tests and DB_MODE=memory. lost on restart
 import { randomUUID } from "node:crypto";
-import { DEFAULT_PREFS, type Db, type DbAnswer, type DbCall, type DbComment, type DbNotification, type DbPoints, type DbRoom, type DbUser } from "./types";
+import {
+  DEFAULT_PREFS,
+  type Db,
+  type DbAnswer,
+  type DbCall,
+  type DbComment,
+  type DbNotification,
+  type DbPoints,
+  type DbRedemption,
+  type DbRoom,
+  type DbSubscription,
+  type DbUser,
+} from "./types";
 
 const now = () => new Date().toISOString();
 
@@ -19,6 +31,24 @@ export function createMemoryDb(): Db {
   const notifications: DbNotification[] = [];
   const settings = new Map<string, unknown>();
   const favorites = new Map<string, Set<string>>();
+  const subscriptions: DbSubscription[] = [];
+  const redemptions: DbRedemption[] = [];
+
+  // the per-fan lock: spends of one fan run one after another (like pg_advisory_xact_lock)
+  const queues = new Map<string, Promise<unknown>>();
+  function locked<T>(userId: string, fn: () => Promise<T>): Promise<T> {
+    const prev = queues.get(userId) ?? Promise.resolve();
+    const run = prev.then(fn, fn);
+    queues.set(
+      userId,
+      run.catch(() => {}),
+    );
+    return run;
+  }
+  const balance = (userId: string) => points.filter((p) => p.userId === userId).reduce((a, p) => a + p.points, 0);
+  // a real database answers later: without the lock, two spends would both pass the check here
+  const io = () => new Promise((r) => setTimeout(r, 1));
+  const readSub = (sub: DbSubscription): DbSubscription => ({ ...sub, status: sub.status !== "expired" && sub.expiresAt <= now() ? "expired" : sub.status });
 
   return {
     mode: "memory",
@@ -47,7 +77,7 @@ export function createMemoryDb(): Db {
       async remove(id) {
         users.delete(id);
         favorites.delete(id);
-        for (const list of [answers, points, comments, notifications] as { userId: string }[][]) {
+        for (const list of [answers, points, comments, notifications, subscriptions, redemptions] as { userId: string }[][]) {
           const kept = list.filter((x) => x.userId !== id);
           list.splice(0, list.length, ...kept);
         }
@@ -144,6 +174,73 @@ export function createMemoryDb(): Db {
         return points.filter((p) => p.createdAt >= iso && (!matchId || p.matchId === matchId));
       },
     },
+    wallet: {
+      async balance(userId) {
+        return balance(userId);
+      },
+      purchase(p) {
+        return locked(p.userId, async () => {
+          if (!(p.points >= 0) || !(p.amountEur > 0) || !(p.days > 0) || !p.idempotencyKey) return { status: "invalid" as const };
+          const again = subscriptions.find((x) => x.idempotencyKey === p.idempotencyKey);
+          if (again) return again.userId === p.userId ? { status: "ok" as const, replayed: true, balance: balance(p.userId), row: readSub(again) } : { status: "conflict" as const };
+          const have = balance(p.userId);
+          await io();
+          if (have < p.points) return { status: "insufficient" as const, balance: have };
+          const at = now();
+          const running = subscriptions.filter((x) => x.userId === p.userId && x.planId === p.planId && x.status !== "expired" && x.expiresAt > at).map((x) => x.expiresAt);
+          const start = running.length ? running.sort().at(-1)! : at;
+          const sub: DbSubscription = {
+            id: randomUUID(),
+            userId: p.userId,
+            planId: p.planId,
+            startedAt: start,
+            expiresAt: new Date(Date.parse(start) + p.days * 86_400_000).toISOString(),
+            pointsUsed: p.points,
+            demoAmountEur: p.amountEur,
+            status: "active",
+            idempotencyKey: p.idempotencyKey,
+            createdAt: at,
+          };
+          subscriptions.push(sub);
+          if (p.points > 0) points.push({ id: randomUUID(), userId: p.userId, matchId: null, callId: null, points: -p.points, reason: "subscription", ref: sub.id, createdAt: at });
+          return { status: "ok" as const, replayed: false, balance: have - p.points, row: { ...sub } };
+        });
+      },
+      async subscriptions(userId) {
+        return subscriptions
+          .filter((x) => x.userId === userId)
+          .map(readSub)
+          .sort((a, b) => b.createdAt.localeCompare(a.createdAt));
+      },
+      async cancel(userId, planId) {
+        const at = now();
+        let n = 0;
+        for (const x of subscriptions) {
+          if (x.userId === userId && x.planId === planId && x.status === "active" && x.expiresAt > at) {
+            x.status = "cancelled";
+            n++;
+          }
+        }
+        return n;
+      },
+      redeem(p) {
+        return locked(p.userId, async () => {
+          if (!(p.points >= 0) || !p.code) return { status: "invalid" as const };
+          const have = balance(p.userId);
+          const again = redemptions.find((x) => x.userId === p.userId && x.offerId === p.offerId);
+          if (again) return { status: "ok" as const, replayed: true, balance: have, row: { ...again } };
+          await io();
+          if (have < p.points) return { status: "insufficient" as const, balance: have };
+          const red: DbRedemption = { id: randomUUID(), userId: p.userId, offerId: p.offerId, pointsUsed: p.points, code: p.code, createdAt: now() };
+          redemptions.push(red);
+          if (p.points > 0) points.push({ id: randomUUID(), userId: p.userId, matchId: null, callId: null, points: -p.points, reason: "offer", ref: red.id, createdAt: red.createdAt });
+          return { status: "ok" as const, replayed: false, balance: have - p.points, row: { ...red } };
+        });
+      },
+      async redemptions(userId) {
+        return redemptions.filter((x) => x.userId === userId).map((x) => ({ ...x }));
+      },
+    },
     comments: {
       async create(c) {
         const row: DbComment = { ...c, id: randomUUID(), createdAt: now(), hidden: false, likes: 0 };
@@ -235,11 +332,17 @@ export function createMemoryDb(): Db {
           list.splice(0, list.length, ...kept);
           return before - kept.length;
         };
-        const bots = [...users.values()].filter((u) => u.isBot);
-        for (const b of bots) users.delete(b.id);
+        // bots, and every fan who isn't seeded (created since `since`): with everything of theirs
+        const bots = [...users.values()].filter((u) => u.isBot || (!seeded.has(u.id) && u.createdAt >= since));
+        for (const b of bots) {
+          users.delete(b.id);
+          favorites.delete(b.id);
+        }
         const gone = new Set(bots.map((b) => b.id));
         const out = {
           users: bots.length,
+          subscriptions: drop(subscriptions, (x) => gone.has(x.userId) || !keep(x.userId, x.createdAt)),
+          redemptions: drop(redemptions, (x) => gone.has(x.userId) || !keep(x.userId, x.createdAt)),
           answers: drop(answers, (a) => gone.has(a.userId) || !keep(a.userId, a.answeredAt)),
           points: drop(points, (p) => gone.has(p.userId) || !keep(p.userId, p.createdAt)),
           notifications: drop(notifications, (n) => gone.has(n.userId) || n.createdAt >= since),

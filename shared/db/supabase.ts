@@ -1,6 +1,19 @@
 // supabase repositories. server only: uses the service-role (secret) key, which bypasses rls
 import { createClient, type SupabaseClient } from "@supabase/supabase-js";
-import { DEFAULT_PREFS, type Db, type DbAnswer, type DbCall, type DbComment, type DbNotification, type DbPoints, type DbRoom, type DbUser } from "./types";
+import {
+  DEFAULT_PREFS,
+  type Db,
+  type DbAnswer,
+  type DbCall,
+  type DbComment,
+  type DbNotification,
+  type DbPoints,
+  type DbRedemption,
+  type DbRoom,
+  type DbSubscription,
+  type DbUser,
+  type SpendResult,
+} from "./types";
 
 type Row = Record<string, unknown>;
 
@@ -78,8 +91,41 @@ const pts = (r: Row): DbPoints => ({
   callId: (r.call_id as string) ?? null,
   points: r.points as number,
   reason: r.reason as string,
+  ref: (r.ref as string) ?? null,
   createdAt: r.created_at as string,
 });
+const subscription = (r: Row): DbSubscription => {
+  const expiresAt = new Date(r.expires_at as string).toISOString();
+  const stored = r.status as DbSubscription["status"];
+  return {
+    id: r.id as string,
+    userId: r.user_id as string,
+    planId: r.plan_id as string,
+    startedAt: new Date(r.started_at as string).toISOString(),
+    expiresAt,
+    pointsUsed: r.points_used as number,
+    demoAmountEur: Number(r.demo_amount_eur),
+    // one past its end reads as expired, whatever is stored
+    status: stored !== "expired" && Date.parse(expiresAt) <= Date.now() ? "expired" : stored,
+    idempotencyKey: r.idempotency_key as string,
+    createdAt: new Date(r.created_at as string).toISOString(),
+  };
+};
+const redemption = (r: Row): DbRedemption => ({
+  id: r.id as string,
+  userId: r.user_id as string,
+  offerId: r.offer_id as string,
+  pointsUsed: r.points_used as number,
+  code: r.code as string,
+  createdAt: new Date(r.created_at as string).toISOString(),
+});
+/** the jsonb a spend function returns, as a SpendResult */
+function spendResult<T>(raw: unknown, key: "subscription" | "redemption", map: (r: Row) => T): SpendResult<T> {
+  const r = (raw ?? {}) as { status?: string; replayed?: boolean; balance?: number } & Record<string, unknown>;
+  if (r.status === "ok") return { status: "ok", replayed: !!r.replayed, balance: Number(r.balance), row: map(r[key] as Row) };
+  if (r.status === "insufficient") return { status: "insufficient", balance: Number(r.balance) };
+  return { status: r.status === "conflict" ? "conflict" : "invalid" };
+}
 const comment = (r: Row): DbComment => ({
   id: r.id as string,
   matchId: r.match_id as string,
@@ -218,6 +264,7 @@ export function createSupabaseDb(sb: SupabaseClient): Db {
           call_id: e.callId,
           points: e.points,
           reason: e.reason,
+          ...(e.ref && { ref: e.ref }),
           ...(e.createdAt && { created_at: e.createdAt }),
         });
         if (res.error?.code === UNIQUE_VIOLATION) return false;
@@ -231,6 +278,44 @@ export function createSupabaseDb(sb: SupabaseClient): Db {
         let q = sb.from("points_ledger").select("*").gte("created_at", iso);
         if (matchId) q = q.eq("match_id", matchId);
         return must(await q.limit(10_000)).map(pts);
+      },
+    },
+    wallet: {
+      async balance(userId) {
+        return must(await sb.from("points_ledger").select("points").eq("user_id", userId)).reduce((a, r) => a + (r.points as number), 0);
+      },
+      // both spends are postgres functions: one transaction behind pg_advisory_xact_lock per fan
+      async purchase(p) {
+        const res = await sb.rpc("purchase_subscription", {
+          p_user: p.userId,
+          p_plan: p.planId,
+          p_points: p.points,
+          p_amount_eur: p.amountEur,
+          p_days: p.days,
+          p_key: p.idempotencyKey,
+        });
+        return spendResult(must(res), "subscription", subscription);
+      },
+      async subscriptions(userId) {
+        return must(await sb.from("user_subscriptions").select("*").eq("user_id", userId).order("created_at", { ascending: false })).map(subscription);
+      },
+      async cancel(userId, planId) {
+        const res = await sb
+          .from("user_subscriptions")
+          .update({ status: "cancelled" }, { count: "exact" })
+          .eq("user_id", userId)
+          .eq("plan_id", planId)
+          .eq("status", "active")
+          .gt("expires_at", new Date().toISOString());
+        if (res.error) throw new Error(`supabase: ${res.error.message}`);
+        return res.count ?? 0;
+      },
+      async redeem(p) {
+        const res = await sb.rpc("redeem_offer", { p_user: p.userId, p_offer: p.offerId, p_points: p.points, p_code: p.code });
+        return spendResult(must(res), "redemption", redemption);
+      },
+      async redemptions(userId) {
+        return must(await sb.from("offer_redemptions").select("*").eq("user_id", userId)).map(redemption);
       },
     },
     comments: {
@@ -334,6 +419,9 @@ export function createSupabaseDb(sb: SupabaseClient): Db {
         const unseeded = <Q,>(q: Q): Q => (seeded.length ? (q as unknown as { not(c: string, op: string, v: string): Q }).not("user_id", "in", notSeeded) : q);
         const out: Record<string, number> = {};
         out.users = await count(sb.from("users").delete({ count: "exact" }).eq("is_bot", true));
+        // every fan who isn't seeded goes, with everything of theirs (cascade): a returning
+        // browser starts as a new fan, welcome balance included
+        out.users += await count(sb.from("users").delete({ count: "exact" }).not("anon_id", "like", "seed:%").gte("created_at", since));
         out.answers = await count(unseeded(sb.from("answers").delete({ count: "exact" }).gte("answered_at", since)));
         out.points = await count(unseeded(sb.from("points_ledger").delete({ count: "exact" }).gte("created_at", since)));
         out.notifications = await count(sb.from("notifications").delete({ count: "exact" }).gte("created_at", since));

@@ -78,6 +78,7 @@ export interface DbAnswer {
   correct: boolean | null;
 }
 
+/** one ledger row: earned points are positive, spending is negative (reason subscription / offer) */
 export interface DbPoints {
   id: string;
   userId: string;
@@ -85,8 +86,38 @@ export interface DbPoints {
   callId: string | null;
   points: number;
   reason: string;
+  /** what a debit paid for (the subscription or redemption id) */
+  ref?: string | null;
   createdAt: string;
 }
+
+export type SubscriptionStatus = "active" | "cancelled" | "expired";
+
+export interface DbSubscription {
+  id: string;
+  userId: string;
+  planId: string;
+  startedAt: string;
+  expiresAt: string;
+  pointsUsed: number;
+  demoAmountEur: number;
+  /** stored active or cancelled; one past its expiry reads as expired */
+  status: SubscriptionStatus;
+  idempotencyKey: string;
+  createdAt: string;
+}
+
+export interface DbRedemption {
+  id: string;
+  userId: string;
+  offerId: string;
+  pointsUsed: number;
+  code: string;
+  createdAt: string;
+}
+
+/** an atomic spend: done (or the first result again, replayed), not enough points, or refused */
+export type SpendResult<T> = { status: "ok"; replayed: boolean; balance: number; row: T } | { status: "insufficient"; balance: number } | { status: "invalid" | "conflict" };
 
 export interface DbComment {
   id: string;
@@ -144,6 +175,24 @@ export interface Db {
     listForUser(userId: string): Promise<DbPoints[]>;
     listSince(iso: string, matchId?: string): Promise<DbPoints[]>;
   };
+  /**
+   * spending points. every spend is one transaction behind a per-fan lock (postgres: an advisory
+   * lock in purchase_subscription / redeem_offer; memory: a per-fan mutex), so parallel clicks
+   * can't overspend and the balance never goes below zero
+   */
+  wallet: {
+    /** the sum of the fan's ledger */
+    balance(userId: string): Promise<number>;
+    /** the debit and the subscription together; an active plan of the same id is extended */
+    purchase(p: { userId: string; planId: string; points: number; amountEur: number; days: number; idempotencyKey: string }): Promise<SpendResult<DbSubscription>>;
+    /** newest first */
+    subscriptions(userId: string): Promise<DbSubscription[]>;
+    /** the plan's running periods stop renewing (they stay valid until they expire); how many */
+    cancel(userId: string, planId: string): Promise<number>;
+    /** once per fan and offer: a second call returns the first redemption */
+    redeem(p: { userId: string; offerId: string; points: number; code: string }): Promise<SpendResult<DbRedemption>>;
+    redemptions(userId: string): Promise<DbRedemption[]>;
+  };
   comments: {
     create(c: Pick<DbComment, "matchId" | "userId" | "text">): Promise<DbComment>;
     get(id: string): Promise<DbComment | null>;
@@ -177,9 +226,10 @@ export interface Db {
   };
   admin: {
     /**
-     * npm run demo:reset: deletes bots, and every answer, point, notification, comment, call and
-     * room membership since `since` (all of them when omitted) that isn't seeded data
-     * (users whose anon id starts with "seed:"). returns what was deleted, per table
+     * npm run demo:reset: deletes bots and every fan who isn't seeded (anon id "seed:…") created
+     * since `since` (all when omitted), with everything of theirs (answers, points, spending,
+     * subscriptions, codes, comments, rooms: cascade), plus notifications and calls since then.
+     * a fan who comes back starts fresh (and gets the welcome balance again). per table counts
      */
     resetDemo(since?: string): Promise<Record<string, number>>;
   };
