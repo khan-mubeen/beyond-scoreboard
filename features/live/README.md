@@ -1,6 +1,6 @@
 # live
 
-The live engine for Kaleva Sports matches (Call It! on real and replayed Liiga games), plus the older watch party room: replay clock, live calls, joining, answers, scoring, and the phone and host screens.
+The live engine for Kaleva Sports matches (Your Call! on real and replayed Liiga games), plus the older watch party room: replay clock, live calls, joining, answers, scoring, and the phone and host screens.
 
 ## Public API
 

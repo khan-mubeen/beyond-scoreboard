@@ -25,6 +25,7 @@ export {
   goalVideoSec,
   matchSince,
   openCalls,
+  refreshRoom,
   refreshRotation,
   roomMatchNow,
   roomScope,

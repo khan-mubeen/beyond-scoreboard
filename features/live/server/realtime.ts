@@ -11,6 +11,7 @@ export type MatchEvent =
   | "call_resolved"
   | "call_cancelled"
   | "leaderboard"
+  | "room"
   | "comment"
   | "game_end";
 

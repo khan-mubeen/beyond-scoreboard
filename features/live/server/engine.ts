@@ -394,6 +394,14 @@ class MatchLoop {
     };
   }
 
+  /** the watch together room changed (a fan joined, left or timed out): re-read it, tell everyone */
+  async refreshRoom() {
+    if (!renderer) return;
+    this.board = await renderer.leaderboard(this.matchId);
+    if (this.state) this.state = { ...this.state, leaderboard: this.board.rows, watching: this.board.watching };
+    await publish(this.matchId, [{ event: "room", payload: { leaderboard: this.board.rows, watching: this.board.watching } }]);
+  }
+
   /** host controls for the demo replay */
   async control(action: string): Promise<string | null> {
     const now = Date.now();
@@ -511,6 +519,11 @@ export function engineMatch(matchId: string): EngineMatch | null {
   const loop = loops.get(matchId);
   if (!loop) return null;
   return { state: loop.state, visible: loop.visible, isReplay: loop.kind !== "live", names: loop.names, rotation: loop.state?.rotation ?? null };
+}
+
+/** a fan joined, left or timed out of a match's room: the new count and board, to everyone */
+export async function refreshRoom(matchId: string): Promise<void> {
+  await loops.get(matchId)?.refreshRoom();
 }
 
 /** a goal's second in a rotation match's highlight, for its "Watch" button */
