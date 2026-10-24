@@ -76,7 +76,7 @@ export function EventList({
             </div>
             <div className="flex items-center gap-3">
               <EffectTag effect={e.effect} />
-              <WatchButton onClick={() => onWatch(e)} />
+              {e.video && <WatchButton onClick={() => onWatch(e)} />}
             </div>
           </li>
         ))}

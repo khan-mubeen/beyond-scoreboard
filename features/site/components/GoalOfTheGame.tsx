@@ -2,7 +2,13 @@ import type { FinishedMatchDetail } from "@/shared/types";
 import { WatchButton } from "./EventList";
 import { Pill, SectionCard } from "./SectionCard";
 
-export function GoalOfTheGame({ goal, onWatch }: { goal: FinishedMatchDetail["goalOfTheGame"]; onWatch: () => void }) {
+export function GoalOfTheGame({
+  goal,
+  onWatch,
+}: {
+  goal: NonNullable<FinishedMatchDetail["goalOfTheGame"]>;
+  onWatch: () => void;
+}) {
   return (
     <SectionCard title="Goal of the game" action={<Pill tone="good">{goal.chip}</Pill>}>
       <div className="flex flex-col gap-4 sm:flex-row">

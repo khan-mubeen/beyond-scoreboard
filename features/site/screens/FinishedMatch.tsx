@@ -17,7 +17,8 @@ import { VideoModal, VideoPlayer } from "../components/VideoPlayer";
 import { RoomLeaderboard } from "../components/WatchTogetherCard";
 import { WhatItMeant } from "../components/WhatItMeant";
 import { YourNight } from "../components/YourNight";
-import { useSiteChrome } from "../data";
+import { isMockMatch, setReminderApi, useSiteChrome } from "../data";
+import type { DataSource } from "@/shared/types";
 
 type Tab = "overview" | "moments" | "stats" | "stakes" | "discussion";
 
@@ -30,7 +31,7 @@ const TABS: TabItem<Tab>[] = [
 ];
 
 /** a finished match page (docs/design/03-finished-match.png) */
-export function FinishedMatch({ match }: { match: FinishedMatchDetail }) {
+export function FinishedMatch({ match, source }: { match: FinishedMatchDetail; source?: DataSource | null }) {
   const chrome = useSiteChrome();
   const [tab, setTab] = useState<Tab>("overview");
   const [video, setVideo] = useState<VideoInfo | null>(null);
@@ -40,14 +41,16 @@ export function FinishedMatch({ match }: { match: FinishedMatchDetail }) {
       title="Key moments"
       events={match.events}
       note={match.eventsNote}
-      onWatch={(e) => setVideo(e.video)}
+      onWatch={(e) => e.video && setVideo(e.video)}
       onViewAll={tab === "moments" ? undefined : () => setTab("moments")}
     />
   );
   const stats = <MatchStats stats={match.stats} source={match.statsSource} note={match.statsNote} />;
+  const gotg = match.goalOfTheGame;
+  const real = !isMockMatch(match.id);
 
   return (
-    <SiteLayout chrome={chrome} sidebar={{ docked: false }}>
+    <SiteLayout chrome={chrome} sidebar={{ docked: false }} source={source}>
       <div className="px-4 pb-12 md:px-[30px]">
         <Breadcrumbs items={match.breadcrumbs} />
         <div className="grid gap-4 xl:grid-cols-[minmax(0,1fr)_380px]">
@@ -88,7 +91,7 @@ export function FinishedMatch({ match }: { match: FinishedMatchDetail }) {
               >
                 {tab === "overview" && (
                   <>
-                    <GoalOfTheGame goal={match.goalOfTheGame} onWatch={() => setVideo(match.goalOfTheGame.video)} />
+                    {gotg && <GoalOfTheGame goal={gotg} onWatch={() => setVideo(gotg.video)} />}
                     <div className="grid gap-4 lg:grid-cols-2">
                       {moments}
                       {stats}
@@ -102,11 +105,16 @@ export function FinishedMatch({ match }: { match: FinishedMatchDetail }) {
               </motion.div>
             </AnimatePresence>
 
-            <NextUpBanner next={match.nextUp} />
+            {match.nextUp && (
+              <NextUpBanner
+                next={match.nextUp}
+                onToggle={real && match.nextUp.matchId ? (on) => setReminderApi(match.nextUp!.matchId!, on).then((r) => r.ok) : undefined}
+              />
+            )}
           </main>
 
           <aside aria-label="Your night and the room" className="flex min-w-0 flex-col gap-4">
-            <YourNight night={match.yourNight} />
+            {match.yourNight && <YourNight night={match.yourNight} />}
             <SectionCard
               title={match.room.leaderboardTitle}
               action={<span className="text-xs text-muted">{match.room.leaderboardNote}</span>}

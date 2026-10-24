@@ -7,5 +7,4 @@ export { LiigaTable, ZoneLegend } from "./components/LiigaTable";
 export { StakesChip, ChangeTag } from "./components/StakesChip";
 export { StepChart } from "./components/StepChart";
 export { CountdownRing } from "./components/CountdownRing";
-export { findMatch } from "./data";
 export type { HomePage, MatchDetail, RewardsPage, SiteChrome } from "@/shared/types";

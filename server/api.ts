@@ -7,8 +7,12 @@ import { joinRoom } from "@/features/live/server/routes/join";
 import { roomState } from "@/features/live/server/routes/state";
 import { getBrief, getStory } from "@/features/story/server/routes/content";
 import { getVerificationReport } from "@/features/story/server/routes/verification";
+import { siteRouter } from "@/features/site/server/routes/site";
 
 export const api = Router();
+
+// kaleva sports pages: real liiga data, the db, the live engine
+api.use("/site", siteRouter);
 
 // room codes are case-insensitive: /api/rooms/test works like /api/rooms/TEST
 api.param("code", (req, _res, next, code: string) => {

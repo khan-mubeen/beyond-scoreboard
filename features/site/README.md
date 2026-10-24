@@ -1,10 +1,11 @@
 # site
 
-The Kaleva Sports pages from `docs/design/`: Sports home, the live and finished match pages, and Kaleva Rewards. Front-end only for now: every screen reads typed mock data.
+The Kaleva Sports pages from `docs/design/`: Sports home, the live and finished match pages, and Kaleva Rewards, on real Liiga data, and their api (`/api/site/*`, see `docs/contract.md`).
 
 ## How it fits
 
-- **Data:** `data.ts` is the only place screens get data from (`useSiteChrome`, `useHomePage`, `useMatchDetail`, `useRewardsPage`). Today it reads `shared/mock/site/`. When the api exists, these hooks fetch instead and the screens stay the same.
+- **Data:** `data.ts` is the only place screens get data from (`useSiteChrome`, `useHomePage`, `useMatchDetail`, `useRewardsPage`, …). It fetches `/api/site/*` and falls back to `shared/mock/site/` when `VITE_USE_MOCKS=true` or a request fails. Live matches add `components/use-live-match.ts` (realtime, then polling).
+- **Server:** `server/` builds each page from liiga, stakes, story and the db (`home.ts`, `match.ts`, `rewards.ts`, `state.ts`), and `live-render.ts` is the renderer the live engine uses, so a broadcast and a page load always agree. `routes/site.ts` validates with zod and refuses any response with a betting field.
 - **Theme:** site routes set `data-theme="site"` on `<html>` (see `app/main.tsx`). That theme redefines the shared tokens in `shared/styles/tokens.css` to white, black and Kaleva red (`#d80016`, sampled from the designs). Room and dev pages keep the dark theme. Components use token classes only, never raw colours.
 - **Layout:** full width, like YouTube. `SiteLayout` owns the sidebar. Home, rewards and the placeholder pages dock it at the far left on screens of 1024px and up, and the hamburger hides or shows it (the choice is remembered). Match pages, and every page below 1024px, open it as a drawer from the left over a 50% black layer. Esc, the layer or the menu button closes it.
 - **Fonts:** Playfair Display for editorial headlines, Inter for the UI (Google Fonts, linked in `index.html`).
@@ -20,22 +21,22 @@ The Kaleva Sports pages from `docs/design/`: Sports home, the live and finished 
 | `/rewards`                                               | `Rewards`                                                                              |
 | `/calls`, `/calls/history`, `/achievements`, `/settings` | `Placeholder` ("Coming soon")                                                          |
 
-Mock match ids: `karpat-assat-live`, `karpat-assat-final`.
+Match ids are `{season}-{gameId}` (`2027-2701404`). The design's mock pages stay at `karpat-assat-live` and `karpat-assat-final`.
 
-## Local-only behaviour (until the api lands)
+## Behaviour
 
-- **Call It!:** answers, the countdown and the reveal (`components/use-call-it.ts`). One state per page shared by the side card, the tab and the mobile sheet.
-- **Discussion:** comments post to a local list.
-- **Other buttons:** Invite copies the room link. Reminder, subscribe and offer buttons show toasts.
-- **Rooms:** "Join room" links to the real watch party rooms (`/room/:code`, `/host`, `/screen`).
+- **Call It!:** the server opens, locks and resolves calls; the card counts down against server time and shows the split once locked, the answer once resolved, or "cancelled, no points" (`components/use-live-match.ts`, `use-call-it.ts`).
+- **Joining:** the first answer, comment or join asks for a nickname (`NicknamePrompt`); the cookie `ks_anon` is the fan. Join room QR codes link to `/match/<id>?room=<code>`.
+- **Discussion, likes, reminders:** stored in the db; new comments arrive over realtime.
+- **Host:** `?host=1` shows the replay controls; the server checks `HOST_TOKEN`.
+- **Subscribe and offer buttons:** toasts (no payments).
 
 ## Test alone
 
 - `npm run dev`, then open the routes above at 1440, 768 and 390 px.
-- `npm test -- features/site` runs the copy guardrails over all mock text, plus data and format checks.
+- `npm test -- features/site`: copy guardrails over the mock text, the whole api in-process on snapshots (no betting fields, host token, a replay end to end), and the bundle scan for server secrets.
 
 ## Todo
 
-- Fetch from the api in `data.ts`, and send the Call It! result from the server after the call locks.
-- Real images, video and lineups. "View all" and "Full table" links.
+- Real images for posters and the featured match. "View all" and "Full table" links.
 - The date selector is static.

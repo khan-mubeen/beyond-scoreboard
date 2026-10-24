@@ -29,9 +29,10 @@ export function ScoreHeader({
   match: MatchSummary;
   venue: string;
   dateLabel: string;
-  spectators: number;
+  spectators: number | null;
 }) {
   const live = match.status === "live";
+  const facts = [match.league, dateLabel, venue, spectators ? `${fmtInt(spectators)} spectators` : null].filter(Boolean);
   return (
     <section
       aria-label="Score"
@@ -44,7 +45,9 @@ export function ScoreHeader({
             {live ? (
               <LiveBadge />
             ) : (
-              <span className="rounded-md bg-surface-2 px-2.5 py-1 text-xs font-bold">FINAL</span>
+              <span className="rounded-md bg-surface-2 px-2.5 py-1 text-xs font-bold">
+                {match.status === "final" ? "FINAL" : match.whenLabel}
+              </span>
             )}
             {live && (
               <span>
@@ -53,20 +56,19 @@ export function ScoreHeader({
             )}
           </p>
           <p className="mt-1 text-[44px] leading-tight font-bold tabular-nums md:text-[56px]">
-            {match.score?.home} – {match.score?.away}
+            {match.score ? `${match.score.home} – ${match.score.away}` : "vs"}
           </p>
           <p className="text-xs text-muted tabular-nums">{periodScoresText(match.periodScores)}</p>
         </div>
         <Team team={match.away} align="right" />
       </div>
       <p className="mt-4 flex flex-wrap justify-center gap-x-3 gap-y-1 text-xs text-muted">
-        <span>{match.league}</span>
-        <span aria-hidden>·</span>
-        <span>{dateLabel}</span>
-        <span aria-hidden>·</span>
-        <span>{venue}</span>
-        <span aria-hidden>·</span>
-        <span>{fmtInt(spectators)} spectators</span>
+        {facts.map((f, i) => (
+          <span key={f} className="flex gap-3">
+            {i > 0 && <span aria-hidden>·</span>}
+            <span>{f}</span>
+          </span>
+        ))}
       </p>
     </section>
   );

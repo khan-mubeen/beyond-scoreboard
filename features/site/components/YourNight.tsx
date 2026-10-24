@@ -3,7 +3,7 @@ import { fmtInt, ordinal } from "../format";
 import { Pill, SectionCard } from "./SectionCard";
 
 /** the fan's own result for the match */
-export function YourNight({ night }: { night: FinishedMatchDetail["yourNight"] }) {
+export function YourNight({ night }: { night: NonNullable<FinishedMatchDetail["yourNight"]> }) {
   return (
     <SectionCard title="Your night" action={<Pill tone="good">+{night.points} pts</Pill>}>
       <dl className="flex flex-col divide-y divide-line text-sm">

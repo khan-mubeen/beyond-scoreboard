@@ -8,7 +8,8 @@ import { Avatar } from "./TeamLogo";
 import { useToast } from "./Toast";
 
 /** the link phones open for a room, built from where this page is served */
-export const roomUrl = (code: string) => `${window.location.origin}/room/${code}`;
+export const roomUrl = (code: string, matchId?: string) =>
+  matchId ? `${window.location.origin}/match/${matchId}?room=${code}` : `${window.location.origin}/room/${code}`;
 
 export function RoomLeaderboard({ rows }: { rows: RoomLeaderboardRow[] }) {
   return (
@@ -38,15 +39,26 @@ export function RoomLeaderboard({ rows }: { rows: RoomLeaderboardRow[] }) {
 }
 
 /** who's watching in the room, invite and join, and the room leaderboard */
-export function WatchTogetherCard({ room, onJoin, id }: { room: RoomSummary; onJoin: () => void; id?: string }) {
+export function WatchTogetherCard({
+  room,
+  onJoin,
+  id,
+  matchId,
+}: {
+  room: RoomSummary;
+  onJoin: () => void;
+  id?: string;
+  matchId?: string;
+}) {
   const toast = useToast();
 
   async function invite() {
+    const url = roomUrl(room.code, matchId);
     try {
-      await navigator.clipboard.writeText(roomUrl(room.code));
+      await navigator.clipboard.writeText(url);
       toast("Room link copied");
     } catch {
-      toast(`Share this link: ${roomUrl(room.code)}`);
+      toast(`Share this link: ${url}`);
     }
   }
 
@@ -87,7 +99,7 @@ export function WatchTogetherCard({ room, onJoin, id }: { room: RoomSummary; onJ
         </div>
         <div className="mt-1 mb-3 flex items-center justify-between text-xs text-muted">
           <span>{room.leaderboardNote}</span>
-          <a href={`/room/${room.code}`} className="flex items-center gap-1 hover:text-ink">
+          <a href={matchId ? "/calls/history" : `/room/${room.code}`} className="flex items-center gap-1 hover:text-ink">
             View standings <Icon name="arrowRight" className="size-3" />
           </a>
         </div>
@@ -97,20 +109,29 @@ export function WatchTogetherCard({ room, onJoin, id }: { room: RoomSummary; onJ
   );
 }
 
-/** room code, a qr for phones, and links into the existing room pages */
-export function JoinRoomModal({ code, open, onClose }: { code: string; open: boolean; onClose: () => void }) {
-  const links = [
-    { href: `/room/${code}`, label: "Open on this device" },
-    { href: `/room/${code}/host`, label: "Host controls" },
-    { href: `/room/${code}/screen`, label: "Big screen" },
-  ];
+/**
+ * room code and a qr for phones. for a real match both open the new match page with the room
+ * (/match/<id>?room=<code>); the old /room pages stay as host and big-screen tools for the demo room
+ */
+export function JoinRoomModal({ code, matchId, open, onClose }: { code: string; matchId?: string; open: boolean; onClose: () => void }) {
+  const url = roomUrl(code, matchId);
+  const links = matchId
+    ? [
+        { href: `/match/${matchId}?room=${code}`, label: "Open on this device" },
+        { href: `/match/${matchId}?host=1`, label: "Host controls" },
+      ]
+    : [
+        { href: `/room/${code}`, label: "Open on this device" },
+        { href: `/room/${code}/host`, label: "Host controls" },
+        { href: `/room/${code}/screen`, label: "Big screen" },
+      ];
   return (
     <Modal open={open} onClose={onClose} title={`Join room ${code}`}>
       <div className="flex flex-col items-center gap-4 text-center">
         <p className="font-mono text-3xl font-bold tracking-[0.3em]">{code}</p>
         {open && (
           <div className="rounded-lg border border-line bg-surface p-3">
-            <QRCodeSVG value={roomUrl(code)} size={176} title={`QR code for ${roomUrl(code)}`} />
+            <QRCodeSVG value={url} size={176} title={`QR code for ${url}`} />
           </div>
         )}
         <p className="text-sm text-muted">Scan with your phone to join, or open the room here.</p>

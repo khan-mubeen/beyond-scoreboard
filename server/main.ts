@@ -1,20 +1,17 @@
 // one long-running node process: the api plus the react app.
 // dev: vite runs inside express (hot reload). prod (--prod): serves the vite build from dist/
+import "./env";
 import express from "express";
 import { fileURLToPath } from "node:url";
+import { startup } from "@/features/site/server/routes/startup";
 import { api } from "./api";
-
-try {
-  process.loadEnvFile(".env");
-} catch {
-  // no .env, use the shell environment
-}
 
 const prod = process.argv.includes("--prod");
 const port = Number(process.env.PORT ?? 3000);
 const app = express();
 
-app.use(express.json());
+app.set("trust proxy", 1);
+app.use(express.json({ limit: "32kb" }));
 app.use("/api", api);
 
 if (prod) {
@@ -27,6 +24,7 @@ if (prod) {
   app.use(vite.middlewares);
 }
 
+await startup();
 app.listen(port, () => {
   console.log(`powerplay ${prod ? "(prod)" : "(dev)"} on http://localhost:${port}`);
 });

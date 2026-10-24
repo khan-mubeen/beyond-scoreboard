@@ -3,14 +3,22 @@ import type { FinishedMatchDetail } from "@/shared/types";
 import { Icon } from "./Icon";
 import { useToast } from "./Toast";
 
-/** the next match with a reminder toggle (local only for now) */
-export function NextUpBanner({ next }: { next: FinishedMatchDetail["nextUp"] }) {
+/** the next match with a reminder toggle. with onToggle the reminder is saved on the server */
+export function NextUpBanner({
+  next,
+  onToggle,
+}: {
+  next: NonNullable<FinishedMatchDetail["nextUp"]>;
+  onToggle?: (on: boolean) => Promise<boolean>;
+}) {
   const [set, setSet] = useState(false);
   const toast = useToast();
 
-  function toggle() {
-    setSet(!set);
-    toast(set ? "Reminder removed" : `We'll remind you before ${next.title}`);
+  async function toggle() {
+    const on = !set;
+    if (onToggle && !(await onToggle(on))) return toast("Couldn't save the reminder, try again");
+    setSet(on);
+    toast(on ? `We'll remind you before ${next.title}` : "Reminder removed");
   }
 
   return (

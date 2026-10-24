@@ -10,6 +10,7 @@ import { ComingSoonMatchCard, MatchCard } from "../components/MatchCard";
 import { SeasonStakesStrip } from "../components/SeasonStakesStrip";
 import { ActionLink } from "../components/SectionCard";
 import { SiteLayout } from "../components/SiteLayout";
+import { PageLoading } from "../components/PageLoading";
 import { useHomePage, useSiteChrome } from "../data";
 
 type Filter = "all" | "live" | "results" | "upcoming";
@@ -32,9 +33,18 @@ function MatchSection({ title, children, viewAll }: { title: string; children: R
 
 /** kaleva sports home (docs/design/01-home.png) */
 export function SportsHome() {
-  const chrome = useSiteChrome();
-  const home = useHomePage();
+  const { data: home, source } = useHomePage();
+  const chrome = useSiteChrome(home?.user, home?.favorites);
   const [filter, setFilter] = useState<Filter>("all");
+  const sidebar = { activeLinkId: "home", docked: true };
+
+  if (!home) {
+    return (
+      <SiteLayout chrome={chrome} sidebar={sidebar}>
+        <PageLoading />
+      </SiteLayout>
+    );
+  }
 
   const options: FilterOption<Filter>[] = [
     { id: "all", label: "All", icon: "grid" },
@@ -43,10 +53,12 @@ export function SportsHome() {
     { id: "upcoming", label: "Upcoming", icon: "history" },
   ];
   const show = (f: Filter) => filter === "all" || filter === f;
-  const otherLive = home.live.filter((m) => m.id !== home.featured.match.id);
+  const featured = home.featured;
+  const showFeatured = featured && (filter === "all" || (filter === "live" && featured.match.status === "live"));
+  const otherLive = home.live.filter((m) => m.id !== featured?.match.id);
 
   return (
-    <SiteLayout chrome={chrome} sidebar={{ activeLinkId: "home", docked: true }}>
+    <SiteLayout chrome={chrome} sidebar={sidebar} source={source}>
       <main className="flex min-w-0 flex-col gap-4 px-4 pt-5 pb-10 lg:px-6">
         <HeroBanner hero={home.hero} />
 
@@ -65,9 +77,11 @@ export function SportsHome() {
               exit={{ opacity: 0 }}
               transition={{ duration: 0.16 }}
             >
-              {show("live") && <LiveMatchCard featured={home.featured} />}
-              {filter === "all" && <SeasonStakesStrip title="Season stakes today" items={home.seasonStakesToday} />}
-              {show("live") && (
+              {showFeatured && <LiveMatchCard featured={featured} />}
+              {filter === "all" && home.seasonStakesToday.length > 0 && (
+                <SeasonStakesStrip title="Season stakes today" items={home.seasonStakesToday} />
+              )}
+              {show("live") && (otherLive.length > 0 || filter === "live") && (
                 <MatchSection title={`Live Matches (${home.live.length})`} viewAll>
                   <div className="grid gap-3 md:grid-cols-[minmax(0,1.3fr)_minmax(0,1fr)]">
                     {otherLive.map((m) => (

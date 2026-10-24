@@ -1,18 +1,24 @@
-// every page in one table. each one is a thin wrapper around a feature screen.
+// every page in one table. each one is a thin wrapper around a feature screen, loaded on
+// demand (one chunk per page, so a phone only downloads the page it opens).
 // plain links and full page loads, no router library needed
-import type { ReactNode } from "react";
-import { DevLive } from "@/features/live/screens/DevLive";
-import { HostRoom } from "@/features/live/screens/HostRoom";
-import { Landing } from "@/features/live/screens/Landing";
-import { PhoneRoom } from "@/features/live/screens/PhoneRoom";
-import { MatchPage } from "@/features/site/screens/MatchPage";
-import { Placeholder } from "@/features/site/screens/Placeholder";
-import { Rewards } from "@/features/site/screens/Rewards";
-import { SportsHome } from "@/features/site/screens/SportsHome";
-import { BigScreen } from "@/features/stakes/screens/BigScreen";
-import { DevStakes } from "@/features/stakes/screens/DevStakes";
-import { DevStory } from "@/features/story/screens/DevStory";
+import { type ComponentType, lazy, type ReactNode, Suspense } from "react";
 import { Card } from "@/shared/ui";
+
+/** a screen module's named export as a lazy component */
+const page = <P extends object>(load: () => Promise<Record<string, unknown>>, name: string) =>
+  lazy(async () => ({ default: (await load())[name] as ComponentType<P> }));
+
+const SportsHome = page(() => import("@/features/site/screens/SportsHome"), "SportsHome");
+const MatchPage = page<{ id: string }>(() => import("@/features/site/screens/MatchPage"), "MatchPage");
+const Rewards = page(() => import("@/features/site/screens/Rewards"), "Rewards");
+const Placeholder = page<{ title: string; activeLinkId?: string }>(() => import("@/features/site/screens/Placeholder"), "Placeholder");
+const Landing = page(() => import("@/features/live/screens/Landing"), "Landing");
+const PhoneRoom = page<{ code: string }>(() => import("@/features/live/screens/PhoneRoom"), "PhoneRoom");
+const HostRoom = page<{ code: string }>(() => import("@/features/live/screens/HostRoom"), "HostRoom");
+const BigScreen = page<{ code: string }>(() => import("@/features/stakes/screens/BigScreen"), "BigScreen");
+const DevLive = page(() => import("@/features/live/screens/DevLive"), "DevLive");
+const DevStakes = page(() => import("@/features/stakes/screens/DevStakes"), "DevStakes");
+const DevStory = page(() => import("@/features/story/screens/DevStory"), "DevStory");
 
 /** "site" pages use the light kaleva theme, the rest keep the dark room theme */
 export type Theme = "site" | "room";
@@ -51,7 +57,7 @@ export function resolveRoute(pathname: string): { element: ReactNode; theme: The
 }
 
 export function App() {
-  return resolveRoute(window.location.pathname).element;
+  return <Suspense fallback={<div className="min-h-screen bg-bg" />}>{resolveRoute(window.location.pathname).element}</Suspense>;
 }
 
 const DEV_PAGES = [

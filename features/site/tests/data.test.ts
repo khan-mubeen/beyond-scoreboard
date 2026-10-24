@@ -4,15 +4,15 @@ import { findMatch } from "../data";
 import { fmtChange, ordinal, periodScoresText } from "../format";
 
 describe("site data", () => {
-  it("serves the live and the finished match by id", () => {
-    expect(findMatch("karpat-assat-live")?.status).toBe("live");
-    expect(findMatch("karpat-assat-final")?.status).toBe("final");
-    expect(findMatch("nope")).toBeNull();
+  it("serves the two demo matches without a backend", async () => {
+    expect((await findMatch("karpat-assat-live"))?.status).toBe("live");
+    expect((await findMatch("karpat-assat-final"))?.status).toBe("final");
+    expect(await findMatch("2027-2701404")).toBeNull();
   });
 
-  it("never sends the call answer inside the public call", () => {
-    const live = findMatch("karpat-assat-live");
-    expect(live?.status === "live" && "correctOptionId" in live.callIt.call).toBe(false);
+  it("never sends the call answer inside the public call", async () => {
+    const live = await findMatch("karpat-assat-live");
+    expect(live?.status === "live" && live.callIt && "correctOptionId" in live.callIt.call).toBe(false);
   });
 
   it("only uses placeholder images", () => {

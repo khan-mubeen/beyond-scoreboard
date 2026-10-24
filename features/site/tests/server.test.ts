@@ -1,0 +1,183 @@
+// the whole server in-process, on the recorded snapshots and the memory db: no page response and
+// no realtime broadcast carries betting fields, host controls need the token, and a demo replay
+// runs end to end (call opens, fans answer, the call resolves, the points add up)
+import type { AddressInfo } from "node:net";
+import { afterAll, beforeAll, describe, expect, it } from "vitest";
+import type { FinishedMatchDetail, LiveCall, LiveState } from "@/shared/types";
+
+const MATCH = "2027-2701404"; // K-Espoo 0-3 HIFK, decided in regulation
+const HOST = "test-host-token";
+
+// before any server module reads its env
+Object.assign(process.env, {
+  USE_SNAPSHOT: "true",
+  DB_MODE: "memory",
+  SIM_RUNS: "300",
+  HOST_TOKEN: HOST,
+  DEMO_REPLAY_MATCH_ID: MATCH,
+  DEMO_REPLAY_SPEED: "600",
+  DEMO_REPLAY_AUTOSTART: "false",
+  CALL_ANSWER_SECONDS: "2",
+  DEMO_PROFILE: "false",
+  LLM_ENABLED: "false",
+});
+for (const k of ["LIIGA_API_URL", "LIIGA_API_KEY", "SUPABASE_URL", "SUPABASE_SECRET_KEY", "SUPABASE_SERVICE_ROLE_KEY"]) delete process.env[k];
+
+let base = "";
+let close = () => {};
+let liiga: typeof import("@/features/liiga");
+let live: typeof import("@/features/live/server");
+
+beforeAll(async () => {
+  const express = (await import("express")).default;
+  const { api } = await import("@/server/api");
+  const { startup } = await import("@/features/site/server/routes/startup");
+  liiga = await import("@/features/liiga");
+  live = await import("@/features/live/server");
+  await startup();
+  const app = express();
+  app.use(express.json());
+  app.use("/api", api);
+  const server = app.listen(0);
+  await new Promise((r) => server.once("listening", r));
+  base = `http://127.0.0.1:${(server.address() as AddressInfo).port}`;
+  close = () => server.close();
+}, 60_000);
+
+afterAll(async () => {
+  await live?.controlReplay(MATCH, "pause");
+  close();
+});
+
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+type Json = any;
+
+async function http(path: string, opts: { method?: string; body?: unknown; cookie?: string; headers?: Record<string, string> } = {}) {
+  const res = await fetch(`${base}/api/site${path}`, {
+    method: opts.method ?? "GET",
+    headers: { ...(opts.body !== undefined && { "content-type": "application/json" }), ...(opts.cookie && { cookie: opts.cookie }), ...opts.headers },
+    body: opts.body === undefined ? undefined : JSON.stringify(opts.body),
+  });
+  const cookie = res.headers.getSetCookie().map((c) => c.split(";")[0]).find((c) => c.startsWith("ks_anon="));
+  return { status: res.status, body: (await res.json()) as Json, cookie };
+}
+
+const control = (action: string, token: string | null = HOST) =>
+  http(`/matches/${MATCH}/control`, { method: "POST", body: { action }, headers: token ? { "x-host-token": token } : {} });
+
+async function until<T>(what: string, fn: () => Promise<T | null | undefined | false>, ms = 30_000): Promise<T> {
+  const end = Date.now() + ms;
+  for (;;) {
+    const v = await fn();
+    if (v) return v;
+    if (Date.now() > end) throw new Error(`timed out waiting for ${what}`);
+    await new Promise((r) => setTimeout(r, 100));
+  }
+}
+
+describe("site api responses", () => {
+  const pages = [
+    "/home",
+    "/me",
+    `/matches/${MATCH}`,
+    `/matches/${MATCH}/state`,
+    `/matches/${MATCH}/comments`,
+    "/matches/2027-2701401", // regulation final
+    "/matches/2027-2701398", // shootout final
+    "/matches/2027-2701410", // not played yet
+    "/standings",
+    "/rewards",
+    "/reminders",
+  ];
+
+  it.each(pages)("GET %s: asOf, source, no betting fields", async (path) => {
+    const { status, body } = await http(path);
+    expect(status).toBe(200);
+    expect(typeof body.asOf).toBe("string");
+    expect(["live", "snapshot", "db", "config"]).toContain(body.source);
+    expect(liiga.findGamblingFields(body)).toEqual([]);
+  });
+
+  it("rejects bad input with 400 and unknown matches with 404", async () => {
+    expect((await http("/matches/not-a-match")).status).toBe(400);
+    expect((await http("/matches/2027-1")).status).toBe(404);
+  });
+});
+
+describe("host controls", () => {
+  it("need the right token", async () => {
+    expect((await control("pause", null)).status).toBe(403);
+    expect((await control("pause", "wrong-token-same-len")).status).toBe(403);
+    expect((await control("dance")).status).toBe(400);
+    expect((await control("pause")).status).toBe(200);
+    const other = await http("/matches/2027-2701401/control", { method: "POST", body: { action: "start" }, headers: { "x-host-token": HOST } });
+    expect(other.status).toBe(409);
+  });
+
+  it("are off without HOST_TOKEN", async () => {
+    delete process.env.HOST_TOKEN;
+    try {
+      expect((await control("pause")).status).toBe(503);
+    } finally {
+      process.env.HOST_TOKEN = HOST;
+    }
+  });
+});
+
+describe("demo replay end to end", () => {
+  it("opens a call, takes one answer per fan, resolves it and pays 20 points", async () => {
+    const joinA = await http(`/matches/${MATCH}/join`, { method: "POST", body: { nickname: "Aino" } });
+    const joinB = await http(`/matches/${MATCH}/join`, { method: "POST", body: { nickname: "Bea" } });
+    expect([joinA.status, joinB.status]).toEqual([200, 200]);
+    const [a, b] = [joinA.cookie!, joinB.cookie!];
+
+    expect((await control("reset")).status).toBe(200);
+    expect((await control("start")).status).toBe(200);
+
+    const call = await until<LiveCall>("the who-wins call", async () => {
+      const s = (await http(`/matches/${MATCH}/state`, { cookie: a })).body as LiveState;
+      return s.call?.status === "open" && s.call.type === "who_wins" ? s.call : null;
+    });
+    // an open call never carries its answer
+    expect(call.correctOptionId).toBeNull();
+    expect(call.split).toBeNull();
+    expect((await http(`/calls/${call.id}/answer`, { method: "POST", body: { optionId: "away_reg" }, cookie: a })).status).toBe(201);
+    expect((await http(`/calls/${call.id}/answer`, { method: "POST", body: { optionId: "home_reg" }, cookie: b })).status).toBe(201);
+    expect((await http(`/calls/${call.id}/answer`, { method: "POST", body: { optionId: "home_reg" }, cookie: a })).status).toBe(409);
+
+    const done = await until<LiveState>("the end of the replay", async () => {
+      const s = (await http(`/matches/${MATCH}/state`, { cookie: a })).body as LiveState;
+      return s.status === "final" && !s.call ? s : null;
+    }, 45_000);
+    expect(done.score).toEqual({ home: 0, away: 3 });
+    expect(done.me?.matchPoints).toBe(20);
+    expect((await http(`/matches/${MATCH}/state`, { cookie: b })).body.me.matchPoints).toBe(0);
+
+    const pageA = (await http(`/matches/${MATCH}`, { cookie: a })).body as FinishedMatchDetail;
+    expect(pageA.status).toBe("final");
+    expect(pageA.yourNight).toMatchObject({ points: 20, callsCorrect: 1, callsTotal: 1 });
+    expect(((await http(`/matches/${MATCH}`, { cookie: b })).body as FinishedMatchDetail).yourNight).toMatchObject({ points: 0, callsCorrect: 0 });
+  }, 60_000);
+
+  it("broadcast every event type, none with betting fields or an early answer", async () => {
+    const sent = live.recentBroadcasts.filter((m) => m.topic === `match:${MATCH}`);
+    const events = new Set(sent.map((m) => m.event));
+    for (const e of ["state", "stakes", "call_open", "call_locked", "call_resolved", "leaderboard", "game_end"]) expect(events).toContain(e);
+    for (const m of sent) expect(liiga.findGamblingFields(m.payload)).toEqual([]);
+    for (const m of sent.filter((x) => x.event === "call_open")) {
+      expect((m.payload as { call: LiveCall }).call).toMatchObject({ status: "open", correctOptionId: null, split: null });
+    }
+    // the score only ever goes up during the replay
+    const states = sent.filter((m) => m.event === "state").map((m) => m.payload as LiveState);
+    const totals = states.map((s) => s.score.home + s.score.away);
+    expect(totals.at(-1)).toBe(3);
+    expect(totals).toEqual([...totals].sort((x, y) => x - y));
+    // every tick's clock is that tick's game time, not the last re-render's
+    const { clockIn } = await import("@/features/site/server/labels");
+    for (const s of states.filter((x) => x.status === "live")) expect(s.clock.clock).toBe(clockIn(s.clock.gameTime, s.clock.period));
+  });
+
+  it("refuses to broadcast betting fields", async () => {
+    await expect(live.publish(MATCH, [{ event: "state", payload: { game: { gamblingEvent: { odds: 1.9 } } } }])).rejects.toThrow(/betting/);
+  });
+});

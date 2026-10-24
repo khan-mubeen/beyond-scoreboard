@@ -96,7 +96,7 @@ export function LiigaTable({ table }: { table: LiigaTableData }) {
                       <span className="min-w-0">
                         {r.team.name}
                         <span className="sr-only">, {zoneLabel(r.zone)}</span>
-                        {hot && (
+                        {hot && table.highlightNote && (
                           <span className="block text-[11px] font-medium text-good">
                             <span aria-hidden>▲ </span>
                             {table.highlightNote}

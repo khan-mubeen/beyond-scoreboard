@@ -1,0 +1,90 @@
+{
+  "titleLead": "Kaleva",
+  "titleAccent": "Rewards",
+  "subtitle": "Your points, your community, and more reasons to follow every match.",
+  "howToEarnHref": "#how-to-earn",
+  "earnChips": [
+    {
+      "icon": "call",
+      "label": "Call It!"
+    },
+    {
+      "icon": "story",
+      "label": "Read match stories"
+    },
+    {
+      "icon": "watch",
+      "label": "Watch Together"
+    }
+  ],
+  "subscriptions": [
+    {
+      "id": "digital",
+      "tag": "News + journalism",
+      "title": "Kaleva Digital",
+      "description": "Local news, sport, and trusted stories from Northern Finland.",
+      "priceLabel": "Monthly price to be announced",
+      "included": false
+    },
+    {
+      "id": "sports-pass",
+      "tag": "Included in your subscription",
+      "title": "Kaleva Sports Pass",
+      "description": "Deeper season stakes, personalised match stories and audio.",
+      "priceLabel": "Monthly price to be announced",
+      "included": true
+    },
+    {
+      "id": "weekend",
+      "tag": "Flexible access",
+      "title": "Weekend Pass",
+      "description": "Sports stories and analysis for a match-filled weekend.",
+      "priceLabel": "Price to be announced",
+      "included": false
+    }
+  ],
+  "offers": [
+    {
+      "id": "tickets",
+      "tag": "Hockey",
+      "title": "Kärpät home game ticket discount",
+      "description": "Partner reward concept",
+      "costPoints": 500
+    },
+    {
+      "id": "fan-shop",
+      "tag": "Fan merchandise",
+      "title": "Kärpät fan shop −15%",
+      "description": "For eligible members",
+      "costPoints": null
+    },
+    {
+      "id": "local",
+      "tag": "Local businesses",
+      "title": "Local partner offer",
+      "description": "Explore neighbourhood benefits",
+      "costPoints": null
+    }
+  ],
+  "achievements": [
+    {
+      "id": "first-call",
+      "title": "First correct call",
+      "subtitle": "Achievement badge",
+      "icon": "star"
+    },
+    {
+      "id": "streak-5",
+      "title": "5-call streak",
+      "subtitle": "Achievement badge",
+      "icon": "bolt"
+    },
+    {
+      "id": "games-10",
+      "title": "10 games watched",
+      "subtitle": "Achievement badge",
+      "icon": "rook"
+    }
+  ],
+  "footnote": "Points have no cash value. Offers are subject to terms. Pricing and rewards are illustrative concepts pending sponsor approval."
+}

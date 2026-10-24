@@ -21,7 +21,8 @@ export function CommentList({ comments }: { comments: Comment[] }) {
 }
 
 /**
- * match discussion. posting adds to the local list only (no backend yet).
+ * match discussion. with onPost the comment goes to the server (which may refuse it with a
+ * reason); without it, posting adds to a local list (the design demo).
  * readOnly is the "discussion highlights" version
  */
 export function LiveDiscussion({
@@ -30,28 +31,47 @@ export function LiveDiscussion({
   action,
   readOnly = false,
   id,
+  onPost,
 }: {
   title?: string;
   comments: Comment[];
   action?: ReactNode;
   readOnly?: boolean;
   id?: string;
+  onPost?: (text: string) => Promise<{ comment: Comment } | { error: string }>;
 }) {
   const [local, setLocal] = useState<Comment[]>([]);
   const [draft, setDraft] = useState("");
+  const [error, setError] = useState<string | null>(null);
   const inputId = useId();
 
-  function post(e: FormEvent) {
+  async function post(e: FormEvent) {
     e.preventDefault();
     const text = draft.trim();
     if (!text) return;
-    setLocal((l) => [...l, { id: `local-${l.length + 1}`, author: "You", text }]);
+    if (!onPost) {
+      setLocal((l) => [...l, { id: `local-${l.length + 1}`, author: "You", text }]);
+      setDraft("");
+      return;
+    }
+    const res = await onPost(text);
+    if ("error" in res) return setError(res.error);
+    setError(null);
+    setLocal((l) => (comments.some((c) => c.id === res.comment.id) ? l : [...l, res.comment]));
     setDraft("");
   }
 
+  // a comment that arrived over realtime replaces the local copy
+  const shown = [...comments, ...local.filter((c) => !comments.some((x) => x.id === c.id))];
+
   return (
     <SectionCard id={id} title={title} action={action}>
-      <CommentList comments={[...comments, ...local]} />
+      <CommentList comments={shown} />
+      {error && (
+        <p role="alert" className="mt-1 text-xs text-bad">
+          {error}
+        </p>
+      )}
       {!readOnly && (
         <form
           onSubmit={post}

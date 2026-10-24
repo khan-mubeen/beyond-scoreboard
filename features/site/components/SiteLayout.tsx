@@ -1,6 +1,6 @@
 import { AnimatePresence, MotionConfig, motion } from "motion/react";
 import { type ReactNode, useState, useSyncExternalStore } from "react";
-import type { Breadcrumb, SiteChrome } from "@/shared/types";
+import type { Breadcrumb, DataSource, SiteChrome } from "@/shared/types";
 import { Icon } from "./Icon";
 import { Sidebar } from "./Sidebar";
 import { SidebarDrawer } from "./SidebarDrawer";
@@ -57,10 +57,13 @@ export function SiteLayout({
   chrome,
   sidebar,
   children,
+  source,
 }: {
   chrome: SiteChrome;
   sidebar: SidebarConfig;
   children: ReactNode;
+  /** where the page's data came from; saved or demo data says so in a small banner */
+  source?: DataSource | null;
 }) {
   const [dockOpen, setDockOpen] = useState(() => typeof window === "undefined" || readDocked());
   const [drawerOpen, setDrawerOpen] = useState(false);
@@ -112,7 +115,14 @@ export function SiteLayout({
                 </motion.div>
               )}
             </AnimatePresence>
-            <div className="min-w-0 flex-1">{children}</div>
+            <div className="min-w-0 flex-1">
+              {(source === "snapshot" || source === "mock") && (
+                <p role="note" className="border-b border-line bg-highlight px-4 py-1.5 text-center text-xs text-ink lg:px-6">
+                  {source === "snapshot" ? "Showing saved Liiga data — live updates resume when the feed is back." : "Demo data from the design."}
+                </p>
+              )}
+              {children}
+            </div>
           </div>
           <SidebarDrawer open={drawerOpen} onClose={() => setDrawerOpen(false)} id={DRAWER_ID} nav={chrome.nav}>
             {panel}

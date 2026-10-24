@@ -28,9 +28,10 @@ function Side({ team }: { team: TeamRef }) {
 /** the big dark card for the featured live game */
 export function LiveMatchCard({ featured }: { featured: FeaturedMatch }) {
   const { match } = featured;
+  const live = match.status === "live";
   return (
     <article
-      aria-label={`Live: ${match.home.name} against ${match.away.name}`}
+      aria-label={`${live ? "Live" : match.status === "final" ? "Final" : match.whenLabel}: ${match.home.name} against ${match.away.name}`}
       className="relative overflow-hidden rounded-card bg-dark bg-cover bg-center text-dark-ink shadow-card"
       style={{ backgroundImage: `url(${featured.background})` }}
     >
@@ -38,14 +39,22 @@ export function LiveMatchCard({ featured }: { featured: FeaturedMatch }) {
       <div aria-hidden className="absolute inset-0 bg-dark/40" />
       <div className="relative p-4">
         <p className="flex items-center gap-3 text-base font-semibold">
-          <LiveBadge />
-          {match.periodLabel} {match.clock}
+          {live ? (
+            <>
+              <LiveBadge />
+              {match.periodLabel} {match.clock}
+            </>
+          ) : (
+            <span className="rounded-md bg-dark-ink/15 px-2.5 py-1 text-xs font-bold">
+              {match.status === "final" ? "FINAL" : match.whenLabel}
+            </span>
+          )}
         </p>
         <div className="mx-auto mt-2 grid max-w-[460px] grid-cols-[1fr_auto_1fr] items-center gap-2">
           <Side team={match.home} />
           <div className="text-center">
             <p className="text-[52px] leading-none font-bold tabular-nums sm:text-[60px]">
-              {match.score?.home} - {match.score?.away}
+              {match.score ? `${match.score.home} - ${match.score.away}` : "vs"}
             </p>
             <p className="mt-2 text-sm opacity-80 tabular-nums">{periodScoresText(match.periodScores)}</p>
           </div>
@@ -70,14 +79,14 @@ export function LiveMatchCard({ featured }: { featured: FeaturedMatch }) {
               className="flex h-11 items-center justify-center gap-2 rounded-lg bg-accent font-semibold text-accent-ink hover:brightness-110"
             >
               <Icon name="play" className="size-4" />
-              Watch live
+              {live ? "Watch live" : "Match centre"}
             </a>
             <a
               href={`${match.href}#call-it`}
               className="flex h-11 items-center justify-center gap-2 rounded-lg border border-dark-ink/70 font-semibold hover:bg-dark-ink/10"
             >
               <Icon name="chart" className="size-4" />
-              Call It! · {featured.openCalls} open
+              {live ? `Call It! · ${featured.openCalls} open` : "Call It! at puck drop"}
             </a>
           </div>
         </div>

@@ -1,5 +1,7 @@
 import type { ReactNode } from "react";
+import type { RewardsPage, SiteChrome } from "@/shared/types";
 import { Icon } from "../components/Icon";
+import { PageLoading } from "../components/PageLoading";
 import { PointsBalanceCard } from "../components/PointsCard";
 import { AchievementBadge, OfferCard, SubscriptionCard } from "../components/RewardCards";
 import { ActionLink } from "../components/SectionCard";
@@ -21,9 +23,7 @@ function Section({ title, link, children }: { title: string; link: string; child
   );
 }
 
-function RewardsBody() {
-  const chrome = useSiteChrome();
-  const page = useRewardsPage();
+function RewardsBody({ page, chrome }: { page: RewardsPage; chrome: SiteChrome }) {
   const toast = useToast();
   const soon = () => toast("Coming soon");
 
@@ -81,10 +81,15 @@ function RewardsBody() {
 
 /** kaleva rewards (docs/design/04-rewards.png) */
 export function Rewards() {
-  const chrome = useSiteChrome();
+  const { data: page, source } = useRewardsPage();
+  const chrome = useSiteChrome(page?.user);
   return (
-    <SiteLayout chrome={chrome} sidebar={{ activeLinkId: "rewards", variant: "compact", docked: true }}>
-      <RewardsBody />
+    <SiteLayout
+      chrome={chrome}
+      sidebar={{ activeLinkId: "rewards", variant: "compact", docked: true }}
+      source={source === "mock" ? source : null}
+    >
+      {page ? <RewardsBody page={page} chrome={chrome} /> : <PageLoading label="Loading your rewards…" />}
     </SiteLayout>
   );
 }

@@ -6,6 +6,13 @@ const pending = (s: MatchStat) => s.home === null || s.away === null;
 function StatValue({ stat }: { stat: MatchStat }) {
   if (pending(stat)) return <p className="mt-1 text-xs text-muted">Data pending</p>;
   const unit = stat.unit ?? "";
+  if (stat.display) {
+    return (
+      <p className="mt-1 text-lg font-bold tabular-nums">
+        {stat.display[0]} <span className="font-normal text-muted">–</span> {stat.display[1]}
+      </p>
+    );
+  }
   return (
     <p className="mt-1 text-lg font-bold tabular-nums">
       {stat.home}

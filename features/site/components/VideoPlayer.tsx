@@ -38,11 +38,21 @@ export function VideoPlayer({
   );
 }
 
-/** placeholder player until the video api is connected */
+/**
+ * plays the clip when there is one (liiga goal clips are hls: native in safari and recent chrome;
+ * elsewhere the link opens the stream), else the placeholder
+ */
 export function VideoModal({ video, onClose }: { video: VideoInfo | null; onClose: () => void }) {
   return (
     <Modal open={video !== null} onClose={onClose} title={video?.title ?? "Video"} wide>
-      {video && (
+      {video?.src ? (
+        <div className="flex flex-col gap-2">
+          <video src={video.src} poster={video.poster} controls autoPlay playsInline className="aspect-video w-full rounded-lg bg-dark" />
+          <a href={video.src} target="_blank" rel="noreferrer" className="self-end text-xs text-muted underline hover:text-ink">
+            Clip not playing? Open the stream
+          </a>
+        </div>
+      ) : video && (
         <div className="relative aspect-video overflow-hidden rounded-lg bg-dark text-dark-ink">
           <img src={video.poster} alt="" className="absolute inset-0 size-full object-cover opacity-60" />
           <div className="absolute inset-0 grid place-items-center text-center">
