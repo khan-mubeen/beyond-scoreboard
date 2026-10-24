@@ -11,6 +11,7 @@ export interface LlmWriteOptions {
   /** fewest passing sentences to accept the result */
   minSentences?: number;
   timeoutMs?: number;
+  maxTokens?: number;
   language?: "en" | "fi";
 }
 
@@ -28,11 +29,18 @@ export async function writeWithLlm(opts: LlmWriteOptions): Promise<ContentSenten
     system: SYSTEM,
     user: `${opts.task}\nWrite in ${opts.language === "fi" ? "Finnish" : "English"}.\n\nFacts:\n${facts}`,
     timeoutMs: opts.timeoutMs,
+    maxTokens: opts.maxTokens,
   });
   const raw = (reply as { sentences?: { text?: unknown }[] } | null)?.sentences;
   if (!Array.isArray(raw)) return null;
   const passed = raw
-    .map((s) => (typeof s?.text === "string" ? fill(s.text, opts.ledger) : null))
-    .filter((s): s is ContentSentence => !!s && checkSentence(s, opts.ledger) === null);
+    .map((s) => (typeof s?.text === "string" ? fill(s.text, opts.ledger, opts.language ?? "en") : null))
+    .filter((s): s is ContentSentence => {
+      if (!s) return false;
+      const problem = checkSentence(s, opts.ledger);
+      // LLM_DEBUG=true: why a sentence was dropped (scripts only; the site never calls the llm live)
+      if (problem && process.env.LLM_DEBUG === "true") console.log(`    dropped: ${s.text} — ${JSON.stringify(problem)}`);
+      return problem === null;
+    });
   return passed.length >= (opts.minSentences ?? 1) ? passed : null;
 }

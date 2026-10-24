@@ -27,8 +27,8 @@ export function matchStorySentences(m: MatchFactsInput, l: MatchLedger): string[
   }
   if (ids.positionBefore && ids.positionAfter && ids.chanceBefore && ids.chanceAfter && m.chanceBefore !== null && m.chanceAfter !== null) {
     const moved = m.positionBefore === m.positionAfter ? `kept ${ph(ids.team)} ${ord(ids.positionAfter)}` : `moved ${ph(ids.team)} from ${ord(ids.positionBefore)} to ${ord(ids.positionAfter)}`;
-    const dir = m.chanceAfter >= m.chanceBefore ? "raised" : "lowered";
-    out.push(`The result ${moved} and ${dir} their playoff chance from ${ph(ids.chanceBefore)}% to ${ph(ids.chanceAfter)}%.`);
+    if (m.chanceAfter === m.chanceBefore) out.push(`The result ${moved} and left their playoff chance at ${ph(ids.chanceAfter)}%.`);
+    else out.push(`The result ${moved} and ${m.chanceAfter > m.chanceBefore ? "raised" : "lowered"} their playoff chance from ${ph(ids.chanceBefore)}% to ${ph(ids.chanceAfter)}%.`);
   }
   return out;
 }
@@ -47,12 +47,15 @@ function lastLeadChange(m: MatchFactsInput): number {
 }
 
 /** one live line after a goal: who scored and what the chance is if it ends now */
-export function whatItMeansLine(l: MatchLedger, goalIndex: number): string {
+/** the latest goal and what it means; `final` once the game is decided ("after the game", not "if it ends like this") */
+export function whatItMeansLine(l: MatchLedger, goalIndex: number, final = false): string {
   const g = l.goals[goalIndex];
-  if (!g) return `${ph(l.ids.team)}'s playoff chance is ${ph(l.ids.chanceAfter)}% if it ends like this.`;
+  if (!g) return final ? `After the game, ${ph(l.ids.team)}'s playoff chance is ${ph(l.ids.chanceAfter)}%.` : `${ph(l.ids.team)}'s playoff chance is ${ph(l.ids.chanceAfter)}% if it ends like this.`;
   const who = g.scorer ? `${ph(g.scorer)}'s ` : `${ph(g.team)}'s `;
   const kind = g.kind ? `${ph(g.kind)} ` : "";
-  return `${who}${kind}goal at ${ph(g.time)} of period ${ph(g.period)} makes it ${ph(g.homeScore)}–${ph(g.awayScore)}: if it ends like this, ${ph(l.ids.team)}'s playoff chance is ${ph(l.ids.chanceAfter)}%.`;
+  return final
+    ? `${who}${kind}goal at ${ph(g.time)} of period ${ph(g.period)} made it ${ph(g.homeScore)}–${ph(g.awayScore)}. After the game, ${ph(l.ids.team)}'s playoff chance is ${ph(l.ids.chanceAfter)}%.`
+    : `${who}${kind}goal at ${ph(g.time)} of period ${ph(g.period)} makes it ${ph(g.homeScore)}–${ph(g.awayScore)}: if it ends like this, ${ph(l.ids.team)}'s playoff chance is ${ph(l.ids.chanceAfter)}%.`;
 }
 
 export function filled(templates: string[], l: MatchLedger): ContentSentence[] {

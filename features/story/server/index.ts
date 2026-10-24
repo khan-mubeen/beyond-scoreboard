@@ -9,7 +9,20 @@ import { verify } from "../validator/validator";
 import { readCache } from "./cache";
 
 // real matches: ledger, story (content_cache or template) and the live "what it means" line
-export { buildMatchLedger, contentKey, matchStory, whatItMeansText, type MatchFactsInput, type MatchLedger } from "./match-content";
+export {
+  buildMatchLedger,
+  contentKey,
+  matchStory,
+  matchSummary,
+  spokenSummary,
+  summaryText,
+  whatItMeansText,
+  type MatchFactsInput,
+  type MatchLedger,
+} from "./match-content";
+// the spoken summaries' audio (prep-time scripts)
+export { AUDIO_BUCKET, generateAudio, saveAudio, storedAudio, transcriptHash, type AudioRecord } from "./audio";
+export { hasAzureKey, ttsEnabled, ttsFromEnv, voices } from "../tts";
 
 async function ledgerFor(teamId: string, gameId: string): Promise<Fact[]> {
   return buildLedger(await getFactInputs(teamId, gameId));

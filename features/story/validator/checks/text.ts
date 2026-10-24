@@ -1,5 +1,6 @@
 // shared text helpers for the checks
 import type { Fact } from "@/shared/types";
+import { surnameGenitive, teamForms } from "../../i18n/fi-team-names";
 
 const WORD_NUMBERS: Record<string, number> = {
   two: 2,
@@ -54,13 +55,21 @@ export function capitalisedWords(text: string): string[] {
   return out;
 }
 
-/** every word that appears in a fact's label or text value */
+const WORD = /[\p{L}][\p{L}'’-]*/gu;
+const wordList = (s: string) => [...s.matchAll(WORD)].map((m) => m[0].replace(/['’]s$/u, ""));
+
+/**
+ * every word that appears in a fact's label or text value, plus the finnish forms a known name
+ * can take: any listed case of a team ("Kärppien", "HIFK:lle" -> HIFK), and a name's genitive
+ * ("Virtasen" for Virtanen)
+ */
 export function wordsOf(facts: Fact[]): Set<string> {
   const out = new Set<string>();
   for (const f of facts) {
-    for (const src of [f.label, typeof f.value === "string" ? f.value : ""]) {
-      for (const m of src.matchAll(/[\p{L}][\p{L}'’-]*/gu)) out.add(m[0].replace(/['’]s$/u, ""));
-    }
+    const value = typeof f.value === "string" ? f.value : "";
+    for (const w of [...wordList(f.label), ...wordList(value)]) out.add(w);
+    for (const form of teamForms(value)) for (const w of wordList(form)) out.add(w);
+    for (const w of wordList(value)) if (/^\p{Lu}/u.test(w)) out.add(surnameGenitive(w));
   }
   return out;
 }

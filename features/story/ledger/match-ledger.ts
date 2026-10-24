@@ -5,7 +5,7 @@ import type { Fact } from "@/shared/types";
 export interface MatchGoalFact {
   scorer: string | null;
   team: string;
-  /** 1-3, 4 = overtime */
+  /** 1-3, 4 = overtime, 5 = the shootout */
   period: number;
   /** "11:40" in the period */
   time: string;
@@ -33,6 +33,14 @@ export interface MatchFactsInput {
   positionBefore: number | null;
   positionAfter: number | null;
   sourceGameIds: string[];
+  /** "20.10.2026", for finnish texts */
+  dateFi?: string;
+  /** playoff chance in % for `team` with a regulation win and loss, before the game */
+  worth?: { win: number; loss: number } | null;
+  /** the goal that moved `team`'s chance most: its index in goals, the chance before and after it */
+  turningPoint?: { goal: number; before: number; after: number } | null;
+  /** `team`'s next game, and what a win or a loss there would make the playoff chance */
+  next?: { opponent: string; date: string; dateFi: string; win: number | null; loss: number | null } | null;
 }
 
 export type MatchFactKey =
@@ -46,7 +54,17 @@ export type MatchFactKey =
   | "chanceBefore"
   | "chanceAfter"
   | "positionBefore"
-  | "positionAfter";
+  | "positionAfter"
+  | "dateFi"
+  | "worthWin"
+  | "worthLoss"
+  | "turnBefore"
+  | "turnAfter"
+  | "nextOpponent"
+  | "nextDate"
+  | "nextDateFi"
+  | "nextWin"
+  | "nextLoss";
 
 export interface MatchLedger {
   facts: Fact[];
@@ -76,6 +94,22 @@ export function buildMatchLedger(m: MatchFactsInput): MatchLedger {
   if (m.chanceAfter !== null) ids.chanceAfter = add(`${m.team} playoff chance after the game`, m.chanceAfter, "%");
   if (m.positionBefore !== null) ids.positionBefore = add(`${m.team} league position before the game`, m.positionBefore);
   if (m.positionAfter !== null) ids.positionAfter = add(`${m.team} league position after the game`, m.positionAfter);
+  if (m.dateFi) ids.dateFi = add("date (finnish)", m.dateFi);
+  if (m.worth) {
+    ids.worthWin = add(`${m.team} playoff chance with a regulation win`, m.worth.win, "%");
+    ids.worthLoss = add(`${m.team} playoff chance with a regulation loss`, m.worth.loss, "%");
+  }
+  if (m.turningPoint) {
+    ids.turnBefore = add(`${m.team} playoff chance before the turning-point goal`, m.turningPoint.before, "%");
+    ids.turnAfter = add(`${m.team} playoff chance after the turning-point goal`, m.turningPoint.after, "%");
+  }
+  if (m.next) {
+    ids.nextOpponent = add(`${m.team} next opponent`, m.next.opponent);
+    ids.nextDate = add("next game date", m.next.date);
+    ids.nextDateFi = add("next game date (finnish)", m.next.dateFi);
+    if (m.next.win !== null) ids.nextWin = add(`${m.team} playoff chance with a win in the next game`, m.next.win, "%");
+    if (m.next.loss !== null) ids.nextLoss = add(`${m.team} playoff chance with a loss in the next game`, m.next.loss, "%");
+  }
 
   const goals = m.goals.map((g, i) => ({
     ...(g.scorer && { scorer: add(`goal ${i + 1} scorer`, g.scorer) }),

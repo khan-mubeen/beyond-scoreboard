@@ -21,7 +21,7 @@ const BRIEF: Line[] = [
   },
   {
     needs: ["playoffChance"],
-    en: "Their playoff chance is {playoffChance}% before puck drop.",
+    en: "Their playoff chance is {playoffChance}% before the game.",
     fi: "Mahdollisuus pudotuspeleihin on ennen ottelua {playoffChance} %.",
   },
   {
