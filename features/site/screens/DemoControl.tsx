@@ -35,7 +35,7 @@ export function DemoControl() {
   return (
     <SiteLayout sidebar={{ docked: false }}>
       <main className="px-4 pb-12 md:px-6">
-        <Breadcrumbs items={[{ label: "Sports", href: "/" }, { label: "Demo control" }]} />
+        <Breadcrumbs items={[{ label: "Sports", href: "/sports" }, { label: "Demo control" }]} />
         <h1 className="font-serif text-[36px] leading-tight font-bold">Demo control</h1>
         {!r ? (
           status === "notfound" ? (

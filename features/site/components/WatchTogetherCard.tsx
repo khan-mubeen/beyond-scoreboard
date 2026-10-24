@@ -6,6 +6,7 @@ import { Modal } from "./Modal";
 import { ActionLink, Pill, SectionCard } from "./SectionCard";
 import { Avatar } from "./TeamLogo";
 import { useToast } from "./Toast";
+import { NAMES } from "@/shared/copy/names";
 
 /** the link phones open for a room, built from where this page is served */
 export const roomUrl = (code: string, matchId?: string) =>
@@ -45,6 +46,7 @@ export function WatchTogetherCard({
   id,
   matchId,
   you = null,
+  justJoined = false,
 }: {
   room: RoomSummary;
   onJoin: () => void;
@@ -52,6 +54,8 @@ export function WatchTogetherCard({
   matchId?: string;
   /** set once the viewer has joined */
   you?: { rank: number | null; of: number } | null;
+  /** someone joined a moment ago: the active highlight for a few seconds */
+  justJoined?: boolean;
 }) {
   const toast = useToast();
 
@@ -66,7 +70,17 @@ export function WatchTogetherCard({
   }
 
   return (
-    <SectionCard id={id} title="Watch Together" action={<Pill tone="outline">Room {room.code}</Pill>}>
+    <SectionCard
+      id={id}
+      frame={justJoined ? "active" : "feature"}
+      title={
+        <span className="flex items-center gap-1.5">
+          <Icon name="users" className="size-5 text-accent" />
+          {NAMES.watchTogether}
+        </span>
+      }
+      action={<Pill tone="outline">Room {room.code}</Pill>}
+    >
       <div className="flex items-start justify-between gap-3">
         <div>
           <p className="flex items-center gap-2 font-semibold tabular-nums" aria-live="polite">
@@ -89,7 +103,7 @@ export function WatchTogetherCard({
       </div>
       {you ? (
         <p className="mt-4 rounded-lg bg-accent-soft px-4 py-3 text-center font-semibold text-accent" aria-live="polite">
-          {you.rank ? `You're #${you.rank} of ${fmtInt(you.of)}` : "You're in — answer a call to get on the board"}
+          {you.rank ? `You're #${you.rank} of ${fmtInt(you.of)}` : "You're in — answer a question to get on the board"}
         </p>
       ) : (
         <button

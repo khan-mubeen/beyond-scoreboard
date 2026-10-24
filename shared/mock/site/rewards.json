@@ -4,7 +4,7 @@
   "subtitle": "Your points, your community, and more reasons to follow every match.",
   "howToEarnHref": "#how-to-earn",
   "earnChips": [
-    { "icon": "call", "label": "Call It!" },
+    { "icon": "call", "label": "Your Call!" },
     { "icon": "story", "label": "Read match stories" },
     { "icon": "watch", "label": "Watch Together" }
   ],

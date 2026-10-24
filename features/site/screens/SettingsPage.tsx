@@ -5,6 +5,7 @@ import { Breadcrumbs, SiteLayout } from "../components/SiteLayout";
 import { PageSkeleton } from "../components/Skeleton";
 import { toast } from "../components/Toast";
 import { resetProfile, saveSettings, useMe } from "../data";
+import { NAMES } from "@/shared/copy/names";
 
 /** change the nickname in place; used on settings and the profile */
 export function NicknameForm({ current }: { current: string | null }) {
@@ -82,7 +83,7 @@ export function SettingsPage() {
   return (
     <SiteLayout sidebar={{ activeLinkId: "settings", docked: true }}>
       <main className="px-4 pb-12 md:px-6">
-        <Breadcrumbs items={[{ label: "Sports", href: "/" }, { label: "Settings" }]} />
+        <Breadcrumbs items={[{ label: "Sports", href: "/sports" }, { label: "Settings" }]} />
         <h1 className="font-serif text-[36px] leading-tight font-bold">Settings</h1>
         {!me ? (
           <PageSkeleton cards={3} />
@@ -108,7 +109,7 @@ export function SettingsPage() {
                   </button>
                 ))}
               </div>
-              <p className="mt-2 text-xs text-muted">Used for Call It! questions and the audio summary.</p>
+              <p className="mt-2 text-xs text-muted">Used for {NAMES.call} questions and the audio summary.</p>
             </SectionCard>
 
             <SectionCard title="Notifications">

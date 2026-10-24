@@ -2,6 +2,7 @@ import { type ReactNode, useEffect, useRef, useState } from "react";
 import type { HighlightVideo, LiveRotation } from "@/shared/types";
 import { serverNowMs } from "../data";
 import { Icon } from "./Icon";
+import { LiigaLink } from "./VideoPlayer";
 
 const SYNC_MS = 2000;
 const MAX_DRIFT = 1.5;
@@ -68,12 +69,15 @@ export function HighlightPlayer({
   tv = false,
   className = "aspect-video",
   overlay,
+  liigaUrl,
 }: {
   video: HighlightVideo | null;
   rotation: LiveRotation | null;
   tv?: boolean;
   className?: string;
   overlay?: ReactNode;
+  /** the match on liiga.fi, under the player: "Video not playing? Watch on liiga.fi" */
+  liigaUrl?: string;
 }) {
   const box = useRef<HTMLDivElement>(null);
   const videoEl = useRef<HTMLVideoElement>(null);
@@ -200,11 +204,7 @@ export function HighlightPlayer({
         )}
         {overlay && <div className="pointer-events-none absolute inset-0 [&_a]:pointer-events-auto [&_button]:pointer-events-auto">{overlay}</div>}
       </div>
-      {video?.streamUrl && (
-        <a href={video.streamUrl} target="_blank" rel="noreferrer" className="self-end text-xs text-muted underline hover:text-ink">
-          Clip not playing? Open the stream
-        </a>
-      )}
+      {liigaUrl && !tv && <LiigaLink href={liigaUrl} label="Video not playing? Watch on liiga.fi" className="inline-flex items-center gap-1 self-end text-xs text-muted underline hover:text-ink" />}
     </div>
   );
 }

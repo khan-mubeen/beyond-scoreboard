@@ -1,15 +1,9 @@
-// the viewer's teams: the liiga teams they follow (the site's team until they pick their own),
-// then the sports we don't cover yet
+// the viewer's teams: the liiga teams they follow. home personalises for the site's team until
+// they pick their own; the "my favorite teams" list shows only real follows
 import { getDb, type DbUser } from "@/shared/db";
 import type { FavoriteTeam } from "@/shared/types";
 import { SITE } from "./config";
 import { teamBook } from "./teams";
-
-const COMING_SOON_FAVORITES: FavoriteTeam[] = [
-  { team: { id: "lippo", name: "Oulun Lippo", logo: "/placeholders/teams/lippo.svg" }, league: "Superpesis", starred: false, comingSoon: true },
-  { team: { id: "oulu-basketball", name: "Oulu Basketball", logo: "/placeholders/teams/oulu-basketball.svg" }, league: "Korisliiga", starred: false, comingSoon: true },
-  { team: { id: "finland", name: "Finland National Team", logo: "/placeholders/teams/finland.svg" }, league: "Ice hockey", starred: false, comingSoon: true },
-];
 
 /** the teams this fan chose to follow (none for a guest) */
 export const followedIds = async (user: DbUser | null): Promise<string[]> => (user ? getDb().favorites.list(user.id) : []);
@@ -23,7 +17,8 @@ export async function favoriteTeamIds(user: DbUser | null): Promise<string[]> {
   return fav ? [fav] : [];
 }
 
+/** "my favorite teams": only the teams the fan follows (empty: "Follow a team") */
 export async function favoriteTeams(user: DbUser | null): Promise<FavoriteTeam[]> {
-  const [book, ids] = await Promise.all([teamBook(), favoriteTeamIds(user)]);
-  return [...ids.map((id) => ({ team: book.ref(id), league: "Liiga", starred: true, comingSoon: false })), ...COMING_SOON_FAVORITES];
+  const [book, ids] = await Promise.all([teamBook(), followedIds(user)]);
+  return ids.map((id) => ({ team: book.ref(id), league: "Liiga", starred: true, comingSoon: false }));
 }

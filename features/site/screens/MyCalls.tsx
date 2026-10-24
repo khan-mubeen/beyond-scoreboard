@@ -3,6 +3,7 @@ import { CallsList } from "../components/Follow";
 import { Breadcrumbs, SiteLayout } from "../components/SiteLayout";
 import { DataUnavailable, ListSkeleton } from "../components/Skeleton";
 import { useMyCalls } from "../data";
+import { NAMES } from "@/shared/copy/names";
 
 /** /calls: open calls first, then the latest results */
 export function MyCalls() {
@@ -12,8 +13,9 @@ export function MyCalls() {
   return (
     <SiteLayout sidebar={{ activeLinkId: "calls", docked: true }}>
       <main className="px-4 pb-12 md:px-6">
-        <Breadcrumbs items={[{ label: "Sports", href: "/" }, { label: "My Calls" }]} />
-        <h1 className="font-serif text-[36px] leading-tight font-bold">My Calls</h1>
+        <Breadcrumbs items={[{ label: "Sports", href: "/sports" }, { label: NAMES.call }]} />
+        <h1 className="font-serif text-[36px] leading-tight font-bold">{NAMES.call}</h1>
+        <p className="text-sm text-muted">Your open questions and your latest results.</p>
         {!data ? (
           status === "error" ? (
             <DataUnavailable what="your calls" onRetry={refresh} />
@@ -56,9 +58,9 @@ export function CallHistory() {
   return (
     <SiteLayout sidebar={{ activeLinkId: "history", docked: true }}>
       <main className="px-4 pb-12 md:px-6">
-        <Breadcrumbs items={[{ label: "Sports", href: "/" }, { label: "My Calls", href: "/calls" }, { label: "History" }]} />
+        <Breadcrumbs items={[{ label: "Sports", href: "/sports" }, { label: NAMES.call, href: "/calls" }, { label: "History" }]} />
         <div className="flex flex-wrap items-end justify-between gap-3">
-          <h1 className="font-serif text-[36px] leading-tight font-bold">Call history</h1>
+          <h1 className="font-serif text-[36px] leading-tight font-bold">{NAMES.call} history</h1>
           <label className="flex items-center gap-2 text-sm font-semibold">
             Match
             <select value={match} onChange={(e) => setMatch(e.target.value)} className="rounded-lg border border-line bg-surface px-3 py-2 font-normal">

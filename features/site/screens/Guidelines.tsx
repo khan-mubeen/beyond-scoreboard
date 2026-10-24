@@ -13,7 +13,7 @@ export function Guidelines() {
   return (
     <SiteLayout sidebar={{ docked: true }}>
       <div className="px-4 pb-12 md:px-6">
-        <Breadcrumbs items={[{ label: "Sports", href: "/" }, { label: "Community guidelines" }]} />
+        <Breadcrumbs items={[{ label: "Sports", href: "/sports" }, { label: "Community guidelines" }]} />
         <main className="max-w-2xl">
           <h1 className="font-serif text-[36px] leading-tight font-bold">Community guidelines</h1>
           <p className="mt-2 text-muted">The live discussion is for fans watching together. Five simple rules:</p>

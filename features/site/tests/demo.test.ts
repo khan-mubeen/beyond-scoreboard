@@ -98,17 +98,15 @@ describe("pinned demo clock", () => {
 
   it("no result from the demo date on reaches the client, except the rotation match on now", async () => {
     // another game on the demo date, and one three days later
-    for (const id of ["2027-2701767", "2027-2701404"]) {
-      const d = (await http(`/matches/${id}`)).body as MatchDetail;
-      expect(d.status, id).toBe("scheduled");
+    // not started: the preview, with no score, events, stats, video, calls or room at all
+    for (const id of ["2027-2701767", "2027-2701404", ...ROTATION.slice(1)]) {
+      const d = (await http(`/matches/${id}`)).body as Json;
+      expect(d.status, id).toBe("preview");
       expect(d.match.score, id).toBeNull();
-      expect(d.events, id).toEqual([]);
-      expect(d.stats.every((s) => s.home === null && s.away === null), id).toBe(true);
-    }
-    // rotation matches that aren't on yet
-    for (const id of ROTATION.slice(1)) {
-      const d = (await http(`/matches/${id}`)).body as MatchDetail;
-      expect([d.status, d.match.score, d.events.length], id).toEqual(["scheduled", null, 0]);
+      for (const k of ["events", "stats", "video", "highlight", "room", "discussion", "callIt"]) expect(d[k], `${id} ${k}`).toBeUndefined();
+      expect(d.liigaUrl, id).toMatch(/^https:\/\/liiga\.fi\/fi\/peli\/2027\/\d+\/seuranta$/);
+      expect(typeof d.headToHead.summary, id).toBe("string");
+      expect(d.seasonStakes.worth, id).toBeTruthy();
     }
     const home = (await http("/home")).body as HomePage;
     expect(home.recent.length).toBeGreaterThan(0);
@@ -120,6 +118,28 @@ describe("pinned demo clock", () => {
     // 2701767 was played on the demo date: on home it is a game to come, with no score
     expect(JSON.stringify(home)).not.toMatch(/"score":\{"home":0,"away":3\}/);
   });
+  it("a game that hasn't started: preview only; its state, join and presence are 409; the lobby counts as started", async () => {
+    const idle = ROTATION[1];
+    for (const [path, method, body] of [
+      [`/matches/${idle}/state`, "GET", undefined],
+      [`/matches/${idle}/join`, "POST", { nickname: "Early" }],
+      [`/matches/${idle}/presence`, "POST", {}],
+    ] as const) {
+      const r = await http(path, { method, body });
+      expect(r.status, path).toBe(409);
+      expect(r.body.error).toMatch(/hasn't started/);
+    }
+    // a rotation idle match counts down to its next lobby
+    const preview = (await http(`/matches/${idle}`)).body as Json;
+    expect(preview.match.startsAt).toBeGreaterThan(Date.now());
+    // match 1 is in its lobby (or past it): the live page, its state, and presence work
+    await control("restart");
+    const lobby = (await http(`/matches/${ROTATION[0]}`)).body as MatchDetail;
+    expect(lobby.status).not.toBe("preview");
+    expect((await http(`/matches/${ROTATION[0]}/state`)).status).toBe(200);
+    expect((await http(`/matches/${ROTATION[0]}/presence`, { method: "POST", body: {} })).status).toBe(200);
+  });
+
   it("what if? takes games on the demo date and refuses one finished before it", async () => {
     const home = (await http("/home")).body as HomePage;
     const before = home.recent[0].id;

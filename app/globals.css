@@ -17,18 +17,47 @@ html {
   outline-offset: 2px;
 }
 
-/* an open call it! card pulses so it can't be missed; reduced motion keeps a static ring */
-@keyframes call-glow {
+/*
+ * your call! and watch together stand out from ordinary cards.
+ * idle: a red accent bar on the left and a stronger shadow.
+ * active (a question is open, someone just joined): a 2px red border, a light red tint, a visible
+ * ring plus a soft drop shadow that pulse gently; reduced motion keeps them still
+ */
+@utility feature-idle {
+  border: 1px solid var(--pp-line);
+  border-left: 4px solid var(--pp-accent);
+  background-color: var(--pp-surface);
+  box-shadow:
+    0 1px 3px rgb(0 0 0 / 0.08),
+    0 10px 24px -10px rgb(0 0 0 / 0.22);
+}
+@keyframes feature-pulse {
   0%,
   100% {
-    box-shadow: 0 0 0 2px color-mix(in srgb, var(--pp-accent) 55%, transparent), 0 0 12px 0 color-mix(in srgb, var(--pp-accent) 25%, transparent);
+    box-shadow:
+      0 0 0 4px color-mix(in srgb, var(--pp-accent) 28%, transparent),
+      0 12px 32px -8px color-mix(in srgb, var(--pp-accent) 45%, transparent);
   }
   50% {
-    box-shadow: 0 0 0 5px color-mix(in srgb, var(--pp-accent) 30%, transparent), 0 0 28px 4px color-mix(in srgb, var(--pp-accent) 40%, transparent);
+    box-shadow:
+      0 0 0 8px color-mix(in srgb, var(--pp-accent) 14%, transparent),
+      0 16px 40px -6px color-mix(in srgb, var(--pp-accent) 60%, transparent);
   }
 }
+@utility feature-active {
+  border: 2px solid var(--pp-accent);
+  background-color: color-mix(in srgb, var(--pp-accent) 6%, var(--pp-surface));
+  box-shadow:
+    0 0 0 4px color-mix(in srgb, var(--pp-accent) 28%, transparent),
+    0 12px 32px -8px color-mix(in srgb, var(--pp-accent) 45%, transparent);
+  animation: feature-pulse 1.8s ease-in-out infinite;
+  @media (prefers-reduced-motion: reduce) {
+    animation: none;
+  }
+}
+/* kept for the room screens */
 @utility call-glow {
-  animation: call-glow 1.6s ease-in-out infinite;
+  animation: feature-pulse 1.8s ease-in-out infinite;
   @media (prefers-reduced-motion: reduce) {
     animation: none;
     box-shadow: 0 0 0 3px color-mix(in srgb, var(--pp-accent) 55%, transparent);

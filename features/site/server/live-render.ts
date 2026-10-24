@@ -1,6 +1,6 @@
 // what the live engine broadcasts, in ui shapes: built from the same pieces as the match page,
 // so a realtime update and a page load always agree
-import type { LiigaGame } from "@/features/liiga";
+import { liigaGameUrl, type LiigaGame } from "@/features/liiga";
 import type { CallDraft, MatchRenderer } from "@/features/live/server";
 import { getSeasonContext, ifEndsNow } from "@/features/stakes/server";
 import { whatItMeansText } from "@/features/story/server";
@@ -31,7 +31,7 @@ export const siteRenderer: MatchRenderer = {
         seasonStakes: s ? seasonStakesCard(s, game, side, book) : emptyStakes(game[side].name),
         whatItMeans: whatItMeansText(factsFor(game, s, side, book)),
       },
-      events: eventsOf(game, names, timeline, book, clipOf(_matchId)),
+      events: eventsOf(game, names, timeline, book, clipOf(_matchId, liigaGameUrl(game))),
       periodScores: game.status === "scheduled" ? [] : periodScoresOf(game),
     };
   },

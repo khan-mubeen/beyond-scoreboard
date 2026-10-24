@@ -1,8 +1,12 @@
+import { NAMES } from "@/shared/copy/names";
 import type { FeaturedMatch, TeamRef } from "@/shared/types";
+import { fmtCountdown, useServerNow } from "../data";
 import { periodScoresText } from "../format";
+import { featuredQuestion } from "./featured-question";
 import { Icon } from "./Icon";
 import { StakesChip } from "./StakesChip";
 import { TeamLogo } from "./TeamLogo";
+import { useMatchChannel } from "./use-match-channel";
 import { WhenLabel } from "./WhenLabel";
 
 export function LiveBadge({ className = "" }: { className?: string }) {
@@ -26,10 +30,17 @@ function Side({ team }: { team: TeamRef }) {
   );
 }
 
-/** the big dark card for the featured live game */
+/** the big dark card for the featured live game. it follows the match's live channel: the score,
+ * the clock and whether a your call! question is open right now */
 export function LiveMatchCard({ featured }: { featured: FeaturedMatch }) {
-  const { match } = featured;
-  const live = match.status === "live";
+  const { state } = useMatchChannel(featured.channel ? featured.match.id : null);
+  const now = useServerNow(500);
+  const live = (state?.status ?? featured.match.status) === "live";
+  const match =
+    state && state.status !== "scheduled"
+      ? { ...featured.match, status: state.status, score: state.score, periodScores: state.periodScores, periodLabel: state.clock.label, clock: state.clock.clock }
+      : featured.match;
+  const question = featuredQuestion(state, now);
   return (
     <article
       aria-label={`${live ? "Live" : match.status === "final" ? "Final" : match.whenLabel}: ${match.home.name} against ${match.away.name}`}
@@ -74,7 +85,7 @@ export function LiveMatchCard({ featured }: { featured: FeaturedMatch }) {
               ))}
             </div>
           </div>
-          <div className="mt-4 grid gap-3 sm:grid-cols-2">
+          <div className={`mt-4 grid gap-3 ${question || match.status === "final" ? "sm:grid-cols-2" : ""}`}>
             <a
               href={match.href}
               className="flex h-11 items-center justify-center gap-2 rounded-lg bg-accent font-semibold text-accent-ink hover:brightness-110"
@@ -82,13 +93,31 @@ export function LiveMatchCard({ featured }: { featured: FeaturedMatch }) {
               <Icon name="play" className="size-4" />
               {live ? "Watch live" : "Match centre"}
             </a>
-            <a
-              href={match.status === "final" ? match.href : `${match.href}#call-it`}
-              className="flex h-11 items-center justify-center gap-2 rounded-lg border border-dark-ink/70 font-semibold hover:bg-dark-ink/10"
-            >
-              <Icon name="chart" className="size-4" />
-              {match.status === "final" ? "The match in 60 seconds" : live || featured.openCalls > 0 ? `Call It! · ${featured.openCalls} open` : "Calls open when the game starts"}
-            </a>
+            {match.status === "final" ? (
+              <a href={match.href} className="flex h-11 items-center justify-center gap-2 rounded-lg border border-dark-ink/70 font-semibold hover:bg-dark-ink/10">
+                <Icon name="volume" className="size-4" />
+                The match in 60 seconds
+              </a>
+            ) : (
+              question && (
+                <a
+                  href={`${match.href}#call-it`}
+                  aria-live="polite"
+                  className={`flex h-11 items-center justify-center gap-2 rounded-lg font-semibold ${
+                    question.kind === "open" ? "bg-dark-ink text-accent ring-2 ring-accent" : "border border-dark-ink/70 hover:bg-dark-ink/10"
+                  }`}
+                >
+                  <Icon name="target" className="size-4" />
+                  {question.kind === "open" ? (
+                    <>
+                      Question open now · <span className="tabular-nums">{fmtCountdown(question.secondsLeft * 1000)}</span>
+                    </>
+                  ) : (
+                    `${NAMES.call} · Next question soon`
+                  )}
+                </a>
+              )
+            )}
           </div>
         </div>
       </div>

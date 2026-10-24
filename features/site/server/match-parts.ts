@@ -34,12 +34,13 @@ export function summaryOf(g: LiigaGame, book: TeamBook, now: Date, note?: string
 
 const PLACEHOLDER_POSTER = "/placeholders/goal-thumb.svg";
 
-/** liiga's goal clips open with a ~3 s sponsor bumper (a betting ad): play from after it */
-export const LIIGA_BUMPER_SEC = 3;
-
-export function goalVideo(goal: LiigaGame["goals"][number], title: string): VideoInfo | null {
-  if (!goal.videoUrl && !goal.thumbUrl) return null;
-  return { poster: goal.thumbUrl ?? PLACEHOLDER_POSTER, title, src: goal.videoUrl, ...(goal.videoUrl && { startAt: LIIGA_BUMPER_SEC }) };
+/**
+ * a goal liiga has a clip of: its thumbnail and "Watch on liiga.fi" (href). we never play liiga's
+ * streams in the app (hls, and each opens with a betting bumper); only our own highlights play
+ */
+export function goalVideo(goal: LiigaGame["goals"][number], title: string, href: string): VideoInfo | null {
+  if (!goal.videoUrl) return null;
+  return { poster: goal.thumbUrl ?? PLACEHOLDER_POSTER, title, src: null, href };
 }
 
 type Goal = LiigaGame["goals"][number];
@@ -53,7 +54,7 @@ export function eventsOf(
   names: Map<number, string>,
   timeline: TimelineLike[],
   book: TeamBook,
-  clipOf: (goal: Goal, title: string) => VideoInfo | null = goalVideo,
+  clipOf: (goal: Goal, title: string) => VideoInfo | null,
 ): MatchEvent[] {
   // the game's own team names first ("HIFK"), the book as a fallback
   const teamName = (teamId: string) => (teamId === g.home.teamId ? g.home.name : teamId === g.away.teamId ? g.away.name : book.ref(teamId).name);

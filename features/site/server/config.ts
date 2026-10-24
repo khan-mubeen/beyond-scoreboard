@@ -16,7 +16,8 @@ export const SITE = {
     tagline: "Sports lives here in the North.",
     image: "/placeholders/hero.svg",
   } satisfies HeroData,
-  comingSoon: [{ id: "korisliiga", title: "Korisliiga", league: "Korisliiga" }] satisfies ComingSoonCard[],
+  // liiga only: no other-sport "coming soon" cards
+  comingSoon: [] as ComingSoonCard[],
   leaderboard: { title: "Weekly Leaderboard", sponsor: "Oulun Energia", href: "/leaderboard" },
   /** points needed for each level, level 1 starts at 0 */
   levels: [0, 50, 150, 300, 500, 750, 1000, 1500, 2000, 2750, 3500, 4500],

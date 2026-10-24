@@ -15,7 +15,7 @@ export function ProfilePage() {
   return (
     <SiteLayout sidebar={{ activeLinkId: "profile", docked: true }}>
       <main className="px-4 pb-12 md:px-6">
-        <Breadcrumbs items={[{ label: "Sports", href: "/" }, { label: "Profile" }]} />
+        <Breadcrumbs items={[{ label: "Sports", href: "/sports" }, { label: "Profile" }]} />
         <h1 className="font-serif text-[36px] leading-tight font-bold">{me?.nickname ?? "Your profile"}</h1>
         {!me || !data ? (
           status === "error" ? (
@@ -82,7 +82,7 @@ export function AchievementsPage() {
   return (
     <SiteLayout sidebar={{ activeLinkId: "achievements", docked: true }}>
       <main className="px-4 pb-12 md:px-6">
-        <Breadcrumbs items={[{ label: "Sports", href: "/" }, { label: "Achievements" }]} />
+        <Breadcrumbs items={[{ label: "Sports", href: "/sports" }, { label: "Achievements" }]} />
         <h1 className="font-serif text-[36px] leading-tight font-bold">Achievements</h1>
         {!data ? (
           status === "error" ? (

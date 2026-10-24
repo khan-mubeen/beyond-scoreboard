@@ -1,12 +1,35 @@
 {
   "nav": [
-    { "label": "News", "href": "#" },
-    { "label": "Oulu", "href": "#" },
-    { "label": "Northern Finland", "href": "#" },
-    { "label": "Sports", "href": "/", "active": true },
-    { "label": "Culture", "href": "#" },
-    { "label": "Opinions", "href": "#" },
-    { "label": "More", "href": "#", "hasMenu": true }
+    {
+      "label": "News",
+      "href": "#"
+    },
+    {
+      "label": "Oulu",
+      "href": "#"
+    },
+    {
+      "label": "Northern Finland",
+      "href": "#"
+    },
+    {
+      "label": "Sports",
+      "href": "/sports",
+      "active": true
+    },
+    {
+      "label": "Culture",
+      "href": "#"
+    },
+    {
+      "label": "Opinions",
+      "href": "#"
+    },
+    {
+      "label": "More",
+      "href": "#",
+      "hasMenu": true
+    }
   ],
   "searchPlaceholder": "Search for news, topics or players...",
   "hasNotifications": true,
@@ -23,36 +46,53 @@
   },
   "favorites": [
     {
-      "team": { "id": "karpat", "name": "Kärpät", "city": "Oulu", "logo": "/placeholders/teams/karpat.svg" },
+      "team": {
+        "id": "karpat",
+        "name": "Kärpät",
+        "city": "Oulu",
+        "logo": "/placeholders/teams/karpat.svg"
+      },
       "league": "Liiga",
       "starred": true,
       "comingSoon": false
-    },
-    {
-      "team": { "id": "lippo", "name": "Oulun Lippo", "logo": "/placeholders/teams/lippo.svg" },
-      "league": "Superpesis",
-      "starred": false,
-      "comingSoon": true
-    },
-    {
-      "team": { "id": "oulu-basketball", "name": "Oulu Basketball", "logo": "/placeholders/teams/oulu-basketball.svg" },
-      "league": "Korisliiga",
-      "starred": false,
-      "comingSoon": true
-    },
-    {
-      "team": { "id": "finland", "name": "Finland National Team", "logo": "/placeholders/teams/finland.svg" },
-      "league": "Ice hockey",
-      "starred": false,
-      "comingSoon": true
     }
   ],
   "quickLinks": [
-    { "id": "home", "label": "Home", "href": "/", "icon": "home" },
-    { "id": "calls", "label": "My Calls", "href": "/calls", "icon": "calls" },
-    { "id": "history", "label": "Call History", "href": "/calls/history", "icon": "history" },
-    { "id": "rewards", "label": "Kaleva Rewards", "href": "/rewards", "icon": "rewards" },
-    { "id": "achievements", "label": "Achievements", "href": "/achievements", "icon": "achievements" },
-    { "id": "settings", "label": "Settings", "href": "/settings", "icon": "settings" }
+    {
+      "id": "home",
+      "label": "Home",
+      "href": "/sports",
+      "icon": "home"
+    },
+    {
+      "id": "calls",
+      "label": "Your Call!",
+      "href": "/calls",
+      "icon": "calls"
+    },
+    {
+      "id": "history",
+      "label": "Call history",
+      "href": "/calls/history",
+      "icon": "history"
+    },
+    {
+      "id": "rewards",
+      "label": "Kaleva Rewards",
+      "href": "/rewards",
+      "icon": "rewards"
+    },
+    {
+      "id": "achievements",
+      "label": "Achievements",
+      "href": "/achievements",
+      "icon": "achievements"
+    },
+    {
+      "id": "settings",
+      "label": "Settings",
+      "href": "/settings",
+      "icon": "settings"
+    }
   ]
 }

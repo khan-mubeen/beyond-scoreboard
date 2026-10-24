@@ -2,9 +2,9 @@
   "id": "karpat-assat-live",
   "status": "live",
   "breadcrumbs": [
-    { "label": "Sports", "href": "/" },
-    { "label": "Ice Hockey", "href": "/" },
-    { "label": "Liiga", "href": "/" },
+    { "label": "Sports", "href": "/sports" },
+    { "label": "Ice Hockey", "href": "/sports" },
+    { "label": "Liiga", "href": "/sports" },
     { "label": "Kärpät – Ässät" }
   ],
   "match": {

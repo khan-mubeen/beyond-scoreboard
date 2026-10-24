@@ -10,6 +10,9 @@ const page = <P extends object>(load: () => Promise<Record<string, unknown>>, na
   lazy(async () => ({ default: (await load())[name] as ComponentType<P> }));
 
 const SportsHome = page(() => import("@/features/site/screens/SportsHome"), "SportsHome");
+const MediaHome = page(() => import("@/features/site/screens/MediaHome"), "MediaHome");
+const MediaPlaceholder = page<{ slug: string }>(() => import("@/features/site/screens/MediaHome"), "MediaPlaceholder");
+const BrandPage = page(() => import("@/features/site/screens/BrandPage"), "BrandPage");
 const MatchPage = page<{ id: string }>(() => import("@/features/site/screens/MatchPage"), "MatchPage");
 const Rewards = page(() => import("@/features/site/screens/Rewards"), "Rewards");
 const LeaderboardPage = page(() => import("@/features/site/screens/LeaderboardPage"), "LeaderboardPage");
@@ -35,8 +38,12 @@ const DevStory = page(() => import("@/features/story/screens/DevStory"), "DevSto
 export type Theme = "site" | "room";
 
 const ROUTES: [RegExp, (params: string[]) => ReactNode, Theme][] = [
+  // kaleva media (the group site, rebuilt) and its pages we don't rebuild
+  [/^\/$/, () => <MediaHome />, "site"],
+  [/^\/media\/([a-z0-9-]+)$/, ([slug]) => <MediaPlaceholder slug={slug} />, "site"],
   // kaleva sports pages
-  [/^\/$/, () => <SportsHome />, "site"],
+  [/^\/sports$/, () => <SportsHome />, "site"],
+  [/^\/dev\/brand$/, () => <BrandPage />, "site"],
   [/^\/match\/([^/]+)$/, ([id]) => <MatchPage id={id} />, "site"],
   [/^\/rewards$/, () => <Rewards />, "site"],
   [/^\/leaderboard$/, () => <LeaderboardPage />, "site"],
@@ -73,6 +80,31 @@ function find(pathname: string) {
   return null;
 }
 
+/**
+ * old deep links: the sports home used to be "/", so "/?show=live", "/#liiga-table" and the like
+ * go to /sports with the same query and anchor. a few likely aliases too
+ */
+const SPORTS_HOME_ANCHORS = new Set(["#liiga-table", "#season-stakes", "#live", "#results", "#upcoming"]);
+const SPORTS_HOME_PARAMS = ["show", "team", "date", "filter"];
+const ALIASES = new Set(["/sport", "/urheilu", "/kaleva-sports", "/home"]);
+
+export function redirectFor(pathname: string, search = "", hash = ""): string | null {
+  const path = pathname.replace(/\/+$/, "") || "/";
+  if (ALIASES.has(path)) return `/sports${search}${hash}`;
+  if (path !== "/") return null;
+  const params = new URLSearchParams(search);
+  if (SPORTS_HOME_PARAMS.some((p) => params.has(p)) || SPORTS_HOME_ANCHORS.has(hash)) return `/sports${search}${hash}`;
+  return null;
+}
+
+/** applies a redirect to the address bar (no new history entry); the path + query to show */
+function redirected(): string {
+  const { pathname, search, hash } = window.location;
+  const to = redirectFor(pathname, search, hash);
+  if (to) window.history.replaceState(null, "", to);
+  return window.location.pathname + window.location.search;
+}
+
 export function resolveRoute(pathname: string): { element: ReactNode; theme: Theme } {
   const hit = find(pathname);
   return hit ? { element: hit.render(), theme: hit.theme } : NOT_FOUND;
@@ -81,7 +113,7 @@ export function resolveRoute(pathname: string): { element: ReactNode; theme: The
 /** true when a path (no query or hash) is a page of the app; the link audit test uses it */
 export const isRoute = (pathname: string) => find(pathname) !== null;
 
-const here = () => window.location.pathname + window.location.search;
+const here = () => redirected();
 
 /** a click on a link to another site page, handled without a full page load */
 function inAppTarget(e: MouseEvent): HTMLAnchorElement | null {
@@ -127,7 +159,8 @@ export function App() {
 }
 
 const DEV_PAGES = [
-  { href: "/", owner: "site", what: "kaleva sports home" },
+  { href: "/", owner: "site", what: "kaleva media front page (rebuilt)" },
+  { href: "/sports", owner: "site", what: "kaleva sports home" },
   { href: "/leaderboard", owner: "site", what: "weekly, season and watch together leaderboards" },
   { href: "/rewards", owner: "site", what: "kaleva rewards" },
   { href: "/watch", owner: "live", what: "create or join a watch party room" },

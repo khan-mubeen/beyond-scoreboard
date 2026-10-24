@@ -1,7 +1,6 @@
 import type { FavoriteTeam } from "@/shared/types";
 import { teamHref } from "../format";
 import { Icon } from "./Icon";
-import { Pill } from "./SectionCard";
 import { TeamLogo } from "./TeamLogo";
 
 function Title({ compact }: { compact: boolean }) {
@@ -25,7 +24,13 @@ export function FavoriteTeams({ teams, compact = false }: { teams: FavoriteTeam[
       <section aria-labelledby="fav-title" className="px-3">
         <Title compact />
         <ul className="mt-3 flex flex-col gap-2 text-sm">
-          {followed.length === 0 && <li className="text-muted">No teams yet</li>}
+          {followed.length === 0 && (
+            <li>
+              <a href="/teams" className="font-semibold text-accent hover:underline">
+                Follow a team
+              </a>
+            </li>
+          )}
           {followed.map((f) => (
             <li key={f.team.id} className="flex items-center gap-1.5">
               {f.starred && <Icon name="star" className="size-3.5" label="Favourite" />}
@@ -46,24 +51,20 @@ export function FavoriteTeams({ teams, compact = false }: { teams: FavoriteTeam[
       <ul className="mt-3 flex flex-col gap-3.5">
         {followed.length === 0 && (
           <li className="text-sm text-muted">
-            Follow a team to see its games first. <a href="/teams" className="font-semibold text-accent hover:underline">Pick teams</a>
+            <a href="/teams" className="font-semibold text-accent hover:underline">
+              Follow a team
+            </a>{" "}
+            to see its games first.
           </li>
         )}
-        {teams.map((f) => (
-          <li key={f.team.id} className={`flex items-center gap-3 ${f.comingSoon ? "opacity-60 grayscale" : ""}`}>
+        {followed.map((f) => (
+          <li key={f.team.id} className="flex items-center gap-3">
             <TeamLogo team={f.team} size={40} />
             <div className="min-w-0 flex-1">
-              <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
-                {f.comingSoon ? (
-                  <span className="text-[15px] text-muted">{f.team.name}</span>
-                ) : (
-                  <a href={teamHref(f.team.id)} className="text-[15px] font-semibold hover:underline">
-                    {f.team.name}
-                  </a>
-                )}
-                {f.comingSoon && <Pill className="py-0.5 text-[10px] font-medium">Coming soon</Pill>}
-              </div>
-              {!f.comingSoon && <p className="text-sm text-muted">{f.league}</p>}
+              <a href={teamHref(f.team.id)} className="text-[15px] font-semibold hover:underline">
+                {f.team.name}
+              </a>
+              <p className="text-sm text-muted">{f.league}</p>
             </div>
             {f.starred && <Icon name="star" className="size-5 text-accent" label="Favourite team" />}
           </li>

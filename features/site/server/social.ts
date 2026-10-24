@@ -5,6 +5,7 @@ import { getDb, type DbComment } from "@/shared/db";
 import type { Comment, RoomLeaderboardRow, RoomSummary } from "@/shared/types";
 import { displayName } from "./identity";
 import { avatarFor, botIds, rankPoints } from "./points";
+import { watchingCount } from "./presence";
 
 const CODE_LETTERS = "ABCDEFGHJKLMNPQRSTUVWXYZ";
 const randomCode = () => Array.from({ length: 4 }, () => CODE_LETTERS[Math.floor(Math.random() * CODE_LETTERS.length)]).join("");
@@ -45,7 +46,8 @@ export async function roomSummary(matchId: string, youId: string | null, final: 
   const shown = ranked.filter((e, i) => i < top || e.isYou);
   const rows: RoomLeaderboardRow[] = shown.map((e) => ({ rank: e.rank, name: e.isYou ? "You" : e.nickname, score: e.score, ...(e.isYou && { isYou: true }) }));
   if (youId && !rows.some((r) => r.isYou)) rows.push({ rank: null, name: "You", score: null, isYou: true });
-  const watching = Math.max(fans.length, extraWatching);
+  // active viewers right now (heartbeats in the last 90 s), not everyone who ever joined
+  const watching = Math.max(watchingCount(matchId), extraWatching);
   return {
     code: room.code,
     watching,

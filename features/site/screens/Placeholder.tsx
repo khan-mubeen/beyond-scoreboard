@@ -13,7 +13,7 @@ export function Placeholder({ title, activeLinkId }: { title: string; activeLink
           <h1 className="mt-4 font-serif text-3xl font-bold">{title}</h1>
           <p className="mt-2 text-muted">Coming soon. We're building this page next.</p>
           <a
-            href="/"
+            href="/sports"
             className="mt-6 inline-flex h-11 items-center gap-2 rounded-lg bg-accent px-5 text-sm font-semibold text-accent-ink hover:brightness-110"
           >
             Back to Sports <Icon name="arrowRight" className="size-4" />

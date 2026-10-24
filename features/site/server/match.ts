@@ -1,5 +1,5 @@
 // GET /api/site/matches/:id: a live, upcoming or finished match exactly as the ui types it
-import { parseMatchId, type LiigaFixture, type LiigaGame } from "@/features/liiga";
+import { liigaGameUrl, parseMatchId, type LiigaFixture, type LiigaGame } from "@/features/liiga";
 import { getGame, getGameStats, getLineups, getPastAndFuture, liigaNow } from "@/features/liiga/server";
 import { goalOfTheGame, rankOf, zoneForRank, zoneLabel, getSeasonContext, type SeasonContext } from "@/features/stakes/server";
 import { engineMatch, ensureLiveLoop, roomScope } from "@/features/live/server";
@@ -25,8 +25,10 @@ import { recentComments, roomSummary } from "./social";
 import { SITE } from "./config";
 import { teamBook, type TeamBook } from "./teams";
 import { whatIfOptions } from "./whatif";
+import { previewDetail } from "./preview";
+import { matchStarted } from "./started";
 
-type Side = "home" | "away";
+export type Side = "home" | "away";
 
 /** the side the stakes card is written for: the favourite team when it plays, else home */
 const stakesSide = (g: LiigaGame): Side => (g.away.teamId.endsWith(`:${SITE.favoriteSlug}`) ? "away" : "home");
@@ -234,6 +236,10 @@ export async function matchDetail(id: string, viewer: Viewer): Promise<(MatchDet
   const s = gameStakes(ctx, fixture);
   const side = stakesSide(g);
   const youId = viewer.user?.id ?? null;
+  // not started (a rotation match starts at its lobby): the preview page
+  if (!(await matchStarted(id))) {
+    return previewDetail({ g, s, side, ctx, book, viewer, source: res.source === "snapshot" || ctx.source === "snapshot" ? "snapshot" : "live" });
+  }
   // a replay's real stats are the final totals: hide them until the replay ends
   const hideStats = g.status === "scheduled" || (isReplay && g.status !== "final");
   // the game as the page shows it (a masked or replayed game has no final stats yet)
@@ -245,12 +251,14 @@ export async function matchDetail(id: string, viewer: Viewer): Promise<(MatchDet
   const latestGoal = g.goals.at(-1);
   const rotation = eng?.rotation ?? null;
   const highlight = highlightOf(id);
-  const clip = clipOf(id);
+  const liigaUrl = liigaGameUrl(g);
+  const clip = clipOf(id, liigaUrl);
   const summary = summaryOf(g, book, now);
   if (rotation?.phase === "lobby") Object.assign(summary, { whenLabel: "Starting soon", startsAt: rotation.liveStartedAt });
   const base = {
+    liigaUrl,
     id: g.id,
-    breadcrumbs: [{ label: "Sports", href: "/" }, { label: "Ice Hockey", href: "/" }, { label: "Liiga", href: "/" }, { label: `${g.home.name} – ${g.away.name}` }],
+    breadcrumbs: [{ label: "Sports", href: "/sports" }, { label: "Ice Hockey", href: "/sports" }, { label: "Liiga", href: "/sports" }, { label: `${g.home.name} – ${g.away.name}` }],
     match: summary,
     venue: g.rink ?? "",
     dateLabel: shortDate(new Date(g.start)),
@@ -277,7 +285,7 @@ export async function matchDetail(id: string, viewer: Viewer): Promise<(MatchDet
     poster: highlight.poster ?? "/placeholders/video-highlights.svg",
     title: `Match highlights · ${g.home.name} – ${g.away.name}`,
     src: highlight.type === "mp4" ? highlight.url : null,
-    streamUrl: highlight.streamUrl,
+    href: liigaUrl,
   };
 
   if (g.status !== "final") {
@@ -285,10 +293,11 @@ export async function matchDetail(id: string, viewer: Viewer): Promise<(MatchDet
     const detail: LiveMatchDetail & ApiMeta = {
       ...base,
       status: g.status === "live" ? "live" : "scheduled",
-      video: highlightInfo ?? (latestGoal && goalVideo(latestGoal, `Latest goal · ${latestGoal.scorer ?? g[latestGoal.side].name}`)) ?? {
+      video: highlightInfo ?? (latestGoal && goalVideo(latestGoal, `Latest goal · ${latestGoal.scorer ?? g[latestGoal.side].name}`, liigaUrl)) ?? {
         poster: "/placeholders/video-live.svg",
         title: `${g.home.name} – ${g.away.name}`,
-        src: g.video?.url ?? null,
+        src: null,
+        href: liigaUrl,
       },
       whatItMeans: whatItMeansText(facts),
       discussion,
@@ -319,7 +328,7 @@ export async function matchDetail(id: string, viewer: Viewer): Promise<(MatchDet
   const detail: FinishedMatchDetail & ApiMeta = {
     ...base,
     status: "final",
-    video: highlightInfo ?? (goal && clip(goal, `Goal of the game · ${goal.scorer ?? ""}`)) ?? { poster: "/placeholders/video-highlights.svg", title: "Match highlights", src: null },
+    video: highlightInfo ?? (goal && clip(goal, `Goal of the game · ${goal.scorer ?? ""}`)) ?? { poster: "/placeholders/video-highlights.svg", title: "Match highlights", src: null, href: liigaUrl },
     whatItMeant: {
       badge: "Facts from match data",
       chanceBefore: facts.chanceBefore ?? 0,
@@ -342,7 +351,7 @@ export async function matchDetail(id: string, viewer: Viewer): Promise<(MatchDet
             title: `${goal.scorer ?? g[goal.side].name}'s ${goal.homeScore}–${goal.awayScore} goal`,
             effectText: `Playoff chance for ${g[side].name}: ${pct(timeline[before - 1]?.chance ?? 0)}% → ${pct(gotg.chance)}%.`,
             chip: `Playoff chance ${Math.round(gotg.delta * 100) > 0 ? "+" : "−"}${Math.abs(Math.round(gotg.delta * 100))}%`,
-            video: clip(goal, `${goal.scorer ?? ""} · ${goal.homeScore}–${goal.awayScore}`) ?? { poster: "/placeholders/goal-thumb.svg", title: "Goal", src: null },
+            video: clip(goal, `${goal.scorer ?? ""} · ${goal.homeScore}–${goal.awayScore}`) ?? { poster: "/placeholders/goal-thumb.svg", title: "Goal", src: null, href: liigaUrl },
           }
         : null,
     yourNight: night,

@@ -24,6 +24,7 @@ import { useLiveMatch } from "../components/use-live-match";
 import { VideoModal, VideoPlayer } from "../components/VideoPlayer";
 import { JoinRoomModal, WatchTogetherCard } from "../components/WatchTogetherCard";
 import { fmtCountdown, isMockMatch, joinMatchApi, postCommentApi, roomFromUrl, useMe, useServerNow } from "../data";
+import { NAMES } from "@/shared/copy/names";
 
 type Tab = "overview" | "events" | "stats" | "lineups" | "stakes" | "call";
 type Section = "call-it" | "discussion" | "season-stakes" | "watch-together";
@@ -34,17 +35,17 @@ const TABS: TabItem<Tab>[] = [
   { id: "stats", label: "Statistics" },
   { id: "lineups", label: "Lineups" },
   { id: "stakes", label: "Season stakes" },
-  { id: "call", label: "Call It!" },
+  { id: "call", label: NAMES.call },
 ];
 const BAR: BottomBarItem<Section>[] = [
-  { id: "call-it", label: "Call It!", icon: "sparkle" },
+  { id: "call-it", label: NAMES.call, icon: "target" },
   { id: "discussion", label: "Discussion", icon: "discussion" },
   { id: "season-stakes", label: "Stakes", icon: "chart" },
   { id: "watch-together", label: "Watch Together", icon: "users" },
 ];
 
 const scrollTo = (id: string) => requestAnimationFrame(() => document.getElementById(id)?.scrollIntoView({ block: "start" }));
-// the call it! sheet starts open when arriving from "Call It! · 2 open" or a room qr code
+// the your call! sheet starts open when arriving from the home card or a room qr code
 const startsOnCallIt = () =>
   typeof window !== "undefined" && (window.location.hash === "#call-it" || new URLSearchParams(window.location.search).has("room"));
 const hostMode = () => typeof window !== "undefined" && new URLSearchParams(window.location.search).has("host");
@@ -63,12 +64,12 @@ function RotationStage({ match, rotation, onSeeStakes }: { match: LiveMatchDetai
       <HighlightPlayer
         video={match.highlight ?? null}
         rotation={rotation}
+        liigaUrl={match.liigaUrl}
         className="aspect-video"
         overlay={
           <p className="absolute top-4 left-4 flex items-center gap-3 text-sm font-semibold">
             {live ? <LiveBadge /> : <span className="rounded-md bg-dark/70 px-2.5 py-1 text-xs font-bold">Starts in {fmtCountdown(rotation.phaseEndsAt - now)}</span>}
             {live && <span className="rounded-md bg-dark/70 px-2 py-0.5">{`${match.match.periodLabel ?? ""} ${match.match.clock ?? ""}`}</span>}
-            <span className="rounded-md bg-gold px-2 py-0.5 text-xs font-bold text-dark">HIGHLIGHTS</span>
           </p>
         }
       />
@@ -170,7 +171,7 @@ export function LiveMatch({ match: initial, source, onChange }: { match: LiveMat
       view={callView}
       id="call-it"
       lastCall={live?.lastCall ?? null}
-      waitingText={isLive ? "Next call coming soon" : "Calls open when the game starts"}
+      waitingText={isLive ? "Next question soon" : "Questions open when the game starts"}
       {...extra}
     />
   );
@@ -265,7 +266,7 @@ export function LiveMatch({ match: initial, source, onChange }: { match: LiveMat
 
           <aside aria-label="Calls and rooms" className="flex min-w-0 flex-col gap-4">
             {tab !== "call" && callCard({ sheet: true, sheetOpen, onSheetOpenChange: setSheetOpen })}
-            <WatchTogetherCard id="watch-together" room={match.room} matchId={real ? match.id : undefined} onJoin={() => setJoinOpen(true)} you={live?.you ?? null} />
+            <WatchTogetherCard id="watch-together" room={match.room} matchId={real ? match.id : undefined} onJoin={() => setJoinOpen(true)} you={live?.you ?? null} justJoined={!!live?.roomPulse} />
             <LiveDiscussion
               id="discussion"
               comments={match.discussion}

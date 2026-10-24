@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { markNotificationsRead, useNotifications } from "../data";
 import { Icon } from "./Icon";
+import { NAMES } from "@/shared/copy/names";
 
 const ago = (iso: string) => {
   const s = Math.max(0, (Date.now() - Date.parse(iso)) / 1000);
@@ -61,7 +62,7 @@ export function NotificationsBell() {
             )}
           </div>
           <ul className="max-h-96 overflow-y-auto">
-            {!data?.items.length && <li className="px-4 py-6 text-center text-sm text-muted">Nothing yet. Answer a Call It! question and the result lands here.</li>}
+            {!data?.items.length && <li className="px-4 py-6 text-center text-sm text-muted">Nothing yet. Answer a {NAMES.call} question and the result lands here.</li>}
             {data?.items.map((n) => (
               <li key={n.id} className="border-b border-line last:border-0">
                 <a

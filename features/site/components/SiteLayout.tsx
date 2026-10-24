@@ -1,13 +1,14 @@
 import { AnimatePresence, MotionConfig, motion } from "motion/react";
 import { type ReactNode, useState, useSyncExternalStore } from "react";
 import type { Breadcrumb, DataSource } from "@/shared/types";
-import { NAV } from "../chrome";
+import { sportsNav } from "../chrome";
+import { MediaFooter } from "./media/MediaChrome";
 import { useMe } from "../data";
 import { Icon } from "./Icon";
 import { Sidebar } from "./Sidebar";
 import { SidebarDrawer } from "./SidebarDrawer";
 import { ToastProvider } from "./Toast";
-import { TopNav } from "./TopNav";
+import { MediaBar, TopNav } from "./TopNav";
 
 export interface SidebarConfig {
   activeLinkId?: string;
@@ -74,6 +75,7 @@ export function SiteLayout({
   const [drawerOpen, setDrawerOpen] = useState(false);
   const large = useIsLarge();
   const panel = <Sidebar me={me} activeLinkId={sidebar.activeLinkId ?? ""} variant={sidebar.variant} />;
+  const nav = sportsNav(typeof window === "undefined" ? "/sports" : window.location.pathname, typeof window === "undefined" ? "" : window.location.search);
 
   if (bare) {
     return (
@@ -109,7 +111,8 @@ export function SiteLayout({
     <MotionConfig reducedMotion="user">
       <ToastProvider>
         <div className="min-h-screen overflow-x-clip bg-bg text-ink">
-          <TopNav me={me} menu={menu} />
+          <MediaBar />
+          <TopNav me={me} menu={menu} nav={nav} />
           <div className="flex">
             <AnimatePresence initial={false}>
               {docks && (
@@ -140,7 +143,8 @@ export function SiteLayout({
               {children}
             </div>
           </div>
-          <SidebarDrawer open={drawerOpen} onClose={() => setDrawerOpen(false)} id={DRAWER_ID} nav={NAV}>
+          <MediaFooter note="Demo — Kaleva Sports concept" />
+          <SidebarDrawer open={drawerOpen} onClose={() => setDrawerOpen(false)} id={DRAWER_ID} nav={nav}>
             {panel}
           </SidebarDrawer>
         </div>

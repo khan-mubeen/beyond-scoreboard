@@ -413,7 +413,10 @@ export interface FeaturedMatch {
   background: string;
   whatItMeans: string;
   stakes: StakesChipData[];
+  /** your call! questions open right now (at page load; the card then follows the live channel) */
   openCalls: number;
+  /** the live engine runs this match: the card subscribes to match:{id} */
+  channel?: boolean;
 }
 
 /** a card in the "season stakes today" strip */
@@ -483,12 +486,12 @@ export interface VideoInfo {
   poster: string;
   /** "Match highlights · 3:12" */
   title: string;
-  /** the playable clip (liiga goal clips are hls .m3u8, rotation highlights mp4), null for the placeholder */
+  /** a clip we host (the rotation highlights, mp4); never liiga's own streams */
   src?: string | null;
   /** start the clip here (seconds): a goal in a rotation highlight opens 4 s before it */
   startAt?: number;
-  /** the original liiga stream, for "Clip not playing? Open the stream" */
-  streamUrl?: string | null;
+  /** the match on liiga.fi: "Watch on liiga.fi" when we host no clip, "Video not playing?" under ours */
+  href?: string | null;
 }
 
 /** a goal or other event in the match feed, newest first */
@@ -667,6 +670,8 @@ interface MatchDetailBase {
   /** demo rotation matches: the highlight (null: none yet) and the phase when the page loaded */
   highlight?: HighlightVideo | null;
   rotation?: LiveRotation | null;
+  /** the match on liiga.fi ("Watch on liiga.fi", "Video not playing?") */
+  liigaUrl?: string;
 }
 
 export interface LiveMatchDetail extends MatchDetailBase {
@@ -722,7 +727,40 @@ export interface SpokenSummary {
   audio: { url: string; durationSec: number; voice: string; source: "azure" | "azure-portal" } | null;
 }
 
-export type MatchDetail = LiveMatchDetail | FinishedMatchDetail;
+/** a game this season between the same two teams, newest first */
+export interface HeadToHeadGame {
+  matchId: string;
+  /** "Sat 17 Oct" */
+  date: string;
+  home: TeamRef;
+  away: TeamRef;
+  score: Score;
+  /** " OT" / " SO" when it went past regulation */
+  extra: string;
+}
+
+/**
+ * a game that hasn't started (a rotation match counts as started from its lobby): a preview with
+ * no video, no your call!, no discussion and no watch together
+ */
+export interface PreviewMatchDetail {
+  id: string;
+  status: "preview";
+  breadcrumbs: Breadcrumb[];
+  /** startsAt drives the countdown */
+  match: MatchSummary;
+  venue: string;
+  dateLabel: string;
+  stakesSummary: StakesChipData[];
+  /** "what this game is worth", with what if? */
+  seasonStakes: SeasonStakes;
+  headToHead: { games: HeadToHeadGame[]; summary: string };
+  /** the viewer set a reminder for this game */
+  reminder: boolean;
+  liigaUrl: string;
+}
+
+export type MatchDetail = LiveMatchDetail | FinishedMatchDetail | PreviewMatchDetail;
 
 // ---------- live match state (GET /api/site/matches/:id/state and realtime "match:{id}") ----------
 
@@ -778,8 +816,8 @@ export interface RotationInfo extends ApiMeta {
 
 /** a rotation match's highlight. never carries the goal cues */
 export type HighlightVideo =
-  | { type: "mp4"; url: string; poster: string | null; durationSec: number; streamUrl: string | null }
-  | { type: "youtube"; id: string; poster: string | null; durationSec: number; streamUrl: string | null };
+  | { type: "mp4"; url: string; poster: string | null; durationSec: number }
+  | { type: "youtube"; id: string; poster: string | null; durationSec: number };
 
 export interface LiveStakes {
   chips: StakesChipData[];

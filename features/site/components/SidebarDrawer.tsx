@@ -72,22 +72,28 @@ export function SidebarDrawer({
               <Wordmark />
             </div>
             <div className="flex-1 overflow-y-auto bg-surface-2/60 px-4 py-5">
-              {children}
-              <nav aria-label="Sections" className="mt-5 border-t border-line pt-4 lg:hidden">
+              {/* the sports sections first: the header shows them only on wide screens */}
+              <nav aria-label="Sports sections" className="mb-5 border-b border-line pb-4 font-km xl:hidden">
                 <ul className="flex flex-col gap-1">
                   {nav.map((l) => (
                     <li key={l.label}>
                       <a
                         href={l.href}
                         aria-current={l.active ? "page" : undefined}
-                        className={`block rounded-md px-3 py-2 hover:bg-surface ${l.active ? "font-semibold text-accent" : ""}`}
+                        className={`block rounded-md px-3 py-2 font-semibold hover:bg-surface ${l.active ? "text-accent" : ""}`}
                       >
                         {l.label}
                       </a>
                     </li>
                   ))}
+                  <li>
+                    <a href="/" className="mt-1 block rounded-md px-3 py-2 text-sm text-muted hover:bg-surface">
+                      ← Kaleva Media
+                    </a>
+                  </li>
                 </ul>
               </nav>
+              {children}
             </div>
           </motion.div>
         </div>

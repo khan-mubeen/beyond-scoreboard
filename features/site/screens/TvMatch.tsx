@@ -65,7 +65,7 @@ function TvLive({ detail, onChange }: { detail: LiveMatchDetail; onChange: () =>
         <StakesSummary chips={match.stakesSummary} />
       </div>
       <div className="flex flex-col gap-6">
-        <CallItCard view={live?.call ?? null} display lastCall={live?.lastCall ?? null} waitingText="Next call coming soon" />
+        <CallItCard view={live?.call ?? null} display lastCall={live?.lastCall ?? null} waitingText="Next question soon" />
         <Board rows={board(match.room.leaderboard)} title="Watch Together" />
         <RoomQr code={match.room.code} matchId={match.id} size={140} />
       </div>
@@ -121,7 +121,17 @@ export function TvMatch({ id }: { id: string }) {
   const detail: MatchDetail | null = data;
   return (
     <SiteLayout sidebar={{ docked: false }} bare>
-      {!detail ? <MatchSkeleton /> : detail.status === "final" ? <TvSummary detail={detail} /> : <TvLive detail={detail} onChange={refresh} />}
+      {!detail ? (
+        <MatchSkeleton />
+      ) : detail.status === "preview" ? (
+        <div className="p-8">
+          <ScoreHeader match={detail.match} venue={detail.venue} dateLabel={detail.dateLabel} spectators={null} />
+        </div>
+      ) : detail.status === "final" ? (
+        <TvSummary detail={detail} />
+      ) : (
+        <TvLive detail={detail} onChange={refresh} />
+      )}
     </SiteLayout>
   );
 }

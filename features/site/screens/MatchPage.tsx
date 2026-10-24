@@ -3,12 +3,13 @@ import { DataUnavailable, MatchSkeleton } from "../components/Skeleton";
 import { isMockMatch, USE_MOCKS, useMatchDetail } from "../data";
 import { FinishedMatch } from "./FinishedMatch";
 import { LiveMatch } from "./LiveMatch";
+import { MatchPreview } from "./MatchPreview";
 import { Placeholder } from "./Placeholder";
 import { TvMatch } from "./TvMatch";
 
 const tvMode = () => typeof window !== "undefined" && new URLSearchParams(window.location.search).get("tv") === "1";
 
-/** /match/:id picks the live (or upcoming) or the finished layout from the match status; ?tv=1 is the projector view */
+/** /match/:id picks the preview (not started), live or finished layout from the match status; ?tv=1 is the projector view */
 export function MatchPage({ id }: { id: string }) {
   if (tvMode()) return <TvMatch id={id} />;
   return <MatchView id={id} />;
@@ -26,6 +27,7 @@ function MatchView({ id }: { id: string }) {
     );
   }
   // a live game that ends (or a rotation match that moves on) refetches the page in place
+  if (match.status === "preview") return <MatchPreview match={match} onChange={refresh} />;
   return match.status === "final" ? (
     <FinishedMatch match={match} source={source} onChange={refresh} />
   ) : (

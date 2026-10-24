@@ -8,6 +8,7 @@ import { Breadcrumbs, SiteLayout } from "../components/SiteLayout";
 import { Bone, DataUnavailable, PageSkeleton } from "../components/Skeleton";
 import { useToast } from "../components/Toast";
 import { useMe, useRewardsPage } from "../data";
+import { NAMES } from "@/shared/copy/names";
 
 function Section({ title, link, children }: { title: string; link?: { label: string; href: string }; children: ReactNode }) {
   return (
@@ -26,7 +27,7 @@ function Section({ title, link, children }: { title: string; link?: { label: str
 }
 
 const EARN = [
-  ["Call It!", "20 points for every call you get right during a live match."],
+  [NAMES.call, "20 points for every call you get right during a live match."],
   ["Watch Together", "Join a room from the match page or its QR code and climb the room leaderboard."],
   ["Every week", "The Weekly Leaderboard runs Monday to Sunday; season points never reset."],
 ];
@@ -37,7 +38,7 @@ function RewardsBody({ page, user }: { page: RewardsPage; user: UserSummary | nu
 
   return (
     <div className="px-4 pb-12 md:px-6">
-      <Breadcrumbs items={[{ label: "Sports", href: "/" }, { label: `${page.titleLead} ${page.titleAccent}` }]} />
+      <Breadcrumbs items={[{ label: "Sports", href: "/sports" }, { label: `${page.titleLead} ${page.titleAccent}` }]} />
       <main className="min-w-0">
         <div className="flex flex-wrap items-start justify-between gap-3">
           <div>

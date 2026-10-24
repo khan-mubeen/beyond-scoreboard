@@ -58,7 +58,7 @@ export function PointsCard({ user, compact = false }: { user: UserSummary; compa
 }
 
 const EARN_ICON: Record<RewardsPage["earnChips"][number]["icon"], IconName> = {
-  call: "sparkle",
+  call: "target",
   story: "story",
   watch: "users",
 };

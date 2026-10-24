@@ -4,6 +4,7 @@ import { Icon } from "./Icon";
 import { Pill } from "./SectionCard";
 import type { CallItView } from "./use-call-it";
 import { fmtClock } from "../format";
+import { NAMES } from "@/shared/copy/names";
 
 function optionClass(view: CallItView, id: string): string {
   const { phase, picked, correctOptionId } = view;
@@ -140,9 +141,10 @@ function Waiting({ text, lastCall }: { text: string; lastCall: CallItView["lastC
 }
 
 /**
- * call it! card. impossible to miss while a call is open: red border, a glow pulse (static with
- * reduced motion), a "LIVE CALL" badge and a big countdown. with sheet on, phones get a sticky
- * bottom sheet ("Call It! · 00:18") that the page opens when a call arrives. view null = no call
+ * the your call! card. impossible to miss while a question is open: red border, tinted background,
+ * a ring and glow that pulse (static with reduced motion), an "OPEN NOW" badge and a big countdown.
+ * idle it keeps a red accent bar. with sheet on, phones get a sticky bottom sheet ("Question open ·
+ * 00:18") that the page opens when a question arrives. view null = no question
  */
 export function CallItCard({
   view,
@@ -150,7 +152,7 @@ export function CallItCard({
   sheetOpen = false,
   onSheetOpenChange,
   id,
-  waitingText = "Next call coming soon",
+  waitingText = "Next question soon",
   lastCall = null,
   points = 20,
   display = false,
@@ -170,19 +172,19 @@ export function CallItCard({
   const header = (
     <header className="flex items-center justify-between border-b border-line px-5 py-4">
       <h2 className={`flex items-center gap-1.5 font-semibold ${display ? "text-2xl" : "text-[17px]"}`}>
-        <Icon name="sparkle" className="size-4" />
-        Call It!
-        {open && <span className="ml-1 rounded-md bg-accent px-2 py-0.5 text-[11px] font-bold tracking-wider text-accent-ink">LIVE CALL</span>}
+        <Icon name="target" className="size-5 text-accent" />
+        {NAMES.call}
+        {open && <span className="ml-1 rounded-md bg-accent px-2 py-0.5 text-[11px] font-bold tracking-wider text-accent-ink">OPEN NOW</span>}
       </h2>
       <Pill tone="accent">+{view?.points ?? points} pts</Pill>
     </header>
   );
   const body = view ? <CallBody view={view} display={display} /> : <Waiting text={waitingText} lastCall={lastCall} />;
-  const frame = open ? "border-2 border-accent call-glow" : "border border-line shadow-card";
+  const frame = open ? "feature-active" : "feature-idle";
 
   if (!sheet) {
     return (
-      <section id={id} aria-live={display ? "polite" : undefined} className={`scroll-mt-28 overflow-hidden rounded-card bg-surface ${frame}`}>
+      <section id={id} aria-live={display ? "polite" : undefined} className={`scroll-mt-28 overflow-hidden rounded-card ${frame}`}>
         {header}
         {body}
       </section>
@@ -192,9 +194,7 @@ export function CallItCard({
   return (
     <section
       id={id}
-      className={`scroll-mt-28 max-md:fixed max-md:inset-x-0 max-md:bottom-14 max-md:z-30 md:overflow-hidden md:rounded-card md:bg-surface ${
-        open ? "md:border-2 md:border-accent md:call-glow" : "md:border md:border-line md:shadow-card"
-      }`}
+      className={`scroll-mt-28 max-md:fixed max-md:inset-x-0 max-md:bottom-14 max-md:z-30 md:overflow-hidden md:rounded-card ${open ? "md:feature-active" : "md:feature-idle"}`}
     >
       <button
         type="button"
@@ -203,20 +203,20 @@ export function CallItCard({
         onClick={() => onSheetOpenChange?.(!sheetOpen)}
       >
         <span className="flex items-center gap-2">
-          <Icon name="sparkle" className="size-4" />
+          <Icon name="target" className="size-4" />
           {open ? (
             <>
-              Live call · <span className="tabular-nums">{fmtClock(view.secondsLeft)}</span>
+              Question open · <span className="tabular-nums">{fmtClock(view.secondsLeft)}</span>
             </>
           ) : view ? (
-            "Call It! · locked"
+            `${NAMES.call} · locked`
           ) : (
-            "Call It! · next call coming soon"
+            `${NAMES.call} · next question soon`
           )}
         </span>
         <Icon name="chevronDown" className={`size-4 transition-transform ${sheetOpen ? "" : "rotate-180"}`} />
       </button>
-      <div className={`max-md:max-h-[70vh] max-md:overflow-y-auto max-md:border-t max-md:border-line max-md:bg-surface ${sheetOpen ? "" : "max-md:hidden"}`}>
+      <div className={`max-md:max-h-[70vh] max-md:overflow-y-auto max-md:border-t max-md:border-line ${open ? "max-md:bg-accent-soft" : "max-md:bg-surface"} ${sheetOpen ? "" : "max-md:hidden"}`}>
         <div className="max-md:hidden">{header}</div>
         {body}
       </div>
@@ -232,9 +232,10 @@ export function CallBanner({ view, onGo }: { view: CallItView; onGo: () => void 
       onClick={onGo}
       className="sticky top-16 z-30 flex w-full items-center justify-center gap-2 bg-accent px-4 py-2 text-sm font-semibold text-accent-ink"
     >
-      <span className="rounded bg-accent-ink/15 px-1.5 py-0.5 text-[11px] tracking-wider">NEW CALL</span>
+      <Icon name="target" className="size-4" />
+      <span className="shrink-0 rounded bg-accent-ink/15 px-1.5 py-0.5 text-[11px] tracking-wider whitespace-nowrap">NEW QUESTION</span>
       <span className="truncate">{view.question}</span>
-      <span className="tabular-nums">· {fmtClock(view.secondsLeft)}</span>
+      <span className="shrink-0 tabular-nums whitespace-nowrap">· {fmtClock(view.secondsLeft)}</span>
       <span className="hidden underline underline-offset-2 sm:inline">· Answer now</span>
     </button>
   );

@@ -10,6 +10,7 @@ import { followedIds } from "./favorites";
 import { chanceNow, gameStakes } from "./game-stakes";
 import { pct, timeLabel } from "./labels";
 import { teamsWorld } from "./teams-data";
+import { NAMES } from "@/shared/copy/names";
 
 type NewNote = Omit<DbNotification, "id" | "createdAt" | "readAt">;
 const DAY = 24 * 3600 * 1000;
@@ -50,7 +51,7 @@ export async function makeNotifications(user: DbUser): Promise<void> {
         const worth = item.next?.matchId === f.id ? item.next.worth : null;
         note("favorite_soon", `${name} play ${day} ${timeLabel(new Date(f.start))}`, [`vs ${vs}`, worth].filter(Boolean).join(" · "), f.id, "fav-soon");
       }
-      if (state === "live" && prefs.favoriteReminders) note("favorite_live", `${name} are live now`, `vs ${vs} · Call It! is on`, f.id, `fav-live${rot}`);
+      if (state === "live" && prefs.favoriteReminders) note("favorite_live", `${name} are live now`, `vs ${vs} · ${NAMES.call} is on`, f.id, `fav-live${rot}`);
       if (state === "final" && prefs.favoriteResults) {
         // the result as the page shows it, and what it did to the playoff chance
         const g = engineMatch(f.id)?.visible;
@@ -72,7 +73,7 @@ export async function makeNotifications(user: DbUser): Promise<void> {
       const f = w.ctx.schedule.find((x) => x.id === matchId);
       if (!f || stateOf(matchId, f.start) !== "live") continue;
       const rot = phaseOf(matchId) ? `:${cycle}` : "";
-      note("reminder", `${w.book.ref(f.homeTeamId, f.homeName).name} – ${w.book.ref(f.awayTeamId, f.awayName).name} has started`, "Your reminder · Call It! is on", matchId, `reminder${rot}`);
+      note("reminder", `${w.book.ref(f.homeTeamId, f.homeName).name} – ${w.book.ref(f.awayTeamId, f.awayName).name} has started`, `Your reminder · ${NAMES.call} is on`, matchId, `reminder${rot}`);
     }
   }
   if (out.length) await db.notifications.create(out);

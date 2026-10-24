@@ -33,7 +33,7 @@ export function TeamsPage() {
   return (
     <SiteLayout sidebar={{ activeLinkId: "teams", docked: true }}>
       <main className="px-4 pb-12 md:px-6">
-        <Breadcrumbs items={[{ label: "Sports", href: "/" }, { label: "Teams" }]} />
+        <Breadcrumbs items={[{ label: "Sports", href: "/sports" }, { label: "Teams" }]} />
         <div className="flex flex-wrap items-end justify-between gap-3">
           <div>
             <h1 className="font-serif text-[36px] leading-tight font-bold">Liiga teams</h1>

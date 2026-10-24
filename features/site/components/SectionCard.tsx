@@ -8,6 +8,7 @@ export function SectionCard({
   id,
   className = "",
   bodyClassName = "p-5",
+  frame = "plain",
 }: {
   title?: ReactNode;
   action?: ReactNode;
@@ -15,9 +16,12 @@ export function SectionCard({
   id?: string;
   className?: string;
   bodyClassName?: string;
+  /** feature: your call! and watch together (accent bar); active: the open / just-joined highlight */
+  frame?: "plain" | "feature" | "active";
 }) {
+  const look = frame === "active" ? "feature-active" : frame === "feature" ? "feature-idle" : "border border-line bg-surface shadow-card";
   return (
-    <section id={id} className={`scroll-mt-20 rounded-card border border-line bg-surface shadow-card ${className}`}>
+    <section id={id} className={`scroll-mt-20 rounded-card transition-colors ${look} ${className}`}>
       {title && (
         <header className="flex items-center justify-between gap-3 border-b border-line px-5 py-4">
           <h2 className="text-[17px] font-semibold">{title}</h2>

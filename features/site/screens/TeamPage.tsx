@@ -25,7 +25,7 @@ export function TeamPage({ slug }: { slug: string }) {
   return (
     <SiteLayout sidebar={{ activeLinkId: "teams", docked: true }}>
       <main className="px-4 pb-12 md:px-6">
-        <Breadcrumbs items={[{ label: "Sports", href: "/" }, { label: "Teams", href: "/teams" }, { label: t?.team.name ?? "Team" }]} />
+        <Breadcrumbs items={[{ label: "Sports", href: "/sports" }, { label: "Teams", href: "/teams" }, { label: t?.team.name ?? "Team" }]} />
         {!data || !t ? (
           status === "error" ? (
             <DataUnavailable what="this team" onRetry={refresh} />

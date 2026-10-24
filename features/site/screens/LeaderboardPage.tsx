@@ -6,6 +6,7 @@ import { DataUnavailable, ListSkeleton } from "../components/Skeleton";
 import { type TabItem, Tabs } from "../components/Tabs";
 import { Avatar } from "../components/TeamLogo";
 import { useLeaderboard } from "../data";
+import { NAMES } from "@/shared/copy/names";
 
 const TABS: TabItem<LeaderboardScope>[] = [
   { id: "weekly", label: "Weekly" },
@@ -47,7 +48,7 @@ export function LeaderboardPage() {
   return (
     <SiteLayout sidebar={{ activeLinkId: "leaderboard", docked: true }}>
       <main className="px-4 pb-12 md:px-6">
-        <Breadcrumbs items={[{ label: "Sports", href: "/" }, { label: "Leaderboard" }]} />
+        <Breadcrumbs items={[{ label: "Sports", href: "/sports" }, { label: "Leaderboard" }]} />
         <h1 className="font-serif text-[36px] leading-tight font-bold">{data?.title ?? "Weekly Leaderboard"}</h1>
         <div className="mt-4 max-w-3xl">
           <Tabs label="Leaderboards" idPrefix="board" tabs={TABS} active={scope} onChange={setScope} />
@@ -65,7 +66,7 @@ export function LeaderboardPage() {
                 </p>
                 {data.entries.length === 0 ? (
                   <p className="px-4 py-8 text-center text-muted">
-                    {scope === "room" ? "No points in the room yet. Join a match and answer a call." : "No points yet. Answer a Call It! question to get on the board."}
+                    {scope === "room" ? "No points in the room yet. Join a match and answer a question." : `No points yet. Answer a ${NAMES.call} question to get on the board.`}
                   </p>
                 ) : (
                   <ol className="relative max-h-[70vh] divide-y divide-line overflow-y-auto">

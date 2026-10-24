@@ -208,17 +208,33 @@ export async function followTeam(teamId: string, on: boolean) {
   return res;
 }
 
-/** nickname, language, notification choices */
+/** the change shown at once in every place that reads /me (top nav, sidebar, profile) */
+export function withSettings(me: MeResponse, patch: Partial<Pick<MeResponse, "nickname" | "language" | "notificationPrefs">>): MeResponse {
+  const nickname = patch.nickname?.trim() || null;
+  return {
+    ...me,
+    ...(patch.language && { language: patch.language }),
+    ...(patch.notificationPrefs && { notificationPrefs: patch.notificationPrefs }),
+    ...(nickname && { nickname, joined: true, user: { ...me.user, name: nickname } }),
+  };
+}
+
+/** nickname, language, notification choices: optimistic, then the server's answer, then a refetch */
 export async function saveSettings(patch: Partial<Pick<MeResponse, "nickname" | "language" | "notificationPrefs">>) {
+  const before = (readCache(ME_URL)?.data as MeResponse | null | undefined) ?? null;
+  if (before) setData<MeResponse>(ME_URL, (me) => withSettings(me ?? before, patch));
   const res = await postJson<MeResponse>("/api/site/settings", patch);
   if (res.ok) setData<MeResponse>(ME_URL, () => res.data);
+  else if (before) setData<MeResponse>(ME_URL, () => before);
+  // anything else that shows the name (profile, boards) reloads; /me confirms
+  for (const url of [ME_URL, "/api/site/profile"]) invalidate(url);
   return res;
 }
 
 /** "reset my demo profile": the next page load is a new guest */
 export async function resetProfile() {
   const res = await postJson("/api/site/me/reset", {});
-  if (res.ok) window.location.assign("/");
+  if (res.ok) window.location.assign("/sports");
   return res;
 }
 
@@ -259,7 +275,11 @@ export const isMockMatch = (id: string) => MOCK_MATCH_IDS.includes(id);
 
 export async function joinMatchApi(matchId: string, nickname: string, roomCode?: string | null) {
   const res = await postJson<{ nickname: string; room: { code: string } }>(`/api/site/matches/${matchId}/join`, { nickname, ...(roomCode && { roomCode }) });
-  if (res.ok) invalidate(ME_URL);
+  // the new name shows at once (optimistic), /me confirms
+  if (res.ok) {
+    setData<MeResponse>(ME_URL, (me) => (me ? withSettings(me, { nickname: res.data.nickname }) : me!));
+    invalidate(ME_URL);
+  }
   return res;
 }
 

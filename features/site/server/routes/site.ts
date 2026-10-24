@@ -23,6 +23,8 @@ import { teamPage, teamsPage } from "../teams-page";
 import { joinMatch, postComment, recentComments } from "../social";
 import { liveStateFor } from "../state";
 import { allowWhatIf, WHAT_IF_MAX, whatIf, WhatIfError } from "../whatif";
+import { heartbeat, leave, roomChanged, watchingCount } from "../presence";
+import { matchStarted, NOT_STARTED } from "../started";
 
 const matchId = z.string().regex(/^\d{4}-\d+$/, "match ids look like 2027-2701404");
 const nickname = z.string().trim().min(1).max(24);
@@ -40,6 +42,7 @@ const schemas = {
   rotation: z.object({ action: z.enum(["restart", "skip", "pause", "resume"]) }),
   favorite: z.object({ teamId: z.string().regex(/^\d+:[\p{L}\p{N}-]+$/u, "a liiga team id"), on: z.boolean() }),
   calls: z.object({ view: z.enum(["recent", "history"]).default("recent"), match: matchId.optional() }),
+  presence: z.object({ leave: z.boolean().default(false) }),
   whatIf: z.object({
     matchId,
     overrides: z
@@ -91,7 +94,9 @@ siteRouter.post(
     const body = schemas.settings.parse(req.body ?? {});
     const v = await viewerOf(req, res);
     const user = await ensureUser(v, body.nickname);
-    v.user = await getDb().users.update(user.id, { ...(body.language && { language: body.language }), ...(body.notificationPrefs && { notificationPrefs: body.notificationPrefs }) });
+    // only what changed; never answer with a guest because an update returned nothing
+    const patch = { ...(body.language && { language: body.language }), ...(body.notificationPrefs && { notificationPrefs: body.notificationPrefs }) };
+    v.user = (Object.keys(patch).length ? await getDb().users.update(user.id, patch) : null) ?? user;
     return mePage(v);
   }),
 );
@@ -183,11 +188,29 @@ siteRouter.get(
   "/matches/:id/state",
   handle(async (req, res) => {
     const id = matchId.parse(req.params.id);
+    const started = await matchStarted(id);
+    if (started === null) return void res.status(404).json({ error: "match not found" });
+    if (!started) return void res.status(409).json(NOT_STARTED);
     const v = await viewerOf(req, res);
     // ?player= is accepted for older clients; the cookie decides who "me" is
     const state = await liveStateFor(id, v.user);
     if (!state) return void res.status(404).json({ error: "match not found" });
     return { ...state, asOf: new Date(state.serverNow).toISOString(), source: state.isReplay ? "snapshot" : "live" };
+  }),
+);
+
+/** the page is open (a heartbeat every 30 s while visible) or closed ({ leave: true }) */
+siteRouter.post(
+  "/matches/:id/presence",
+  handle(async (req, res) => {
+    const id = matchId.parse(req.params.id);
+    const { leave: going } = schemas.presence.parse(req.body ?? {});
+    const started = await matchStarted(id);
+    if (started === null) return void res.status(404).json({ error: "match not found" });
+    if (!started) return void res.status(409).json(NOT_STARTED);
+    const v = await viewerOf(req, res);
+    if (!v.user?.isBot && (going ? leave(id, v.anonId) : heartbeat(id, v.anonId))) await roomChanged(id);
+    return { watching: watchingCount(id), ...asOfNow() };
   }),
 );
 
@@ -197,10 +220,18 @@ siteRouter.post(
     const id = matchId.parse(req.params.id);
     const body = schemas.join.parse(req.body ?? {});
     if (body.bot && !isHost(req)) return void res.status(403).json({ error: "only the host can add fake players" });
+    const started = await matchStarted(id);
+    if (started === null) return void res.status(404).json({ error: "match not found" });
+    if (!started) return void res.status(409).json(NOT_STARTED);
     const v = await viewerOf(req, res);
     const user = await ensureUser(v, body.nickname, !!body.bot);
     const room = await joinMatch(id, user.id, body.roomCode);
     if (!room) return void res.status(404).json({ error: "room not found" });
+    // a fan joined: they're watching, and everyone's board and count change (bots never count)
+    if (!user.isBot) {
+      heartbeat(id, v.anonId);
+      await roomChanged(id);
+    }
     return { user: await viewerSummary(user), nickname: user.nickname, room: { code: room.code, matchId: room.matchId }, ...asOfNow() };
   }),
 );
@@ -233,6 +264,8 @@ siteRouter.post(
   handle(async (req, res) => {
     const callId = z.string().uuid().parse(req.params.callId);
     const { optionId } = schemas.answer.parse(req.body ?? {});
+    const call = await getDb().calls.get(callId);
+    if (call && !(await matchStarted(call.matchId))) return void res.status(409).json(NOT_STARTED);
     const v = await viewerOf(req, res);
     const user = await ensureUser(v);
     const result = await answerCall(callId, user.id, optionId);

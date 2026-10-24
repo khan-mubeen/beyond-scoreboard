@@ -5,9 +5,11 @@ import { startEngine } from "@/features/live/server";
 import { checkRulesAgainstApi } from "@/features/stakes/server";
 import { checkDb } from "@/shared/db";
 import { siteRenderer } from "../live-render";
+import { startPresenceSweep } from "../presence";
 
 export async function startup() {
   await Promise.all([initLiiga(), checkDb()]);
   await checkRulesAgainstApi();
   await startEngine(siteRenderer).catch((err) => console.error(`live: engine did not start: ${(err as Error).message}`));
+  startPresenceSweep();
 }

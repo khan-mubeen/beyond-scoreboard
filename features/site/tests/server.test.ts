@@ -111,6 +111,77 @@ describe("site api responses", () => {
   });
 });
 
+describe("round 3 fixes", () => {
+  it("a game that hasn't started is a preview; its state, join and presence are 409", async () => {
+    const id = "2027-2701410";
+    const d = (await http(`/matches/${id}`)).body;
+    expect(d.status).toBe("preview");
+    for (const k of ["video", "events", "room", "discussion", "callIt"]) expect(d[k], k).toBeUndefined();
+    expect(d.liigaUrl).toBe("https://liiga.fi/fi/peli/2027/2701410/seuranta");
+    expect(d.headToHead.summary).toMatch(/this season/);
+    expect(d.seasonStakes.worth.regulationWin).toBeGreaterThanOrEqual(0);
+    expect(typeof d.reminder).toBe("boolean");
+    for (const [path, method] of [[`/matches/${id}/state`, "GET"], [`/matches/${id}/join`, "POST"], [`/matches/${id}/presence`, "POST"]] as const) {
+      expect((await http(path, { method, body: method === "POST" ? { nickname: "Early" } : undefined })).status, path).toBe(409);
+    }
+  });
+
+  it("no page ever plays a liiga stream: hosted clips only, else Watch on liiga.fi", async () => {
+    for (const path of ["/home", `/matches/${MATCH}`, "/matches/2027-2701401", "/matches/2027-2701398", "/matches/2027-2701410"]) {
+      expect(JSON.stringify((await http(path)).body), path).not.toMatch(/m3u8|videos\.liiga\.fi\/videos\/[^"]*playlist/);
+    }
+    const final = (await http("/matches/2027-2701401")).body;
+    expect(final.liigaUrl).toBe("https://liiga.fi/fi/peli/2027/2701401/tilastot");
+    const goals = final.events.filter((e: Json) => e.video);
+    expect(goals.length).toBeGreaterThan(0);
+    for (const e of goals) expect(e.video).toMatchObject({ src: null, href: final.liigaUrl });
+  });
+
+  it("watching counts active viewers, and every join, leave and heartbeat tells the room", async () => {
+    const a = (await http("/me")).cookie!;
+    const b = (await http("/me")).cookie!;
+    const rooms = () => live.recentBroadcasts.filter((m) => m.topic === `match:${MATCH}` && m.event === "room");
+    const before = rooms().length;
+    expect((await http(`/matches/${MATCH}/presence`, { method: "POST", body: {}, cookie: a })).body.watching).toBe(1);
+    expect((await http(`/matches/${MATCH}/presence`, { method: "POST", body: {}, cookie: b })).body.watching).toBe(2);
+    // a repeat heartbeat changes nothing, so it isn't broadcast
+    await http(`/matches/${MATCH}/presence`, { method: "POST", body: {}, cookie: b });
+    expect(rooms().length - before).toBe(2);
+    expect((rooms().at(-1)!.payload as Json).watching).toBe(2);
+    expect(((await http(`/matches/${MATCH}/state`, { cookie: a })).body as LiveState).watching).toBe(2);
+    expect((await http(`/matches/${MATCH}/presence`, { method: "POST", body: { leave: true }, cookie: b })).body.watching).toBe(1);
+    expect((rooms().at(-1)!.payload as Json).watching).toBe(1);
+    // joining broadcasts the room (the new fan, the board) at once
+    const n = rooms().length;
+    expect((await http(`/matches/${MATCH}/join`, { method: "POST", body: { nickname: "Joiner" }, cookie: b })).status).toBe(200);
+    expect(rooms().length).toBe(n + 1);
+    expect((rooms().at(-1)!.payload as Json).watching).toBe(2);
+    for (const m of rooms()) expect(liiga.findGamblingFields(m.payload)).toEqual([]);
+    await http(`/matches/${MATCH}/presence`, { method: "POST", body: { leave: true }, cookie: a });
+    await http(`/matches/${MATCH}/presence`, { method: "POST", body: { leave: true }, cookie: b });
+  });
+
+  it("saving only a nickname answers with that nickname (not a guest)", async () => {
+    const cookie = (await http("/me")).cookie!;
+    const r = await http("/settings", { method: "POST", cookie, body: { nickname: "Pekka" } });
+    expect(r.status).toBe(200);
+    expect(r.body).toMatchObject({ nickname: "Pekka", joined: true, user: { name: "Pekka" } });
+    // the db contract behind it: an empty update is the user as they are
+    const db = (await import("@/shared/db")).getDb();
+    const id = r.body.user.id as string;
+    expect((await db.users.update(id, {}))?.nickname).toBe("Pekka");
+  });
+
+  it("liiga only: no coming-soon cards, and favourites are real follows only", async () => {
+    const home = (await http("/home")).body;
+    expect(home.comingSoon).toEqual([]);
+    expect(JSON.stringify(home)).not.toMatch(/Korisliiga|Superpesis|Coming soon/);
+    expect((await http("/me")).body.favorites).toEqual([]);
+    const rewards = (await http("/rewards")).body;
+    expect(rewards.earnChips.map((c: Json) => c.label)).toContain("Your Call!");
+  });
+});
+
 describe("teams, follows, settings and the profile", () => {
   it("follows a team, personalises home, saves settings and resets", async () => {
     const teams = (await http("/teams")).body;

@@ -1,20 +1,15 @@
-// live updates for a match page: supabase realtime broadcast on "match:{id}" (receive only),
-// with GET /state on subscribe or reconnect, and polling every 3 s while realtime is not
-// SUBSCRIBED (none within 5 s, a drop, or ?realtime=off). the server is the only authority.
+// live updates for a match page, on top of useMatchChannel (realtime, polling, presence).
 // a call you answered that resolves or is cancelled raises a toast and refreshes your points
-import { RealtimeClient, type RealtimeChannel } from "@supabase/realtime-js";
 import { useEffect, useMemo, useRef, useState } from "react";
-import type { Comment, LiveCall, LiveMatchDetail, LiveState, MatchEvent, MeResponse } from "@/shared/types";
-import { answerCallApi, noteServerNow, refreshMeSoon, serverNowMs } from "../data";
+import type { Comment, LiveCall, LiveMatchDetail, LiveState, MeResponse } from "@/shared/types";
+import { answerCallApi, refreshMeSoon, serverNowMs } from "../data";
 import { toast } from "./Toast";
 import type { CallItView } from "./use-call-it";
+import { type Connection, useMatchChannel } from "./use-match-channel";
 
-const URL_ = import.meta.env.VITE_SUPABASE_URL as string | undefined;
-const KEY = (import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY ?? import.meta.env.VITE_SUPABASE_ANON_KEY) as string | undefined;
-const POLL_MS = 3000;
-const SUBSCRIBE_GRACE_MS = 5000;
+export { applyBroadcast, type Connection } from "./use-match-channel";
 
-export type Connection = "connecting" | "realtime" | "polling";
+const ROOM_PULSE_MS = 4000;
 
 export interface LiveView {
   match: LiveMatchDetail;
@@ -27,52 +22,11 @@ export interface LiveView {
   state: LiveState | null;
   /** your place in the watch together room, once you have joined */
   you: { rank: number | null; of: number } | null;
+  /** someone joined the room in the last few seconds */
+  roomPulse: boolean;
 }
 
-const realtimeOff = () => typeof window !== "undefined" && new URLSearchParams(window.location.search).get("realtime") === "off";
-
-function mergeEvents(old: MatchEvent[], fresh: MatchEvent[]): MatchEvent[] {
-  const byId = new Map(old.map((e) => [e.id, e]));
-  for (const e of fresh) byId.set(e.id, e);
-  // newest first, like the server sends them: by period, then clock
-  return [...byId.values()].sort((a, b) => b.period.localeCompare(a.period) || b.time.localeCompare(a.time));
-}
-
-/** applies one broadcast to the state */
-export function applyBroadcast(s: LiveState, event: string, p: Record<string, unknown>): LiveState {
-  switch (event) {
-    case "state":
-      return {
-        ...s,
-        ...(p as Partial<LiveState>),
-        events: mergeEvents(s.events, (p.events as MatchEvent[]) ?? []),
-      };
-    case "stakes":
-      return { ...s, stakes: { ...s.stakes, ...(p as Partial<LiveState["stakes"]>) } };
-    case "call_open":
-      return { ...s, call: p.call as LiveCall };
-    case "call_locked":
-      return s.call && s.call.id === p.callId ? { ...s, call: { ...s.call, status: "locked", split: (p.split as Record<string, number>) ?? null } } : s;
-    case "call_resolved": {
-      const base = s.call?.id === p.callId ? s.call : s.lastCall?.id === p.callId ? s.lastCall : null;
-      if (!base) return s;
-      const done: LiveCall = { ...base, status: "resolved", correctOptionId: p.correctOptionId as string, split: (p.split as Record<string, number>) ?? base.split };
-      return { ...s, call: s.call?.id === p.callId ? done : s.call, lastCall: done };
-    }
-    case "call_cancelled": {
-      const base = s.call?.id === p.callId ? s.call : null;
-      if (!base) return s;
-      const done: LiveCall = { ...base, status: "cancelled", reason: (p.reason as string) ?? null };
-      return { ...s, call: done, lastCall: done };
-    }
-    case "leaderboard":
-      return { ...s, leaderboard: (p.leaderboard as LiveState["leaderboard"]) ?? s.leaderboard, watching: (p.watching as number) ?? s.watching };
-    default:
-      return s;
-  }
-}
-
-/** a live call as the call it! card shows it, counting down against server time */
+/** a live question as the your call! card shows it, counting down against server time */
 function viewOf(call: LiveCall, now: number, picked: string | null, error: string | null, pick: (id: string) => void, fi = false): CallItView {
   const secondsLeft = Math.max(0, Math.ceil((call.locksAt - now) / 1000));
   const phase =
@@ -98,8 +52,34 @@ function viewOf(call: LiveCall, now: number, picked: string | null, error: strin
 
 export function useLiveMatch(detail: LiveMatchDetail | null, me: MeResponse | null): LiveView | null {
   const id = detail?.id ?? null;
-  const [state, setState] = useState<LiveState | null>(null);
-  const [connection, setConnection] = useState<Connection>("connecting");
+  const [roomPulse, setRoomPulse] = useState(false);
+  const pulseTimer = useRef<ReturnType<typeof setTimeout>>(undefined);
+  // server state: realtime with polling, and this page counts as watching
+  const { state, connection } = useMatchChannel(id, {
+    presence: true,
+    onSnapshot: (snap) => {
+      if (snap.me?.answers) setAnswers((a) => ({ ...snap.me!.answers, ...a }));
+    },
+    onMessage: (event, payload) => {
+      // more people watching: the watch together card lights up for a moment
+      if (event === "room" && typeof payload.watching === "number" && payload.watching > (latest.current.state?.watching ?? 0)) {
+        setRoomPulse(true);
+        clearTimeout(pulseTimer.current);
+        pulseTimer.current = setTimeout(() => setRoomPulse(false), ROOM_PULSE_MS);
+      }
+      if (event === "comment") {
+        setComments((c) => [...c, payload.comment as Comment]);
+        return true;
+      }
+      // two calls can resolve in one tick: announce from the event, before the state merges
+      if (event === "call_resolved" || event === "call_cancelled") {
+        const s = latest.current.state;
+        const call = [s?.call, s?.lastCall].find((c) => c?.id === payload.callId);
+        announce(call, event === "call_resolved" ? "resolved" : "cancelled", (payload.correctOptionId as string) ?? null);
+      }
+    },
+  });
+
   const [comments, setComments] = useState<Comment[]>([]);
   const [own, setAnswers] = useState<Record<string, string>>({});
   const [answerError, setAnswerError] = useState<string | null>(null);
@@ -138,83 +118,6 @@ export function useLiveMatch(detail: LiveMatchDetail | null, me: MeResponse | nu
     for (const c of settled) announce(c, c.status as "resolved" | "cancelled", c.correctOptionId);
   }, [state, answers]);
 
-  // server state: subscribe, refetch on (re)subscribe, poll while realtime is down
-  useEffect(() => {
-    if (!id) return;
-    let cancelled = false;
-    let poll: ReturnType<typeof setInterval> | null = null;
-    let subscribed = false;
-
-    const fetchState = async () => {
-      try {
-        const r = await fetch(`/api/site/matches/${id}/state`, { credentials: "same-origin", cache: "no-store" });
-        if (!r.ok || cancelled) return;
-        const s = (await r.json()) as LiveState;
-        noteServerNow(s.serverNow);
-        setState(s);
-        if (s.me?.answers) setAnswers((a) => ({ ...s.me!.answers, ...a }));
-      } catch {
-        // next poll or broadcast catches up
-      }
-    };
-    const startPolling = () => {
-      if (poll || cancelled) return;
-      setConnection("polling");
-      poll = setInterval(fetchState, POLL_MS);
-    };
-    const stopPolling = () => {
-      if (poll) clearInterval(poll);
-      poll = null;
-    };
-
-    void fetchState();
-    let client: RealtimeClient | null = null;
-    let channel: RealtimeChannel | null = null;
-    const grace = setTimeout(() => !subscribed && startPolling(), SUBSCRIBE_GRACE_MS);
-
-    if (URL_ && KEY && !realtimeOff()) {
-      client = new RealtimeClient(`${URL_.replace(/^http/, "ws")}/realtime/v1`, { params: { apikey: KEY } });
-      client.setAuth(KEY);
-      channel = client.channel(`match:${id}`, { config: { private: true } });
-      channel.on("broadcast", { event: "*" }, (msg) => {
-        if (cancelled) return;
-        const payload = (msg.payload ?? {}) as Record<string, unknown>;
-        if (typeof payload.serverNow === "number") noteServerNow(payload.serverNow);
-        if (msg.event === "comment") return setComments((c) => [...c, payload.comment as Comment]);
-        if (msg.event === "game_end") return void fetchState();
-        // two calls can resolve in one tick: announce from the event, before the state merges
-        if (msg.event === "call_resolved" || msg.event === "call_cancelled") {
-          const s = latest.current.state;
-          const call = [s?.call, s?.lastCall].find((c) => c?.id === payload.callId);
-          announce(call, msg.event === "call_resolved" ? "resolved" : "cancelled", (payload.correctOptionId as string) ?? null);
-        }
-        setState((s) => (s ? applyBroadcast(s, msg.event, payload) : s));
-      });
-      channel.subscribe((status) => {
-        if (cancelled) return;
-        if (status === "SUBSCRIBED") {
-          subscribed = true;
-          stopPolling();
-          setConnection("realtime");
-          void fetchState(); // catch up on anything missed while connecting
-        } else if (status === "CLOSED" || status === "CHANNEL_ERROR" || status === "TIMED_OUT") {
-          subscribed = false;
-          startPolling();
-        }
-      });
-    } else {
-      startPolling();
-    }
-
-    return () => {
-      cancelled = true;
-      clearTimeout(grace);
-      stopPolling();
-      if (channel) void client?.removeChannel(channel);
-      client?.disconnect();
-    };
-  }, [id]);
-
   // the countdown ticks against server time
   useEffect(() => {
     if (!state?.call || state.call.status !== "open") return;
@@ -244,7 +147,7 @@ export function useLiveMatch(detail: LiveMatchDetail | null, me: MeResponse | nu
       stakesSummary: state.stakes.chips.length ? state.stakes.chips : detail.stakesSummary,
       seasonStakes: state.stakes.seasonStakes.steps.length ? state.stakes.seasonStakes : detail.seasonStakes,
       whatItMeans: state.stakes.whatItMeans || detail.whatItMeans,
-      room: { ...detail.room, leaderboard: board, watching: Math.max(state.watching, detail.room.watching) },
+      room: { ...detail.room, leaderboard: board, watching: state.watching },
       discussion: [...detail.discussion, ...comments.filter((c) => !seen.has(c.id))],
     } as LiveMatchDetail;
   }, [detail, state, comments, nickname]);
@@ -278,5 +181,5 @@ export function useLiveMatch(detail: LiveMatchDetail | null, me: MeResponse | nu
         ? { text: "cancelled, no points either way", correct: false }
         : null;
   const you = me?.joined && state?.me ? { rank: state.me.rank, of: state.me.of } : null;
-  return { match, call: view, lastCall, isReplay: !!state?.isReplay, gameTime: state?.clock.gameTime ?? 0, connection, state, you };
+  return { match, call: view, lastCall, isReplay: !!state?.isReplay, gameTime: state?.clock.gameTime ?? 0, connection, state, you, roomPulse };
 }

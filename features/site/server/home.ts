@@ -89,6 +89,9 @@ function liigaTable(rows: Awaited<ReturnType<typeof getStandings>>["data"]["rows
   };
 }
 
+/** a question still taking answers: status open and the lock ahead (the lock lands on the next tick) */
+const openNow = (c: { status: string; locksAt: number } | null | undefined) => !!c && c.status === "open" && c.locksAt > Date.now();
+
 export async function homePage(viewer: Viewer, opts: { team?: string; date?: string } = {}): Promise<HomePage & ApiMeta> {
   const now = liigaNow();
   const date = opts.date ?? helsinkiDate(now);
@@ -148,7 +151,9 @@ export async function homePage(viewer: Viewer, opts: { team?: string; date?: str
       background: "/placeholders/featured-live.svg",
       whatItMeans: whatItMeansText(factsFor(featuredGame, s, side, book)),
       stakes: chips(s, featuredGame, book),
-      openCalls: engineMatch(featuredGame.id)?.state?.call?.status === "open" ? 1 : 0,
+      // open = still taking answers: status open and the lock ahead (a lock lands on the next tick)
+      openCalls: openNow(engineMatch(featuredGame.id)?.state?.call) ? 1 : 0,
+      channel: !!engineMatch(featuredGame.id),
     };
   }
   const rotationUpcoming = rotationNext.flatMap(({ matchId, startsAt }) => {

@@ -1,13 +1,14 @@
 import { AnimatePresence, motion } from "motion/react";
 import { type ReactNode, useState } from "react";
 import type { HomePage } from "@/shared/types";
+import { SHOW_DATE_PICKER } from "../chrome";
 import { DateSelect, type FilterOption, FilterPills } from "../components/FilterPills";
 import { HeroBanner } from "../components/HeroBanner";
 import { Leaderboard } from "../components/Leaderboard";
 import { LiigaTable } from "../components/LiigaTable";
 import { LiveMatchCard } from "../components/LiveMatchCard";
 import { PickTeamPrompt } from "../components/PickTeamPrompt";
-import { ComingSoonMatchCard, MatchCard } from "../components/MatchCard";
+import { MatchCard } from "../components/MatchCard";
 import { SeasonStakesStrip } from "../components/SeasonStakesStrip";
 import { SiteLayout } from "../components/SiteLayout";
 import { DataUnavailable, HomeSkeleton } from "../components/Skeleton";
@@ -16,6 +17,11 @@ import { useHomePage } from "../data";
 import { teamHref } from "../format";
 
 type Filter = "all" | "live" | "results" | "upcoming";
+
+const initialFilter = (): Filter => {
+  const show = typeof window === "undefined" ? null : new URLSearchParams(window.location.search).get("show");
+  return show === "live" || show === "results" || show === "upcoming" ? show : "all";
+};
 
 function MatchSection({ title, children }: { title: string; children: ReactNode }) {
   return (
@@ -51,7 +57,8 @@ function YourTeams({ teams }: { teams: HomePage["yourTeams"] }) {
 /** kaleva sports home (docs/design/01-home.png) */
 export function SportsHome() {
   const { data: home, status, source, refresh } = useHomePage();
-  const [filter, setFilter] = useState<Filter>("all");
+  // the header's Live and Results open /sports?show=live|results
+  const [filter, setFilter] = useState<Filter>(initialFilter);
   const sidebar = { activeLinkId: "home", docked: true };
 
   if (!home) {
@@ -78,7 +85,7 @@ export function SportsHome() {
 
         <div className="flex flex-wrap items-center justify-between gap-3">
           <FilterPills label="Show matches" options={options} active={filter} onChange={setFilter} />
-          <DateSelect label={home.dateLabel} />
+          {SHOW_DATE_PICKER && <DateSelect label={home.dateLabel} />}
         </div>
 
         <div className="grid gap-4 xl:grid-cols-[minmax(0,1fr)_340px] 2xl:grid-cols-[minmax(0,1fr)_380px]">
@@ -98,9 +105,6 @@ export function SportsHome() {
                   <div className="grid gap-3 md:grid-cols-[minmax(0,1.3fr)_minmax(0,1fr)]">
                     {otherLive.map((m) => (
                       <MatchCard key={m.id} match={m} />
-                    ))}
-                    {home.comingSoon.map((c) => (
-                      <ComingSoonMatchCard key={c.id} card={c} />
                     ))}
                   </div>
                 </MatchSection>

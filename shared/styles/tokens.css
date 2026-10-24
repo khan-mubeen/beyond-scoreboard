@@ -107,6 +107,15 @@
   --font-sans: var(--pp-font-sans);
   --font-serif: var(--pp-font-serif);
   --font-mono: var(--pp-font-mono);
+  /* kaleva media (the group site): its sand, paper, gold and button blue, open sans */
+  --color-km-sand: #d0c6ae;
+  --color-km-socket: #c5bca5;
+  --color-km-paper: #f6f4ef;
+  --color-km-gold: #8b784a;
+  --color-km-blue: #244f83;
+  --color-km-ink: #18191a;
+  --font-km: "Open Sans", Helvetica, Arial, sans-serif;
+  --font-km-logo: "Montserrat", "Open Sans", Arial, sans-serif;
   --spacing-gutter: var(--pp-gutter);
   --radius-card: var(--pp-radius);
   --shadow-card: var(--pp-shadow);

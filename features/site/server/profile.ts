@@ -6,6 +6,7 @@ import type { AchievementItem, CallStats, MyCallRow, MyCallStatus, MyCallsData, 
 import { followedIds } from "./favorites";
 import type { Viewer } from "./identity";
 import { teamBook } from "./teams";
+import { NAMES } from "@/shared/copy/names";
 
 const CALL_POINTS = 20;
 
@@ -88,7 +89,7 @@ export function achievementsOf(stats: ReturnType<typeof callStats>, extra: { poi
     progress: { have: Math.min(have, need), need },
   });
   return [
-    a("first-call", "First call", "Answer a Call It! question", "star", stats.answered, 1),
+    a("first-call", "First call", `Answer a ${NAMES.call} question`, "star", stats.answered, 1),
     a("called-it", "Called it!", "Get a call right", "bolt", stats.correct, 1),
     a("sharp-eye", "Sharp eye", "Three right calls in one match", "bolt", stats.bestInMatch, 3),
     a("hot-streak", "Hot streak", "Five right calls in a row", "bolt", stats.bestStreak, 5),

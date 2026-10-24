@@ -19,13 +19,17 @@ The Kaleva Sports pages from `docs/design/`: Sports home, the live and finished 
 | `/`                                                      | `SportsHome`                                                                           |
 | `/match/:id`                                             | `MatchPage`: `LiveMatch` or `FinishedMatch` by status, `Placeholder` for an unknown id |
 | `/rewards`                                               | `Rewards`                                                                              |
-| `/calls`, `/calls/history`, `/achievements`, `/settings` | `Placeholder` ("Coming soon")                                                          |
+| `/calls`, `/calls/history`, `/achievements`, `/settings`, `/teams`, `/profile` | the fan's pages (see the root README) |
 
 Match ids are `{season}-{gameId}` (`2027-2701404`). The design's mock pages stay at `karpat-assat-live` and `karpat-assat-final`.
 
 ## Behaviour
 
-- **Call It!:** the server opens, locks and resolves calls; the card counts down against server time and shows the split once locked, the answer once resolved, or "cancelled, no points" (`components/use-live-match.ts`, `use-call-it.ts`).
+- **Your Call!:** the server opens, locks and resolves calls; the card counts down against server time and shows the split once locked, the answer once resolved, or "cancelled, no points" (`components/use-live-match.ts`, `use-call-it.ts`).
+- **Names:** feature names (Your Call!, Watch Together) come from `shared/copy/names.ts`; the Your Call! icon is the bullseye (`target`).
+- **Preview:** a match that hasn't started (a rotation match starts at its lobby) is a preview page: when, what it is worth, head-to-head, reminder and follow. State, join, presence and answers are 409 until it starts.
+- **Video:** only clips we host play (the rotation highlights). Everything else links to the match on liiga.fi (`liigaGameUrl`, verified against liiga.fi); we never play liiga's own streams.
+- **Watching:** match pages send a heartbeat every 30 s while visible (`useMatchChannel` with `presence`); the server counts viewers seen in the last 90 s and broadcasts `room` on every change.
 - **Joining:** the first answer, comment or join asks for a nickname (`NicknamePrompt`); the cookie `ks_anon` is the fan. Join room QR codes link to `/match/<id>?room=<code>`.
 - **Discussion, likes, reminders:** stored in the db; new comments arrive over realtime.
 - **Host:** `?host=1` shows the replay controls; the server checks `HOST_TOKEN`.

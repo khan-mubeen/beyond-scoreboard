@@ -1,25 +1,20 @@
 import { useEffect, useRef, useState } from "react";
 import type { Language, SpokenSummary } from "@/shared/types";
+import { deviceSeconds, DEVICE_RATE, PAUSE_MS, pickVoice, sentencesOf } from "./device-voice";
 import { Icon } from "./Icon";
 import { SectionCard } from "./SectionCard";
 
-const LOCALE: Record<Language, string> = { en: "en", fi: "fi" };
-const fmt =(s: number) => `${Math.floor(s / 60)}:${String(Math.round(s % 60)).padStart(2, "0")}`;
-/** speech runs about 14 characters a second at rate 1 */
-const CHARS_PER_SEC = 14;
-/** the device voice a little faster (at most 1.2x) so the summary takes about a minute */
-const deviceRate = (text: string) => Math.min(1.2, Math.max(1, text.length / CHARS_PER_SEC / 60));
-const estimate = (text: string) => Math.round(text.length / CHARS_PER_SEC / deviceRate(text));
+const fmt = (s: number) => `${Math.floor(s / 60)}:${String(Math.round(s % 60)).padStart(2, "0")}`;
 
-/** the browser's own voice for a language, if it has one */
+/** the device's best voice for a language (exact locale, natural first), if it has one */
 function useDeviceVoice(lang: Language): SpeechSynthesisVoice | null {
   const [voice, setVoice] = useState<SpeechSynthesisVoice | null>(null);
   useEffect(() => {
     if (typeof window === "undefined" || !("speechSynthesis" in window)) return;
-    const pickVoice = () => setVoice(window.speechSynthesis.getVoices().find((v) => v.lang.toLowerCase().startsWith(LOCALE[lang])) ?? null);
-    pickVoice();
-    window.speechSynthesis.addEventListener("voiceschanged", pickVoice);
-    return () => window.speechSynthesis.removeEventListener("voiceschanged", pickVoice);
+    const pick = () => setVoice(pickVoice(window.speechSynthesis.getVoices(), lang));
+    pick();
+    window.speechSynthesis.addEventListener("voiceschanged", pick);
+    return () => window.speechSynthesis.removeEventListener("voiceschanged", pick);
   }, [lang]);
   return voice;
 }
@@ -36,16 +31,58 @@ export function AudioSummary({ summary, defaultLang = "en", tv = false }: { summ
   const s = summary[lang];
   const device = useDeviceVoice(lang);
   const canListen = !!s.audio || !!device;
-  const total = s.audio?.durationSec ?? estimate(s.transcript);
+  const total = s.audio?.durationSec ?? deviceSeconds(s.transcript);
+  // each device read gets a run number, so a stop (or a language switch) ends its queue
+  const run = useRef(0);
+  const pause = useRef<ReturnType<typeof setTimeout>>(undefined);
+
+  function stopDevice() {
+    run.current++;
+    clearTimeout(pause.current);
+    if (typeof window !== "undefined" && "speechSynthesis" in window) window.speechSynthesis.cancel();
+  }
 
   // switching language (or leaving the page) stops what is playing
   useEffect(() => {
     const el = audio.current;
+    const runs = run;
+    const timer = pause;
     return () => {
       el?.pause();
+      runs.current++;
+      clearTimeout(timer.current);
       if (typeof window !== "undefined" && "speechSynthesis" in window) window.speechSynthesis.cancel();
     };
   }, [lang]);
+
+  /** sentence by sentence, slightly slow, a short pause between */
+  function speakDevice(voice: SpeechSynthesisVoice) {
+    const synth = window.speechSynthesis;
+    const parts = sentencesOf(s.transcript);
+    const mine = ++run.current;
+    let done = 0;
+    const next = (i: number) => {
+      if (run.current !== mine) return;
+      if (i >= parts.length) {
+        setPlaying(false);
+        setProgress(1);
+        return;
+      }
+      const u = new SpeechSynthesisUtterance(parts[i]);
+      u.voice = voice;
+      u.lang = voice.lang;
+      u.rate = DEVICE_RATE;
+      u.onend = () => {
+        done += parts[i].length + 1;
+        setProgress(done / s.transcript.length);
+        pause.current = setTimeout(() => next(i + 1), PAUSE_MS);
+      };
+      synth.speak(u);
+    };
+    synth.cancel();
+    next(0);
+    setPlaying(true);
+  }
 
   function toggle() {
     if (s.audio) {
@@ -55,27 +92,15 @@ export function AudioSummary({ summary, defaultLang = "en", tv = false }: { summ
       else a.pause();
       return;
     }
-    const synth = window.speechSynthesis;
     if (playing) {
-      synth.cancel();
+      stopDevice();
       setPlaying(false);
       return;
     }
-    const u = new SpeechSynthesisUtterance(s.transcript);
-    if (device) u.voice = device;
-    u.lang = device?.lang ?? LOCALE[lang];
-    u.rate = deviceRate(s.transcript);
-    u.onboundary = (e) => setProgress(e.charIndex / s.transcript.length);
-    u.onend = () => {
-      setPlaying(false);
-      setProgress(1);
-    };
-    synth.cancel();
-    synth.speak(u);
-    setPlaying(true);
+    if (device) speakDevice(device);
   }
 
-  const label = s.audio ? `AI voice · Azure Neural (${s.audio.voice})` : device ? `Device voice (${device.name})` : null;
+  const label = s.audio ? `AI voice · Azure Neural (${s.audio.voice})` : device ? "Device voice" : null;
   return (
     <SectionCard
       id="audio-summary"

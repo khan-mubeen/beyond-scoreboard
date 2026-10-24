@@ -3,7 +3,7 @@
 // state is derived from the match detail (cached a few seconds, polling clients share it)
 import { engineMatch, roomScope } from "@/features/live/server";
 import { getDb, type DbUser } from "@/shared/db";
-import type { LiveState, MatchDetail } from "@/shared/types";
+import type { LiveState, MatchDetail, PreviewMatchDetail } from "@/shared/types";
 import { periodName } from "./labels";
 import { matchDetail } from "./match";
 import { roomStandings } from "./social";
@@ -26,7 +26,7 @@ export async function liveStateFor(matchId: string, user: DbUser | null): Promis
 function cachedFromDetail(matchId: string): Promise<LiveState | null> {
   const hit = fromDetail.get(matchId);
   if (hit && Date.now() - hit.at < DETAIL_TTL_MS) return hit.state;
-  const state = matchDetail(matchId, { anonId: "", user: null }).then((d) => (d ? stateFromDetail(d) : null));
+  const state = matchDetail(matchId, { anonId: "", user: null }).then((d) => (d && d.status !== "preview" ? stateFromDetail(d) : null));
   fromDetail.set(matchId, { at: Date.now(), state });
   state.catch(() => fromDetail.delete(matchId));
   return state;
@@ -63,7 +63,7 @@ async function meFor(s: LiveState, user: DbUser): Promise<NonNullable<LiveState[
   };
 }
 
-export function stateFromDetail(d: MatchDetail): LiveState {
+export function stateFromDetail(d: Exclude<MatchDetail, PreviewMatchDetail>): LiveState {
   const m = d.match;
   return {
     matchId: d.id,

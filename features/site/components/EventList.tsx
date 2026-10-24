@@ -2,6 +2,7 @@ import type { MatchEvent } from "@/shared/types";
 import { fmtChange } from "../format";
 import { Icon } from "./Icon";
 import { ActionLink, SectionCard } from "./SectionCard";
+import { LiigaLink } from "./VideoPlayer";
 
 /** effect on the playoff chance: "+6 pts" / "−6 pts" */
 export function EffectTag({ effect }: { effect: number | null }) {
@@ -13,6 +14,8 @@ export function EffectTag({ effect }: { effect: number | null }) {
     </span>
   );
 }
+
+export const WATCH_CLASS = "inline-flex items-center gap-1 rounded-md border border-accent/40 px-2.5 py-1.5 text-xs font-semibold text-accent hover:bg-accent-soft";
 
 export function WatchButton({
   onClick,
@@ -27,7 +30,7 @@ export function WatchButton({
     <button
       type="button"
       onClick={onClick}
-      className={`inline-flex items-center gap-1 rounded-md border border-accent/40 px-2.5 py-1.5 text-xs font-semibold text-accent hover:bg-accent-soft ${className}`}
+      className={`${WATCH_CLASS} ${className}`}
     >
       <Icon name="play" className="size-3" />
       {label}
@@ -76,7 +79,11 @@ export function EventList({
             </div>
             <div className="flex items-center gap-3">
               <EffectTag effect={e.effect} />
-              {e.video && <WatchButton onClick={() => onWatch(e)} />}
+              {e.video?.src ? (
+                <WatchButton onClick={() => onWatch(e)} />
+              ) : (
+                e.video?.href && <LiigaLink href={e.video.href} className={WATCH_CLASS} />
+              )}
             </div>
           </li>
         ))}

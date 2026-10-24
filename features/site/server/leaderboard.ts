@@ -7,11 +7,12 @@ import type { Viewer } from "./identity";
 import { weekStart } from "./labels";
 import { rankPoints } from "./points";
 import { roomStandings } from "./social";
+import { NAMES } from "@/shared/copy/names";
 
 const TOP = 20;
 
 const TITLES: Record<LeaderboardScope, { title: string; note: string }> = {
-  weekly: { title: "Weekly Leaderboard", note: "Points from Call It! this week, Monday to Sunday (Finnish time)." },
+  weekly: { title: "Weekly Leaderboard", note: `Points from ${NAMES.call} this week, Monday to Sunday (Finnish time).` },
   season: { title: "Season Leaderboard", note: "Every point this season." },
   room: { title: "Watch Together", note: "This room's points for tonight's matches." },
 };
