@@ -104,7 +104,7 @@ The replay only shows what had happened by its clock (no final stats, no future 
 
 ### Demo night (`DEMO_MODE=true`)
 
-The league clock is pinned at `demoNow` in `demo/rotation.json` (an hour before a real night's first game), so every page shows the season as it stood then and nothing after it leaks. Three highlight matches of that night play in a loop: lobby (60 s, "Who wins?") → live (the highlight video drives the game clock, goals land with the video, Your Call! questions between goals) → summary (600 s: final, 60-second audio summary, "Next match starts in …"). Everyone on a match is in its one Watch Party per cycle (presence, chat, board), and trivia fills the gaps between questions (`TRIVIA_GAP_SECONDS`, `TRIVIA_EVERY_SECONDS` shorten them for a rehearsal).
+The league clock is pinned at `demoNow` in `demo/rotation.json` (an hour before a real night's first game), so every page shows the season as it stood then and nothing after it leaks. Three highlight matches of that night play in a loop: lobby (60 s, the match prediction "Who wins?", +30, also made beforehand in What if?) → live (the highlight video drives the game clock, goals land with the video, Your Call! questions between goals) → summary (600 s: final, 60-second audio summary, "Next match starts in …"). Everyone on a match is in its one Watch Party per cycle (presence, chat, board), and trivia fills the gaps between questions (`TRIVIA_GAP_SECONDS`, `TRIVIA_EVERY_SECONDS` shorten them for a rehearsal).
 
 ```sh
 npm run demo:pick && npm run demo:videos && npm run demo:cues   # once: picks, builds and cues the videos
@@ -120,15 +120,15 @@ npm run build && npm start                                       # or npm run de
 
 ### Pages
 
-- [`/`](http://localhost:3000/) the Kaleva Media front page (kalevamedia.fi rebuilt; the menu adds Sports). Its other links open `/media/<page>`: "This page is part of kalevamedia.fi", with a link to the real page
-- [`/sports`](http://localhost:3000/sports) Kaleva Sports home (`?show=live|results`). Old links to the sports home at `/` (`/?show=…`, `/#liiga-table`) redirect here; `/dev/brand` shows the wordmark options
+- [`/`](http://localhost:3000/) the kaleva.fi front page, rebuilt (header, sections, drawer menu, footer; headlines as the site showed them, each opening the real article in a new tab, photos as placeholders). The drawer's "Urheilu" is **Kaleva Sports** (NEW) → `/sports`; the sports pages' "‹ Kaleva" goes back
+- [`/sports`](http://localhost:3000/sports) Kaleva Sports home (`?show=live|results`; result cards show both teams' playoff chance after the game and the winner's next game). Old links to the sports home at `/` (`/?show=…`, `/#liiga-table`) redirect here; `/dev/brand` shows the wordmark options
 - [`/match/2027-2701404`](http://localhost:3000/match/2027-2701404) a real match (`{season}-{gameId}`): live while it's played or replayed, the finished page after. `?host=1` shows the host bar, `?realtime=off` forces polling, `?debug=1` shows who you are, the party, the channel status, the last event, the watching count and whether the server is the leader
 - [`/join`](http://localhost:3000/join) the match the rotation is on now; [`/friends`](http://localhost:3000/friends) your friend code, requests and friends watching now; `/i/<code>` an invite link
 - [`/match/karpat-assat-live`](http://localhost:3000/match/karpat-assat-live) and [`/match/karpat-assat-final`](http://localhost:3000/match/karpat-assat-final), the design's mock pages, kept working without a backend
-- [`/rewards`](http://localhost:3000/rewards) Kaleva Rewards, [`/leaderboard`](http://localhost:3000/leaderboard) weekly / season / Watch Party (the match on now)
+- [`/rewards`](http://localhost:3000/rewards) Kaleva Rewards (plan cards with a live price preview, fictional partner offers), [`/leaderboard`](http://localhost:3000/leaderboard) weekly / season / Watch Party (the match on now); every row opens its points breakdown
 - [`/teams`](http://localhost:3000/teams) all 17 teams (follow with the star), [`/teams/kärpät`](http://localhost:3000/teams/k%C3%A4rp%C3%A4t) one team: chances, last 5, next 3
 - [`/profile`](http://localhost:3000/profile), [`/calls`](http://localhost:3000/calls), [`/calls/history`](http://localhost:3000/calls/history), [`/achievements`](http://localhost:3000/achievements), [`/settings`](http://localhost:3000/settings) (nickname, language, notifications, reset), [`/guidelines`](http://localhost:3000/guidelines)
-- On a match page, Season stakes has "What if?": set this match and up to 3 other games that night, see the playoff race change ([docs/what-if.md](docs/what-if.md))
+- On a match page, Season stakes has "What if?": set this match and up to 3 other games that night, see the gauges and the table move, and make your one match prediction (+30) ([docs/what-if.md](docs/what-if.md)). A finished match leads with its season impact, the game in one chart and "Next time"
 - [`/watch`](http://localhost:3000/watch) create or join a watch party room
 - [`/dev`](http://localhost:3000/dev) links to everything below
 - [`/dev/stakes`](http://localhost:3000/dev/stakes) meter, season strip and projected table on mock data

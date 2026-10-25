@@ -2,6 +2,17 @@
 
 A panel at the bottom of the Season stakes card on a match page. The fan sets this match's result and up to three other unplayed games on the same date, and sees how each team's playoff chance (and top-4 / relegation chance) changes. Games left unset play out in the simulation as usual.
 
+## The panel
+
+- This match as four large result cards in the winning team's colours (a trophy for a regulation win, an OT/SO badge), the other games tonight as compact chips with the same four results.
+- Three animated gauges for one team (switch between the teams that moved): playoffs, top 4 and relegation, the faint arc the chance now, the solid arc with the picks, the change in green or red (a rising relegation chance is red). On a phone the gauges stay in view (sticky) while the cards and the table scroll.
+- The table tonight with the set results: rows slide into their new places, the top-4, playoff and relegation lines stay put, the points each team gains and how far it moved.
+- With no picks it shows the season as it stands (a request with no overrides).
+
+## One prediction per match
+
+What if? is also where the fan makes their one match prediction (+30 if right), the same record as the rotation lobby's "Who wins?" card (see contract.md, Call it! rules). Picking this match's result card offers "Lock it in · +30 pts if right"; after locking, the card is marked "Your prediction" in what if? and the lobby card alike, and the fan can still explore other results. The bar says when it locks (the game's start), and afterwards whether it was right. `GET / POST /api/site/matches/:id/prediction`.
+
 ## Where it shows
 
 - On a match page while the match is not decided as of the league clock (`leagueNow`): upcoming, lobby and live. A finished match has `seasonStakes.whatIf: null`.
@@ -26,7 +37,7 @@ The match itself comes first, then the other unplayed games on its Helsinki date
 - `outcome` is from the **home team's** view: `regulationWin | overtimeWin | overtimeLoss | regulationLoss` (the same `GameOutcome` the stakes engine uses).
 - zod: `matchId`/`gameId` look like `2027-2701400`; at most 4 overrides. The server also rejects (400) a match or game that is already played as of `leagueNow` ("already played"), an unknown id, and the same game twice.
 - Rate limit: 30 requests a minute per fan (the anonymous cookie id, not the IP, so a venue's phones on one network don't share a limit) → 429.
-- Response (`WhatIfResult`): `{ matchId, overrides (sorted), teams: [{ team, before: {playoffs, top4, relegation}, after: {...} }], asOf, source }`. Percent, rounded. The match's two teams come first, then the other set games' teams. No betting fields (the router's `findGamblingFields` check runs on it like every response).
+- Response (`WhatIfResult`): `{ matchId, overrides (sorted), teams: [{ team, before: {playoffs, top4, relegation}, after: {...} }], table: [{ team, rank, rankBefore, points, pointsBefore, zone }], asOf, source }`. The table is the standings tonight with only the set results added (no simulation), all 17 teams. Percent, rounded. The match's two teams come first, then the other set games' teams. No betting fields (the router's `findGamblingFields` check runs on it like every response).
 
 ## How it is worked out
 
@@ -43,6 +54,5 @@ On the dev machine (tsx, 10,000 seasons): the simulation itself about 0.3 s; the
 
 ## Not done (ideas)
 
-- Show the projected table under the set results (the positions are already in the forecast).
 - Let the fan pick a result for any game in the next round, not only the match's date.
 - Share a what-if as a link.

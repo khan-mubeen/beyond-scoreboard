@@ -19,6 +19,10 @@ Everything here is a demo: prices are in euros, but no payment is ever made and 
 
 Money is always required. A plan's `maxPointsUsable` must be at most half of its price in points: 600 of 1,290, 350 of 790, 150 of 390. `checkPlans()` checks this. The server runs it at startup and refuses to start if any plan breaks it (`assertPlans`), and a test runs it too. Even a fan with 10,000 points pays the rest in (demo) money. The database adds its own check: a purchase with no money in it is refused (`demo_amount_eur > 0`).
 
+## The plan cards
+
+Each plan card on Rewards has the checklist (live stream, Your Call! and predictions, season stakes and What if?, audio summaries, stories, the news), "Most popular" on Kaleva Sports Pass, and a price preview: a points slider with the checkout's own rules from `shared/config/plans.ts` (`pointsCap`, `clampPoints`, `quote`: the plan's cap, at most half of the price, the balance), "You pay €4.40" as it moves. Subscribe opens the checkout prefilled with the slider's value; the server re-checks everything as below. A balance chip sits by the plans, and "How points work" opens at the bottom.
+
 ## Checkout
 
 `POST /api/site/subscriptions` `{ planId, pointsToUse, idempotencyKey }`. The server re-checks everything the client sends:
@@ -61,9 +65,12 @@ A fan's invite without such a plan gives no pass. The inviter sees "Your friend 
 
 ## Partner offers
 
+The partners are fictional, made up for the demo (their names were checked against Finnish company listings): Kiekkokori Market, Lehvälaakso Market, Sokerisilta Confectionery (food), Kaukalokamari Sport (sports), Tähtisiipi Air (travel), Syvänsini Electronics and Raitarumba Design (shopping). Their colours are only inspired by well-known Finnish brands (an orange-red grocer, a green grocer, a deep-blue, a confectionery blue, an airline blue and white, a bold striped design house); no real names, logos or look-alike marks, and an invented two-letter monogram each. No partner has a website, so "Go to partner site" never shows. A filter picks Food, Sports, Travel or Shopping.
+
+
 `POST /api/site/offers/:id/redeem`.
 
 - "Unlock with N pts" spends the points atomically and returns a demo code (`KALEVA-DEMO-XXXXXX`, unique per fan).
 - "Members only" gives a code to any fan with a running plan. Without one, the fan sees "Included with a Kaleva subscription".
 - Once per fan per offer (`offer_redemptions` is unique on fan and offer): a second click shows the same code.
-- "Go to partner site" opens the partner's official site. Kärpät is `https://www.karpat.fi/`, linked from liiga.fi's team page. The Kärpät shop is `https://kauppa.karpat.fi/`, linked from the club's site. The local partner offer names no partner, so it has no link.
+- "Go to partner site" shows only for a partner with a site (`partnerUrl`); the demo's fictional partners have none.
