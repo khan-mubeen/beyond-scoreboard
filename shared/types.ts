@@ -330,6 +330,10 @@ export interface TickerData {
   score: Score | null;
   /** "18:30", "Tomorrow 18:30": for the next game only */
   when: string | null;
+  /** ms epoch on the server's clock: the next game's start, or the lobby's end (the live start); null when unknown */
+  startsAt: number | null;
+  /** the game after this one (the rotation's next match), for "Next up" while this one runs or just ended */
+  following?: { matchId: string; home: TeamRef; away: TeamRef; startsAt: number | null; when: string | null } | null;
 }
 
 /** a link in the top nav */
@@ -360,6 +364,8 @@ export interface UserSummary {
   points: number;
   pointsThisWeek: number;
   level: number;
+  /** points earned this season (answers, predictions, trivia): the level grows with these, never with the welcome balance */
+  earned?: number;
   pointsToNextLevel: number;
   /** 0-1 progress towards the next level */
   levelProgress: number;
@@ -1229,6 +1235,10 @@ export interface AchievementItem {
   icon: AchievementIcon;
   unlocked: boolean;
   progress: { have: number; need: number };
+  /** the medal's colour, by how hard it is */
+  tier: "bronze" | "silver" | "gold";
+  /** iso, when it was unlocked; null when unknown (a follow, a nickname) or still locked */
+  unlockedAt: string | null;
 }
 
 /** GET /api/site/profile */
@@ -1371,7 +1381,7 @@ export interface PointsBreakdown extends ApiMeta {
   scope: LeaderboardScope;
   total: number;
   bySource: { call: number; prediction: number; trivia: number };
-  /** newest first; points not tied to a match (the seeded history) are one "Earlier" row */
+  /** newest first; points not tied to a match (the seeded history) aren't listed: there is no match to name */
   perMatch: { matchId: string | null; title: string; points: number }[];
   /** resolved calls answered in this scope */
   answered: number;

@@ -25,7 +25,7 @@ export async function userSummary(user: DbUser, now = new Date()): Promise<UserS
   const week = balanceOf(earned.filter((r) => r.createdAt >= since));
   const name = displayName(user);
   // points: what the fan can spend; the level grows with earned points only
-  return { id: user.id, name, role: "Sports fan", avatar: avatarFor(name), points: balanceOf(rows), pointsThisWeek: week, ...levelFor(balanceOf(earned)) };
+  return { id: user.id, name, role: "Sports fan", avatar: avatarFor(name), points: balanceOf(rows), pointsThisWeek: week, earned: balanceOf(earned), ...levelFor(balanceOf(earned)) };
 }
 
 /**
@@ -35,7 +35,7 @@ export async function userSummary(user: DbUser, now = new Date()): Promise<UserS
  */
 export async function viewerSummary(user: DbUser | null): Promise<UserSummary> {
   if (user) return { ...(await userSummary(user)), ...(!user.nickname && { role: "Pick a nickname in any match" }) };
-  return { id: "guest", name: "Guest", role: "Join a match to play", avatar: initialAvatar("Guest"), points: welcomePoints(), pointsThisWeek: 0, ...levelFor(0) };
+  return { id: "guest", name: "Guest", role: "Join a match to play", avatar: initialAvatar("Guest"), points: welcomePoints(), pointsThisWeek: 0, earned: 0, ...levelFor(0) };
 }
 
 // the fake players, briefly cached: every leaderboard and count leaves them out

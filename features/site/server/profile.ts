@@ -10,7 +10,7 @@ import { NAMES } from "@/shared/copy/names";
 import { balanceOf, isEarned } from "@/shared/points";
 import { pointsFor, sourceOf } from "@/features/live";
 
-interface Played {
+export interface Played {
   answer: DbAnswer;
   call: DbCall;
 }
@@ -80,24 +80,66 @@ export function callStats(list: Played[]): CallStats & { bestInMatch: number } {
   };
 }
 
-export function achievementsOf(stats: ReturnType<typeof callStats>, extra: { points: number; follows: number; joined: boolean }): AchievementItem[] {
-  const a = (id: string, title: string, description: string, icon: AchievementItem["icon"], have: number, need: number): AchievementItem => ({
+/** when each count-based badge was reached: the answer, the settled call or the ledger row that did it */
+export function unlockDates(list: Played[], earned: { points: number; createdAt: string }[]): Record<string, string | null> {
+  const when = (p: Played) => p.call.resolvedAt ?? p.answer.answeredAt;
+  const byAnswer = [...list].sort((a, b) => a.answer.answeredAt.localeCompare(b.answer.answeredAt));
+  const resolved = list.filter((p) => p.call.status === "resolved").sort((a, b) => when(a).localeCompare(when(b)));
+  const out: Record<string, string | null> = { "first-call": byAnswer[0]?.answer.answeredAt ?? null };
+  let streak = 0;
+  const perMatch = new Map<string, number>();
+  for (const p of resolved) {
+    const won = p.answer.optionId === p.call.correctOptionId;
+    streak = won ? streak + 1 : 0;
+    if (!won) continue;
+    out["called-it"] ??= when(p);
+    const n = (perMatch.get(p.call.matchId) ?? 0) + 1;
+    perMatch.set(p.call.matchId, n);
+    if (n >= 3) out["sharp-eye"] ??= when(p);
+    if (streak >= 5) out["hot-streak"] ??= when(p);
+  }
+  const matches = new Set<string>();
+  for (const p of byAnswer) {
+    matches.add(p.call.matchId);
+    if (matches.size >= 10) {
+      out.regular = p.answer.answeredAt;
+      break;
+    }
+  }
+  let total = 0;
+  for (const r of [...earned].sort((a, b) => a.createdAt.localeCompare(b.createdAt))) {
+    total += r.points;
+    if (total >= 100) {
+      out.century = r.createdAt;
+      break;
+    }
+  }
+  return out;
+}
+
+export function achievementsOf(
+  stats: ReturnType<typeof callStats>,
+  extra: { points: number; follows: number; joined: boolean; dates?: Record<string, string | null> },
+): AchievementItem[] {
+  const a = (id: string, title: string, description: string, icon: AchievementItem["icon"], tier: AchievementItem["tier"], have: number, need: number): AchievementItem => ({
     id,
     title,
     description,
     icon,
+    tier,
     unlocked: have >= need,
     progress: { have: Math.min(have, need), need },
+    unlockedAt: have >= need ? (extra.dates?.[id] ?? null) : null,
   });
   return [
-    a("first-call", "First call", `Answer a ${NAMES.call} question`, "star", stats.answered, 1),
-    a("called-it", "Called it!", "Get a call right", "bolt", stats.correct, 1),
-    a("sharp-eye", "Sharp eye", "Three right calls in one match", "bolt", stats.bestInMatch, 3),
-    a("hot-streak", "Hot streak", "Five right calls in a row", "bolt", stats.bestStreak, 5),
-    a("regular", "Regular", "Play along in 10 matches", "rook", stats.matches, 10),
-    a("century", "Century", "Earn 100 points", "star", extra.points, 100),
-    a("loyal-fan", "Loyal fan", "Follow a team", "star", extra.follows, 1),
-    a("team-player", "Team player", "Join a Watch Together room", "rook", extra.joined ? 1 : 0, 1),
+    a("first-call", "First call", `Answer a ${NAMES.call} question`, "star", "bronze", stats.answered, 1),
+    a("called-it", "Called it!", "Get a call right", "bolt", "bronze", stats.correct, 1),
+    a("loyal-fan", "Loyal fan", "Follow a team", "star", "bronze", extra.follows, 1),
+    a("team-player", "Team player", "Join a Watch Party", "rook", "bronze", extra.joined ? 1 : 0, 1),
+    a("century", "Century", "Earn 100 points", "star", "silver", extra.points, 100),
+    a("sharp-eye", "Sharp eye", "Three right calls in one match", "bolt", "silver", stats.bestInMatch, 3),
+    a("hot-streak", "Hot streak", "Five right calls in a row", "bolt", "gold", stats.bestStreak, 5),
+    a("regular", "Regular", "Play along in 10 matches", "rook", "gold", stats.matches, 10),
   ];
 }
 
@@ -109,9 +151,10 @@ export async function profilePage(viewer: Viewer): Promise<ProfileData> {
   if (!user) return { stats: nobody(), achievements: achievementsOf(nobody(), { points: 0, follows: 0, joined: false }), asOf, source: "db" };
   const [list, points, follows] = await Promise.all([played(user), getDb().points.listForUser(user.id), followedIds(user)]);
   const stats = callStats(list);
+  const earned = points.filter(isEarned);
   return {
     stats,
-    achievements: achievementsOf(stats, { points: balanceOf(points.filter(isEarned)), follows: follows.length, joined: !!user.nickname }),
+    achievements: achievementsOf(stats, { points: balanceOf(earned), follows: follows.length, joined: !!user.nickname, dates: unlockDates(list, earned) }),
     asOf,
     source: "db",
   };

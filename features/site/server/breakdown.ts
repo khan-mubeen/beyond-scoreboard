@@ -40,8 +40,7 @@ export async function breakdownFor(_viewer: Viewer, scope: LeaderboardScope, use
   const types = new Map([...calls.values()].map((c) => [c.id, c.type]));
 
   const [ctx, book] = await Promise.all([getSeasonContext(), teamBook()]);
-  const title = (matchId: string | null) => {
-    if (!matchId) return "Earlier";
+  const title = (matchId: string) => {
     const f = ctx.schedule.find((x) => x.id === matchId);
     return f ? `${book.ref(f.homeTeamId, f.homeName).name} – ${book.ref(f.awayTeamId, f.awayName).name}` : matchId;
   };
@@ -70,9 +69,11 @@ export async function breakdownFor(_viewer: Viewer, scope: LeaderboardScope, use
     scope,
     total: mine.reduce((s, r) => s + r.points, 0),
     bySource,
+    // rows with no match (the seeded history) count in the total and the sources, never as a fake "Earlier" match
     perMatch: [...perMatch.entries()]
-      .sort((a, b) => b[1].last.localeCompare(a[1].last))
-      .map(([matchId, v]) => ({ matchId, title: title(matchId), points: v.points })),
+      .flatMap(([matchId, v]) => (matchId ? [{ matchId, title: title(matchId), points: v.points, last: v.last }] : []))
+      .sort((a, b) => b.last.localeCompare(a.last))
+      .map(({ matchId, title, points }) => ({ matchId, title, points })),
     answered: resolved.length,
     correct: right.length,
     correctPct: resolved.length ? Math.round((100 * right.length) / resolved.length) : 0,

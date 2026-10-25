@@ -2,6 +2,7 @@
 // it runs (lobby, live, summary), else the next scheduled game, else nothing. the score and the
 // open your call! question come from the match channel in the browser, not from here
 import { liigaNow } from "@/features/liiga/server";
+import { demoMode } from "@/shared/clock";
 import { engineMatch, rotationNow } from "@/features/live/server";
 import { getSeasonContext } from "@/features/stakes/server";
 import type { ApiMeta, TickerData } from "@/shared/types";
@@ -13,6 +14,11 @@ export async function tickerLine(): Promise<{ ticker: TickerData | null } & ApiM
   const meta = { asOf: now.toISOString(), source: "config" as const };
   const [ctx, book] = await Promise.all([getSeasonContext(), teamBook()]);
   const fixture = (id: string) => ctx.schedule.find((f) => f.id === id);
+  const followingOf = (id: string, startsAt: number): TickerData["following"] => {
+    const f = fixture(id);
+    if (!f || id === rotationNow()?.current.matchId) return null;
+    return { matchId: id, home: book.ref(f.homeTeamId, f.homeName), away: book.ref(f.awayTeamId, f.awayName), startsAt, when: null };
+  };
 
   const rot = rotationNow();
   if (rot) {
@@ -30,6 +36,8 @@ export async function tickerLine(): Promise<{ ticker: TickerData | null } & ApiM
           away: book.ref(awayId, game?.away.name ?? f?.awayName),
           score: game && rot.phase !== "lobby" ? { home: game.home.goals, away: game.away.goals } : null,
           when: null,
+          startsAt: rot.phase === "lobby" ? rot.phaseEnd : null,
+          following: followingOf(rot.next.matchId, rot.next.lobbyAt),
         },
         ...meta,
       };
@@ -50,6 +58,9 @@ export async function tickerLine(): Promise<{ ticker: TickerData | null } & ApiM
       score: null,
       // today just "18:30"; later "Tomorrow 18:30", "Thu 22 Oct 18:30"
       when: whenLabel(next.start, now).replace(/^Today /, ""),
+      // the pinned demo clock stands still, so a countdown would never move: no countdown there
+      startsAt: demoMode() ? null : Date.parse(next.start),
+      following: null,
     },
     ...meta,
   };
