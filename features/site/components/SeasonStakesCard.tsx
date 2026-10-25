@@ -15,9 +15,27 @@ const WORTH: [GameOutcome, string][] = [
   ["regulationLoss", "Loss"],
 ];
 
+/** before a goal, a chart has nothing to draw: the four ways the game can end, as bars */
+function WorthBars({ worth }: { worth: Record<GameOutcome, number> }) {
+  return (
+    <ul className="flex flex-col gap-1.5 text-xs" aria-label="The chance for each result">
+      {WORTH.map(([k, label]) => (
+        <li key={k} className="grid grid-cols-[6.5rem_minmax(0,1fr)_2.5rem] items-center gap-2">
+          <span className="text-muted">{label}</span>
+          <span className="h-2 overflow-hidden rounded-full bg-surface-2">
+            <span className="block h-full rounded-full bg-accent" style={{ width: `${Math.max(2, worth[k])}%` }} />
+          </span>
+          <span className="text-right font-semibold tabular-nums">{worth[k]}%</span>
+        </li>
+      ))}
+    </ul>
+  );
+}
+
 /**
- * the playoff chance, how each goal moved it, and the whole table if it ends now: all 17 teams
- * in a box about nine rows tall, scrolled so the match team's row sits in the middle
+ * the chance this game moves most for the team (playoff, relegation or top 4), how each goal
+ * moved it, and the whole table if it ends now: all 17 teams in a box about nine rows tall,
+ * scrolled so the match team's row sits in the middle
  */
 export function SeasonStakesCard({ stakes }: { stakes: SeasonStakes }) {
   const box = useRef<HTMLDivElement>(null);
@@ -40,22 +58,21 @@ export function SeasonStakesCard({ stakes }: { stakes: SeasonStakes }) {
       }
     >
       <div className="grid gap-5 lg:grid-cols-[minmax(0,1fr)_minmax(0,1.1fr)]">
-        <div className="rounded-card border border-line bg-gradient-to-br from-surface-2/70 to-surface p-4">
+        <div className="self-start rounded-card border border-line bg-gradient-to-br from-surface-2/70 to-surface p-4">
           <p className="text-xs font-semibold tracking-wider text-muted uppercase">
-            {stakes.teamName} · Playoff chance
+            {stakes.teamName} · {stakes.metricLabel ?? "Playoff chance"}
           </p>
           <p className="mt-2 flex items-center gap-3">
             <span className="text-[48px] leading-none font-bold tabular-nums">{stakes.chance}%</span>
             <Pill tone="good">
-              <ChangeTag change={stakes.change} />
+              <ChangeTag change={stakes.change} invert={stakes.metric === "relegation"} />
             </Pill>
           </p>
           <p className="mt-2 text-sm text-muted">
-            {stakes.before}% before the game · {stakes.now}% {stakes.nowLabel}
+            {stakes.before}% before the game
+            {stakes.nowLabel !== "before the game" && ` · ${stakes.now}% ${stakes.nowLabel}`}
           </p>
-          <div className="mt-4">
-            <StepChart steps={stakes.steps} />
-          </div>
+          <div className="mt-4">{stakes.steps.length > 1 ? <StepChart steps={stakes.steps} /> : <WorthBars worth={stakes.worth} />}</div>
         </div>
 
         <div className="min-w-0">

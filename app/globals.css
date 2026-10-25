@@ -96,3 +96,33 @@ html {
     transition-duration: 0.01ms !important;
   }
 }
+
+/* a row that scrolls sideways (tabs) without showing a scrollbar */
+@utility no-scrollbar {
+  scrollbar-width: none;
+  &::-webkit-scrollbar {
+    display: none;
+  }
+}
+
+/* a panel that may scroll (the sidebar): a thin scrollbar, only while the pointer is on it */
+@utility scroll-thin {
+  scrollbar-width: thin;
+  scrollbar-color: transparent transparent;
+  &:hover {
+    scrollbar-color: var(--pp-line) transparent;
+  }
+  &::-webkit-scrollbar {
+    width: 6px;
+  }
+  &::-webkit-scrollbar-button {
+    display: none;
+  }
+  &::-webkit-scrollbar-thumb {
+    background: transparent;
+    border-radius: 3px;
+  }
+  &:hover::-webkit-scrollbar-thumb {
+    background: var(--pp-line);
+  }
+}

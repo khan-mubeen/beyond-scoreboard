@@ -12,12 +12,12 @@ const MEDAL = ["bg-highlight text-gold", "bg-surface-2 text-ink", "bg-accent-sof
 const SOURCE_COLORS = { call: "var(--pp-accent)", prediction: "var(--pp-zone-top4)", trivia: "var(--pp-gold)" };
 
 /** one fan's points on this board: by source, by match, the correct-answer rate and the best call */
-function Breakdown({ scope, userId }: { scope: LeaderboardScope; userId: string }) {
+export function Breakdown({ scope, userId, wide = true }: { scope: LeaderboardScope; userId: string; wide?: boolean }) {
   const { data, status } = useBreakdown(scope, userId);
   if (!data) return <p className="px-3 py-3 text-sm text-muted">{status === "error" || status === "notfound" ? "No breakdown for this fan." : "Loading…"}</p>;
   const maxMatch = Math.max(1, ...data.perMatch.map((m) => m.points));
   return (
-    <div className="grid gap-4 px-3 pt-1 pb-3 text-sm sm:grid-cols-2" data-testid="breakdown">
+    <div className={`grid gap-4 px-3 pt-1 pb-3 text-sm ${wide ? "sm:grid-cols-2" : ""}`} data-testid="breakdown">
       <div className="flex flex-col gap-3">
         <div>
           <p className="mb-1.5 text-xs font-semibold tracking-wider text-muted uppercase">Where the {fmtInt(data.total)} points came from</p>
@@ -76,19 +76,38 @@ function Breakdown({ scope, userId }: { scope: LeaderboardScope; userId: string 
 
 /**
  * a board row as a bar (its length is the points against the leader's). tapping it, or Enter,
- * opens the fan's breakdown inline
+ * opens the fan's breakdown inline; with onSelect (a wide page) it selects the fan instead and
+ * the page shows the breakdown beside the list
  */
-export function BoardRow({ e, max, scope, pinned = false, compact = false }: { e: SiteLeaderboardEntry; max: number; scope: LeaderboardScope; pinned?: boolean; compact?: boolean }) {
-  const [open, setOpen] = useState(false);
+export function BoardRow({
+  e,
+  max,
+  scope,
+  pinned = false,
+  compact = false,
+  onSelect,
+  selected = false,
+}: {
+  e: SiteLeaderboardEntry;
+  max: number;
+  scope: LeaderboardScope;
+  pinned?: boolean;
+  compact?: boolean;
+  onSelect?: (e: SiteLeaderboardEntry) => void;
+  selected?: boolean;
+}) {
+  const [inline, setOpen] = useState(false);
+  const open = onSelect ? selected : inline;
   const id = `breakdown-${scope}-${e.playerId}`;
   return (
     <li className={`${pinned ? "sticky bottom-0 border-t-2 border-accent bg-surface shadow-card" : ""}`}>
       <button
         type="button"
-        aria-expanded={open}
-        aria-controls={id}
-        onClick={() => setOpen((o) => !o)}
-        className={`relative flex w-full items-center gap-3 overflow-hidden text-left focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-accent ${compact ? "rounded-lg px-2 py-1.5" : "px-4 py-2.5"} ${e.isYou ? "font-semibold text-accent" : ""} hover:bg-surface-2/60`}
+        aria-expanded={onSelect ? undefined : open}
+        aria-pressed={onSelect ? selected : undefined}
+        aria-controls={onSelect ? "board-breakdown" : id}
+        onClick={() => (onSelect ? onSelect(e) : setOpen((o) => !o))}
+        className={`relative flex w-full items-center gap-3 overflow-hidden text-left focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-accent ${compact ? "rounded-lg px-2 py-1.5" : "px-4 py-2.5"} ${e.isYou ? "font-semibold text-accent" : ""} ${selected ? "bg-surface-2 ring-2 ring-accent ring-inset" : ""} hover:bg-surface-2/60`}
         aria-label={`${e.rank}. ${e.nickname}${e.isYou ? " (you)" : ""}, ${fmtInt(e.score)} points. ${open ? "Hide" : "Show"} the breakdown`}
       >
         {/* the bar: points against the leader's */}
@@ -111,10 +130,10 @@ export function BoardRow({ e, max, scope, pinned = false, compact = false }: { e
           {fmtInt(e.score)}
           {!compact && " pts"}
         </span>
-        <Icon name="chevronDown" className={`relative size-4 shrink-0 text-muted transition-transform ${open ? "rotate-180" : ""}`} />
+        <Icon name={onSelect ? "chevronRight" : "chevronDown"} className={`relative size-4 shrink-0 text-muted transition-transform ${!onSelect && open ? "rotate-180" : ""}`} />
       </button>
       <AnimatePresence initial={false}>
-        {open && (
+        {open && !onSelect && (
           <motion.div id={id} initial={{ height: 0, opacity: 0 }} animate={{ height: "auto", opacity: 1 }} exit={{ height: 0, opacity: 0 }} className="overflow-hidden">
             <Breakdown scope={scope} userId={e.playerId} />
           </motion.div>

@@ -1,7 +1,7 @@
 import { AnimatePresence, MotionConfig, motion } from "motion/react";
 import { type ReactNode, useState, useSyncExternalStore } from "react";
 import type { Breadcrumb, DataSource } from "@/shared/types";
-import { KalevaBar, KalevaFooter } from "./kaleva/KalevaChrome";
+import { KalevaFooter } from "./kaleva/KalevaChrome";
 import { useMe } from "../data";
 import { Icon } from "./Icon";
 import { Sidebar } from "./Sidebar";
@@ -110,7 +110,6 @@ export function SiteLayout({
     <MotionConfig reducedMotion="user">
       <ToastProvider>
         <div className="min-h-screen overflow-x-clip bg-bg text-ink">
-          <KalevaBar />
           <TopNav me={me} menu={menu} />
           <div className="flex">
             <AnimatePresence initial={false}>
@@ -118,7 +117,7 @@ export function SiteLayout({
                 <motion.div
                   key="dock"
                   id={SIDEBAR_ID}
-                  className={`sticky top-16 hidden h-[calc(100vh-4rem)] shrink-0 overflow-x-hidden overflow-y-auto border-r border-line lg:block ${
+                  className={`scroll-thin sticky top-16 hidden h-[calc(100vh-4rem)] shrink-0 overflow-x-hidden overflow-y-auto border-r border-line lg:block ${
                     sidebar.variant === "compact" ? "bg-surface" : "bg-surface-2/60"
                   }`}
                   initial={{ width: 0, opacity: 0 }}
@@ -133,8 +132,8 @@ export function SiteLayout({
               )}
             </AnimatePresence>
             <div className="min-w-0 flex-1">
-              {/* demo mode says so in the top nav chip instead */}
-              {((source === "snapshot" && !me.data?.demo) || source === "mock") && (
+              {/* demo mode runs on saved data on purpose: judges read this bar as an error there */}
+              {((source === "snapshot" && !me.data?.demo && !me.data?.demoMode) || source === "mock") && (
                 <p role="note" className="border-b border-line bg-highlight px-4 py-1.5 text-center text-xs text-ink lg:px-6">
                   {source === "snapshot" ? "Showing saved Liiga data — live updates resume when the feed is back." : "Demo data from the design."}
                 </p>

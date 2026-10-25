@@ -6,8 +6,8 @@ import { KalevaDrawer, KalevaFooter, KalevaHeader, KalevaTopBar, linkProps } fro
 /**
  * "/": the kaleva.fi front page, rebuilt (layout, header, sections, typography, colours and the
  * mobile menu). headlines as the site showed them when studied, each opening the real article in
- * a new tab; photos are placeholder blocks in matching tones. the only change: the menu's
- * "Urheilu" is Kaleva Sports
+ * a new tab; photos are placeholder blocks in matching tones. the only change: Kaleva Sports
+ * (NEW) leads the section row and takes "Urheilu"'s place in the menu
  */
 export function KalevaHome() {
   const [menu, setMenu] = useState(false);

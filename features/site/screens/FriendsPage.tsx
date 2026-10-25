@@ -17,6 +17,7 @@ import {
   useFriends,
   useInvite,
   useMe,
+  createInviteApi,
 } from "../data";
 import type { FriendItem } from "@/shared/types";
 
@@ -39,6 +40,80 @@ function Person({ f, children }: { f: FriendItem; children?: React.ReactNode }) 
       </div>
       {children}
     </li>
+  );
+}
+
+/** "Invite a friend": one link per friend; a member's friend gets their first live match free */
+function InvitePanel({
+  member,
+  needsName,
+  onNeedName,
+}: {
+  member: boolean;
+  needsName: boolean;
+  onNeedName: () => void;
+}) {
+  const [link, setLink] = useState<string | null>(null);
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  async function make() {
+    if (needsName) return onNeedName();
+    setBusy(true);
+    const r = await createInviteApi(null);
+    setBusy(false);
+    if (!r.ok) return setError(r.error);
+    setError(null);
+    setLink(r.data.url);
+  }
+  async function copy() {
+    if (!link) return;
+    try {
+      await navigator.clipboard.writeText(link);
+      toast("Invite link copied");
+    } catch {
+      toast(`Share this link: ${link}`, { ms: 6000 });
+    }
+  }
+  return (
+    <SectionCard title="Invite a friend">
+      <p className="text-sm text-muted">One link per friend: you become friends when they open it.</p>
+      {member && (
+        <p
+          className="mt-3 flex items-center gap-2 rounded-lg bg-good-soft px-3 py-2 text-sm font-semibold text-ink"
+          data-testid="friends-free-match"
+        >
+          <Icon name="sparkle" className="size-4 text-good" /> Their first live match is free
+        </p>
+      )}
+      {link && (
+        <div className="mt-3 flex items-center gap-2 rounded-lg border border-line bg-surface-2/60 px-3 py-2">
+          <code className="min-w-0 flex-1 truncate text-sm" data-testid="friends-invite-url">
+            {link}
+          </code>
+          <button
+            type="button"
+            onClick={() => void copy()}
+            className="rounded-md px-2 py-1 text-sm font-semibold text-ink hover:bg-surface-2"
+          >
+            Copy
+          </button>
+        </div>
+      )}
+      <button
+        type="button"
+        onClick={() => void make()}
+        disabled={busy}
+        className="mt-3 flex h-10 w-full items-center justify-center gap-2 rounded-lg bg-accent text-sm font-semibold text-accent-ink disabled:cursor-not-allowed disabled:bg-surface-2 disabled:text-muted"
+      >
+        <Icon name="users" className="size-4" />{" "}
+        {busy ? "Making a link…" : link ? "Make another link" : "Create invite link"}
+      </button>
+      {error && (
+        <p role="alert" className="mt-2 text-sm text-bad">
+          {error}
+        </p>
+      )}
+    </SectionCard>
   );
 }
 
@@ -66,108 +141,126 @@ export function FriendsPage() {
   };
 
   return (
-    <SiteLayout sidebar={{ activeLinkId: "profile", docked: true }}>
-      <div className="mx-auto flex max-w-3xl flex-col gap-4 px-4 py-6 md:px-[30px]">
+    <SiteLayout sidebar={{ activeLinkId: "friends", docked: true }}>
+      <div className="mx-auto max-w-6xl px-4 py-6 md:px-[30px]">
         <h1 className="font-serif text-3xl font-bold">Friends</h1>
-        <SectionCard title="Your friend code">
-          {data?.friendCode ? (
-            <p className="flex flex-wrap items-center gap-3">
-              <span
-                className="rounded-lg bg-surface-2 px-4 py-2 font-mono text-2xl font-bold tracking-[0.25em]"
-                data-testid="friend-code"
-              >
-                {data.friendCode}
-              </span>
-              <span className="text-sm text-muted">
-                Friends add you with this code. Or send an invite link from any match.
-              </span>
-            </p>
-          ) : (
-            <p className="text-sm text-muted">Pick a nickname in any match (or below) and your code appears here.</p>
-          )}
-          <form onSubmit={add} className="mt-4 flex gap-2">
-            <label className="sr-only" htmlFor="friend-code-input">
-              A friend's code
-            </label>
-            <input
-              id="friend-code-input"
-              value={code}
-              onChange={(e) => setCode(e.target.value.toUpperCase())}
-              placeholder="A friend's code, e.g. K7M2PQ"
-              maxLength={12}
-              className="min-w-0 flex-1 rounded-lg border border-line bg-surface-2/60 px-3 py-2.5 font-mono uppercase"
+        <div className="mt-4 grid gap-4 xl:grid-cols-[minmax(0,1fr)_360px]">
+          {/* from 1280 px: invites and requests beside the list; narrower, they come first */}
+          <aside
+            aria-label="Invites and requests"
+            className="order-first flex flex-col gap-4 xl:order-last xl:sticky xl:top-20 xl:self-start"
+          >
+            <InvitePanel
+              member={!!me?.plans?.some((p) => p.includesLiveStream)}
+              needsName={!!me && !me.joined}
+              onNeedName={() => setNameOpen(true)}
             />
-            <button
-              type="submit"
-              disabled={code.trim().length < 4}
-              className="rounded-lg bg-accent px-4 font-semibold text-accent-ink hover:brightness-110 disabled:opacity-50"
-            >
-              Add friend
-            </button>
-          </form>
-          {error && (
-            <p role="alert" className="mt-2 text-sm text-bad">
-              {error}
-            </p>
-          )}
-        </SectionCard>
-
-        {!!data?.incoming.length && (
-          <SectionCard title={`Requests (${data.incoming.length})`}>
-            <ul className="divide-y divide-line">
-              {data.incoming.map((f) => (
-                <Person key={f.userId} f={f}>
-                  <button
-                    type="button"
-                    onClick={act(() => acceptFriendApi(f.userId), "You're friends now")}
-                    className="rounded-lg bg-accent px-3 py-1.5 text-sm font-semibold text-accent-ink"
+            <SectionCard title={`Pending requests${data?.incoming.length ? ` (${data.incoming.length})` : ""}`}>
+              {data?.incoming.length ? (
+                <ul className="divide-y divide-line" data-testid="pending-requests">
+                  {data.incoming.map((f) => (
+                    <Person key={f.userId} f={f}>
+                      <button
+                        type="button"
+                        onClick={act(() => acceptFriendApi(f.userId), "You're friends now")}
+                        className="rounded-lg bg-accent px-3 py-1.5 text-sm font-semibold text-accent-ink"
+                      >
+                        Accept
+                      </button>
+                      <button
+                        type="button"
+                        onClick={act(() => removeFriendApi(f.userId), "Declined")}
+                        className="rounded-lg border border-line px-3 py-1.5 text-sm font-semibold hover:bg-surface-2"
+                      >
+                        Decline
+                      </button>
+                    </Person>
+                  ))}
+                </ul>
+              ) : (
+                <p className="text-sm text-muted">No requests waiting.</p>
+              )}
+            </SectionCard>
+          </aside>
+          <div className="flex min-w-0 flex-col gap-4">
+            <SectionCard title="Your friend code">
+              {data?.friendCode ? (
+                <p className="flex flex-wrap items-center gap-3">
+                  <span
+                    className="rounded-lg bg-surface-2 px-4 py-2 font-mono text-2xl font-bold tracking-[0.25em]"
+                    data-testid="friend-code"
                   >
-                    Accept
-                  </button>
-                  <button
-                    type="button"
-                    onClick={act(() => removeFriendApi(f.userId), "Declined")}
-                    className="rounded-lg border border-line px-3 py-1.5 text-sm font-semibold"
-                  >
-                    Decline
-                  </button>
-                </Person>
-              ))}
-            </ul>
-          </SectionCard>
-        )}
+                    {data.friendCode}
+                  </span>
+                  <span className="text-sm text-muted">
+                    Friends add you with this code. Or send an invite link from any match.
+                  </span>
+                </p>
+              ) : (
+                <p className="text-sm text-muted">
+                  Pick a nickname in any match (or below) and your code appears here.
+                </p>
+              )}
+              <form onSubmit={add} className="mt-4 flex gap-2">
+                <label className="sr-only" htmlFor="friend-code-input">
+                  A friend's code
+                </label>
+                <input
+                  id="friend-code-input"
+                  value={code}
+                  onChange={(e) => setCode(e.target.value.toUpperCase())}
+                  placeholder="A friend's code, e.g. K7M2PQ"
+                  maxLength={12}
+                  className="min-w-0 flex-1 rounded-lg border border-line bg-surface-2/60 px-3 py-2.5 font-mono uppercase"
+                />
+                <button
+                  type="submit"
+                  disabled={code.trim().length < 4}
+                  className="rounded-lg bg-accent px-4 font-semibold text-accent-ink disabled:cursor-not-allowed disabled:bg-surface-2 disabled:text-muted"
+                >
+                  Add friend
+                </button>
+              </form>
+              {error && (
+                <p role="alert" className="mt-2 text-sm text-bad">
+                  {error}
+                </p>
+              )}
+            </SectionCard>
 
-        <SectionCard title={`Your friends${data ? ` (${data.friends.length})` : ""}`}>
-          {data?.friends.length ? (
-            <ul className="divide-y divide-line" data-testid="friends-list">
-              {data.friends.map((f) => (
-                <Person key={f.userId} f={f} />
-              ))}
-            </ul>
-          ) : (
-            <p className="text-sm text-muted">
-              No friends yet. Share an invite link from a match: they join your party and you're friends at once.
-            </p>
-          )}
-        </SectionCard>
+            <SectionCard title={`Your friends${data ? ` (${data.friends.length})` : ""}`}>
+              {data?.friends.length ? (
+                <ul className="divide-y divide-line" data-testid="friends-list">
+                  {data.friends.map((f) => (
+                    <Person key={f.userId} f={f} />
+                  ))}
+                </ul>
+              ) : (
+                <p className="text-sm text-muted">
+                  No friends yet. Share an invite link from a match: they join your party and you're friends at once.
+                </p>
+              )}
+            </SectionCard>
 
-        {!!data?.outgoing.length && (
-          <SectionCard title="Sent requests">
-            <ul className="divide-y divide-line">
-              {data.outgoing.map((f) => (
-                <Person key={f.userId} f={f}>
-                  <button
-                    type="button"
-                    onClick={act(() => removeFriendApi(f.userId), "Request cancelled")}
-                    className="text-sm text-muted underline"
-                  >
-                    Cancel
-                  </button>
-                </Person>
-              ))}
-            </ul>
-          </SectionCard>
-        )}
+            {!!data?.outgoing.length && (
+              <SectionCard title="Sent requests">
+                <ul className="divide-y divide-line">
+                  {data.outgoing.map((f) => (
+                    <Person key={f.userId} f={f}>
+                      <button
+                        type="button"
+                        onClick={act(() => removeFriendApi(f.userId), "Request cancelled")}
+                        className="text-sm text-muted underline"
+                      >
+                        Cancel
+                      </button>
+                    </Person>
+                  ))}
+                </ul>
+              </SectionCard>
+            )}
+          </div>
+        </div>
       </div>
       <NicknamePrompt
         open={nameOpen}

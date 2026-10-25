@@ -1,5 +1,5 @@
 import type { StakesChipData } from "@/shared/types";
-import { ChangeTag } from "./StakesChip";
+import { ChangeTag, lowerIsBetter } from "./StakesChip";
 
 /** both teams' playoff chance next to the score */
 export function StakesSummary({ chips }: { chips: StakesChipData[] }) {
@@ -13,7 +13,7 @@ export function StakesSummary({ chips }: { chips: StakesChipData[] }) {
           <p className="text-sm font-semibold">{c.team.name}</p>
           <p className="text-xs text-muted">{c.label}</p>
           <p className="mt-2 text-[28px] leading-none font-semibold tabular-nums">
-            {c.chance}% <ChangeTag change={c.change} className="text-sm" />
+            {c.chance}% <ChangeTag change={c.change} invert={lowerIsBetter(c.label)} className="text-sm" />
           </p>
         </div>
       ))}

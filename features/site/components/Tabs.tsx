@@ -32,7 +32,7 @@ export function Tabs<T extends string>({
   }
 
   return (
-    <div className="-mx-4 overflow-x-auto border-b border-line px-4 md:mx-0 md:px-0" id={`${idPrefix}-tabs`}>
+    <div className="no-scrollbar -mx-4 overflow-x-auto border-b border-line px-4 md:mx-0 md:px-0" id={`${idPrefix}-tabs`}>
       <div role="tablist" aria-label={label} className="flex min-w-max gap-1">
         {tabs.map((t, i) => {
           const on = t.id === active;

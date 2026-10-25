@@ -2,10 +2,10 @@ import { useEffect, useState } from "react";
 import { NAMES } from "@/shared/copy/names";
 import type { PreviewMatchDetail } from "@/shared/types";
 import { FollowButton } from "../components/Follow";
+import { HeadToHeadStrip } from "../components/HeadToHead";
 import { Icon } from "../components/Icon";
 import { ScoreHeader } from "../components/ScoreHeader";
 import { SeasonStakesCard } from "../components/SeasonStakesCard";
-import { SectionCard } from "../components/SectionCard";
 import { Breadcrumbs, SiteLayout } from "../components/SiteLayout";
 import { StakesChip } from "../components/StakesChip";
 import { TeamLogo } from "../components/TeamLogo";
@@ -48,13 +48,14 @@ export function MatchPreview({ match, onChange }: { match: PreviewMatchDetail; o
       <main className="flex min-w-0 flex-col gap-4 px-4 pb-12 md:px-6">
         <Breadcrumbs items={match.breadcrumbs} />
         <ScoreHeader match={match.match} venue={match.venue} dateLabel={match.dateLabel} spectators={null} />
+        <HeadToHeadStrip h2h={match.headToHead} />
 
         <div className="flex flex-wrap items-center gap-2">
           <button
             type="button"
             onClick={() => void toggleReminder()}
             aria-pressed={reminder}
-            className={`inline-flex h-10 items-center gap-2 rounded-lg px-4 text-sm font-semibold ${reminder ? "border border-accent bg-accent-soft text-accent" : "bg-accent text-accent-ink hover:brightness-110"}`}
+            className={`inline-flex h-10 items-center gap-2 rounded-lg px-4 text-sm font-semibold ${reminder ? "border border-accent bg-accent-soft text-accent" : "bg-accent text-accent-ink"}`}
           >
             <Icon name="bell" className="size-4" />
             {reminder ? "Reminder set ✓" : "Set reminder"}
@@ -79,27 +80,7 @@ export function MatchPreview({ match, onChange }: { match: PreviewMatchDetail; o
           </div>
         )}
 
-        <div className="grid gap-4 xl:grid-cols-[minmax(0,1fr)_360px]">
-          <SeasonStakesCard stakes={match.seasonStakes} />
-          <SectionCard title="Head-to-head">
-            <p className="font-semibold">{match.headToHead.summary}</p>
-            {match.headToHead.games.length > 0 && (
-              <ul className="mt-3 flex flex-col divide-y divide-line text-sm">
-                {match.headToHead.games.map((h) => (
-                  <li key={h.matchId}>
-                    <a href={`/match/${h.matchId}`} className="flex items-center justify-between gap-3 py-2 hover:underline">
-                      <span className="text-muted">{h.date}</span>
-                      <span className="font-semibold tabular-nums">
-                        {h.home.name} {h.score.home}–{h.score.away} {h.away.name}
-                        {h.extra}
-                      </span>
-                    </a>
-                  </li>
-                ))}
-              </ul>
-            )}
-          </SectionCard>
-        </div>
+        <SeasonStakesCard stakes={match.seasonStakes} />
       </main>
     </SiteLayout>
   );

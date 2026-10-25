@@ -1,11 +1,12 @@
 // the kaleva.fi chrome, rebuilt with our own markup: the orange top bar (menu, links, Tilaa,
 // Kirjaudu), the white header (the wordmark as styled text, the section row, the weather link),
 // the drawer menu from the left, and the dark footer. links to kaleva.fi open in a new tab; the
-// one link into the app is Kaleva Sports (it replaces "Urheilu" in the drawer). the sports pages
-// use the footer, and a thin orange bar with "‹ Kaleva" back to the front page
+// one link into the app is Kaleva Sports: first in the section row (visible on desktop without a
+// menu) and in place of "Urheilu" in the drawer. the sports pages use the footer; their logo's
+// "KALEVA" links back here
 import { AnimatePresence, motion } from "motion/react";
 import { useEffect, useRef } from "react";
-import { KF_DRAWER, KF_FOOTER, KF_LOGIN, KF_NAV, KF_SUBSCRIBE, KF_TOP, type KalevaLink } from "../../kaleva";
+import { KF_DRAWER, KF_FOOTER, KF_LOGIN, KF_NAV, KF_SUBSCRIBE, KF_TOP, SPORTS_ENTRY, type KalevaLink } from "../../kaleva";
 import { Icon } from "../Icon";
 
 const external = (href: string) => /^https?:/.test(href);
@@ -147,9 +148,20 @@ export function KalevaHeader() {
         </a>
         <nav aria-label="Osastot" className="mx-auto hidden lg:block">
           <ul className="flex items-center text-[15px] font-bold uppercase">
-            {KF_NAV.map((l, i) => (
+            <li className="flex items-center">
+              <a
+                href={SPORTS_ENTRY.href}
+                data-testid="kaleva-sports-nav"
+                className="flex items-center gap-1.5 rounded-full bg-[#fdeef0] py-1 pr-2 pl-1.5 normal-case text-[#d80016] hover:underline"
+              >
+                <SportsIcon />
+                {SPORTS_ENTRY.label}
+                <NewTag />
+              </a>
+            </li>
+            {KF_NAV.map((l) => (
               <li key={l.label} className="flex items-center">
-                {i > 0 && <span aria-hidden className="mx-[15px] h-[15px] w-[2px] bg-black" />}
+                <span aria-hidden className="mx-[15px] h-[15px] w-[2px] bg-black" />
                 <a {...linkProps(l.href)} className="hover:underline">
                   {l.label}
                 </a>
@@ -208,18 +220,5 @@ export function KalevaFooter({ note }: { note?: string }) {
       </div>
       {note && <p className="border-t border-white/15 px-4 py-3 text-center text-xs text-white/70">{note}</p>}
     </footer>
-  );
-}
-
-/** above the sports header: the way back to the kaleva front page */
-export function KalevaBar() {
-  return (
-    <div className="h-[30px] bg-kf-orange font-kf">
-      <div className="flex h-full items-center px-4 md:px-6">
-        <a href="/" className="flex items-center gap-1 text-[13px] font-bold text-white hover:underline">
-          ‹ Kaleva
-        </a>
-      </div>
-    </div>
   );
 }

@@ -288,10 +288,10 @@ export function NextTimePanel({ next, focus }: { next: NextTime; focus: Finished
   }
   const w = next.worth;
   return (
-    <section aria-labelledby="next-time" className="flex h-full flex-col gap-4 rounded-card border-2 border-accent/30 bg-gradient-to-br from-accent-soft to-surface p-5 shadow-card" data-testid="next-time">
+    <section aria-labelledby="next-time" className="flex h-full flex-col gap-4 rounded-card border border-line bg-surface p-5 shadow-card" data-testid="next-time">
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div>
-          <p className="text-xs font-bold tracking-wider text-accent uppercase">Next time</p>
+          <p className="text-xs font-bold tracking-wider text-muted uppercase">Next time</p>
           <h2 id="next-time" className="mt-1 flex items-center gap-2 text-xl font-bold">
             <TeamLogo team={focus.team} size={30} />
             <span className="text-muted">{next.home ? "vs" : "at"}</span>
@@ -299,7 +299,7 @@ export function NextTimePanel({ next, focus }: { next: NextTime; focus: Finished
           </h2>
           <p className="text-sm text-muted">{next.when}</p>
         </div>
-        <a href={`/match/${next.matchId}`} className="flex items-center gap-1 text-sm font-semibold text-accent hover:underline">
+        <a href={`/match/${next.matchId}`} className="flex items-center gap-1 text-sm font-semibold text-ink hover:underline">
           Match preview <Icon name="arrowRight" className="size-4" />
         </a>
       </div>
@@ -316,12 +316,14 @@ export function NextTimePanel({ next, focus }: { next: NextTime; focus: Finished
               <p className="text-xs text-muted">Now</p>
               <p className="text-xl font-black tabular-nums">{w.now}%</p>
             </div>
-            <div className="rounded-lg bg-live-soft p-2">
+            <div className="rounded-lg bg-surface-2 p-2">
               <p className="text-xs text-muted">With a loss</p>
-              <p className="text-xl font-black text-bad tabular-nums">{w.loss}%</p>
+              <p className="text-xl font-black tabular-nums">{w.loss}%</p>
             </div>
           </div>
-          <p className="mt-1 text-xs text-muted">Playoff chance · a win and a loss are {w.win - w.loss} percentage points apart</p>
+          <p className="mt-1 text-xs text-muted">
+            {w.label} · a win and a loss are {Math.abs(w.win - w.loss)} percentage points apart
+          </p>
         </div>
       )}
 

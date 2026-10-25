@@ -47,10 +47,10 @@
 }
 
 /*
- * site theme: the kaleva sports pages. white cards float on a light grey page; the primary colour
- * (accent) is kaleva red: selected states, buttons, links, focus, toggles, sliders. "live" has its
- * own token (the same red today) for live badges and dots, open questions and their countdown,
- * notification badges and errors, so the two can be told apart again by changing one line
+ * site theme: the kaleva sports pages. white cards float on a light grey page. the primary colour
+ * (accent) is ink: selected states, buttons, tabs, links, focus, toggles, sliders. kaleva red is
+ * "live" only: live badges and dots, open questions and their countdown, notification badges,
+ * errors, and the "Sports" in the logo
  */
 [data-theme="site"] {
   --pp-bg: #f4f5f7;
@@ -59,12 +59,12 @@
   --pp-line: #e5e7eb;
   --pp-ink: #111418;
   --pp-muted: #6b7280;
-  /* the primary, kaleva red: 5.3:1 on white, 4.9:1 on the page grey, white text on it 5.3:1 */
-  --pp-accent: #d80016;
-  --pp-accent-hover: #b00012;
+  /* the primary, ink: 18:1 on white, white text on it 18:1 */
+  --pp-accent: #111418;
+  --pp-accent-hover: #2d333b;
   --pp-accent-ink: #ffffff;
-  /* a selected or "you" row: a light red tint, the red text on it 4.8:1 */
-  --pp-accent-soft: #fdeef0;
+  /* a selected or "you" row: a light grey tint, the ink text on it 16:1 */
+  --pp-accent-soft: #eceef1;
   /* kaleva red: 5.3:1 on white, white text on it 5.3:1 */
   --pp-live: #d80016;
   --pp-live-ink: #ffffff;

@@ -105,9 +105,9 @@ function RotationStage({ match, rotation, onSeeStakes, me }: { match: LiveMatchD
 
 /**
  * a live (or upcoming) match page. desktop (1280 px and up): a smaller video (at most ~60% of
- * the width and 45% of the screen's height) with the watch party panel beside it, sticky while
- * the stats scroll. tablet: the panel under the video, your call! first. phone: your call! stays
- * a bottom sheet. onChange refetches the page (the game ended)
+ * the width and 45% of the screen's height) with a column beside it: the your call! card on top
+ * and the watch party box (chat, party) under it. tablet: that column under the video. phone:
+ * your call! stays a bottom sheet. onChange refetches the page (the game ended)
  */
 export function LiveMatch({ match: initial, source, onChange }: { match: LiveMatchDetail; source?: DataSource | null; onChange?: () => void }) {
   const real = !isMockMatch(initial.id);

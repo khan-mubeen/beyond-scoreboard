@@ -3,11 +3,26 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import type { GameOutcome, MatchPrediction, WhatIfGame, WhatIfOptions, WhatIfResult } from "@/shared/types";
 import { postJson, predictApi, usePrediction } from "../data";
 import { teamColors, tintVars } from "../team-colors";
+import { relevantMetric, type ChanceMetric } from "@/features/stakes";
 import { ArcGauge, MovingTable } from "./charts";
 import { Icon } from "./Icon";
 import { TeamLogo } from "./TeamLogo";
 import { toast } from "./Toast";
 
+
+const GAUGES: Record<ChanceMetric, { label: string; color: string }> = {
+  playoffs: { label: "Playoffs", color: "var(--pp-zone-playoffs)" },
+  top4: { label: "Top 4", color: "var(--pp-zone-top4)" },
+  relegation: { label: "Relegation", color: "var(--pp-zone-relegated)" },
+};
+/**
+ * the relevant chance first, then the other two: the one this game moves most (the server's, the
+ * same as the stakes card), else what the picks moved most, else the team's level
+ */
+const gaugeOrder = (t: { before: Record<ChanceMetric, number>; after: Record<ChanceMetric, number> }, known?: ChanceMetric): ChanceMetric[] => {
+  const metric = known ?? relevantMetric({ before: t.before, after: t.after }).metric;
+  return [metric, ...(["playoffs", "top4", "relegation"] as const).filter((m) => m !== metric)];
+};
 /** the four results, from the home team's view */
 const OUTCOMES: { outcome: GameOutcome; side: "home" | "away"; extra: boolean }[] = [
   { outcome: "regulationWin", side: "home", extra: false },
@@ -100,19 +115,23 @@ function PredictionBar({ p, picked, busy, onLock }: { p: MatchPrediction | null;
       </p>
     );
   if (p.status === "cancelled") return <p className={`${box} bg-surface-2 text-muted`}>This match's prediction was cancelled. No points either way.</p>;
-  return <p className={`${box} bg-surface-2 text-muted`}>Predictions are closed: the game has started. You can still explore what if?</p>;
+  return <p className={`${box} bg-surface-2 text-muted`}>Predictions are closed for this game. You can still explore what if?</p>;
 }
 
 /** another game tonight as a compact chip: its four results as a segmented control */
+/** "KÄR": the team's short code, so a chip never cuts a name at 390 or 1440 */
+const abbrOf = (t: { abbr?: string; name: string }) => t.abbr ?? t.name.slice(0, 3).toUpperCase();
+
 function GameChip({ g, value, disabled, onPick }: { g: WhatIfGame; value: GameOutcome | undefined; disabled: boolean; onPick: (o: GameOutcome | null) => void }) {
   return (
-    <li className="flex min-w-0 flex-col gap-1.5 rounded-lg border border-line bg-surface p-2">
+    <li className="flex min-w-0 flex-col gap-1.5 rounded-lg border border-line bg-surface p-2" title={`${g.home.name} – ${g.away.name} · ${g.when}`}>
       <span className="flex items-center gap-1.5 text-xs font-semibold">
         <TeamLogo team={g.home} size={18} />
-        <span className="truncate">
-          {g.home.name} – {g.away.name}
-        </span>
+        <span>{abbrOf(g.home)}</span>
+        <span className="text-muted">–</span>
+        <span>{abbrOf(g.away)}</span>
         <TeamLogo team={g.away} size={18} />
+        <span className="ml-auto truncate font-normal text-muted">{g.when}</span>
       </span>
       <span className="grid grid-cols-4 gap-1" role="group" aria-label={`${g.home.name} – ${g.away.name} result`}>
         {OUTCOMES.map((o) => {
@@ -126,10 +145,11 @@ function GameChip({ g, value, disabled, onPick }: { g: WhatIfGame; value: GameOu
               disabled={disabled && !on}
               title={o.extra ? `${g[o.side].name} win in OT/SO` : `${g[o.side].name} win`}
               onClick={() => onPick(on ? null : o.outcome)}
-              className={`h-7 truncate rounded border px-1 text-[10px] font-bold transition disabled:opacity-40 ${on ? "team-tint-strong text-ink" : "border-transparent bg-surface-2 text-muted hover:bg-line"}`}
+              className={`h-7 rounded border px-1 text-[10px] font-bold whitespace-nowrap transition disabled:opacity-40 ${on ? "team-tint-strong text-ink" : "border-transparent bg-surface-2 text-muted hover:bg-line"}`}
               style={on ? { ...tintVars(c), borderColor: c.bg } : undefined}
             >
-              {o.extra ? "OT" : g[o.side].name.slice(0, 5)}
+              {abbrOf(g[o.side])}
+              {o.extra && " OT"}
             </button>
           );
         })}
@@ -233,7 +253,7 @@ export function WhatIfPanel({ options }: { options: WhatIfOptions }) {
       <div aria-live="polite" className="mt-4">
         {result && "error" in result && <p className="text-sm text-bad">{result.error}</p>}
         {shown && focusTeam && (
-          <div className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_minmax(0,1.1fr)]">
+          <div className={`grid gap-4 ${set ? "lg:grid-cols-[minmax(0,1fr)_minmax(0,1.1fr)]" : ""}`}>
             {/* on a phone the gauges stay in view while the cards and table scroll */}
             <div className="sticky top-16 z-10 self-start rounded-card border border-line bg-surface p-3 shadow-card lg:static lg:shadow-none">
               <div className="flex flex-wrap gap-1" role="tablist" aria-label="Team">
@@ -251,16 +271,28 @@ export function WhatIfPanel({ options }: { options: WhatIfOptions }) {
                 ))}
               </div>
               <div className={`mt-2 grid grid-cols-3 gap-1 transition-opacity ${busyAsk ? "opacity-60" : ""}`}>
-                <ArcGauge label="Playoffs" value={focusTeam.after.playoffs} before={focusTeam.before.playoffs} color={color} size={140} />
-                <ArcGauge label="Top 4" value={focusTeam.after.top4} before={focusTeam.before.top4} color="var(--pp-zone-top4)" size={140} />
-                <ArcGauge label="Relegation" value={focusTeam.after.relegation} before={focusTeam.before.relegation} higherIsBetter={false} color="var(--pp-zone-relegated)" size={140} />
+                {/* the team's most relevant chance first: relegation for a team out of the race, top 4 for one sure of the playoffs */}
+                {gaugeOrder(focusTeam, options.metrics?.[focusTeam.team.id]).map((m) => (
+                  <ArcGauge
+                    key={m}
+                    label={GAUGES[m].label}
+                    value={focusTeam.after[m]}
+                    before={focusTeam.before[m]}
+                    higherIsBetter={m !== "relegation"}
+                    color={m === "playoffs" ? color : GAUGES[m].color}
+                    size={140}
+                  />
+                ))}
               </div>
               <p className="mt-1 text-center text-xs text-muted">{set ? "Faint arc: the chance now. Solid: with your picks." : "The season as it stands. Pick a result to see it move."}</p>
             </div>
-            <div>
-              <p className="mb-2 text-sm font-semibold">{set ? "The table tonight with your results" : "The table now"}</p>
-              <MovingTable rows={shown.table} highlight={highlight} caption={set ? "The table with the results you set" : "The table now"} />
-            </div>
+            {/* the table now is the stakes card's, just above: this one shows only what your picks change */}
+            {set > 0 && (
+              <div>
+                <p className="mb-2 text-sm font-semibold">The table tonight with your results</p>
+                <MovingTable rows={shown.table} highlight={highlight} caption="The table with the results you set" />
+              </div>
+            )}
           </div>
         )}
         <AnimatePresence>

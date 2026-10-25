@@ -1,5 +1,5 @@
 import type { MeResponse } from "@/shared/types";
-import { QUICK_LINKS } from "../chrome";
+import { activeLinkFor, QUICK_LINKS } from "../chrome";
 import type { Resource } from "../data";
 import { FavoriteTeams } from "./FavoriteTeams";
 import { Icon } from "./Icon";
@@ -31,6 +31,8 @@ function ProfileCard({ me, compact }: { me: MeResponse; compact: boolean }) {
  * "home" order matches the home design, "compact" the rewards one
  */
 export function Sidebar({ me, activeLinkId, variant = "home" }: { me: Resource<MeResponse>; activeLinkId: string; variant?: "home" | "compact" }) {
+  // the address decides which link is active; a page's own id only when no link matches it
+  const active = (typeof window === "undefined" ? null : activeLinkFor(window.location.pathname)) ?? activeLinkId;
   const compact = variant === "compact";
   const data = me.data;
   const profile = data ? (
@@ -51,16 +53,19 @@ export function Sidebar({ me, activeLinkId, variant = "home" }: { me: Resource<M
   const teams = data ? <FavoriteTeams teams={data.favorites} compact={compact} /> : null;
   return (
     <aside aria-label="Your profile" className="flex flex-col gap-4">
+      <a href="/" className="inline-flex items-center gap-1.5 self-start text-sm font-semibold text-muted hover:text-ink" title="Back to the Kaleva front page">
+        <Icon name="arrowRight" className="size-4 rotate-180" /> kaleva.fi
+      </a>
       {profile}
       {compact ? (
         <>
-          <QuickLinks links={QUICK_LINKS} activeId={activeLinkId} title={null} boxed={false} />
+          <QuickLinks links={QUICK_LINKS} activeId={active} title={null} boxed={false} />
           {teams && <div className="border-t border-line pt-5">{teams}</div>}
         </>
       ) : (
         <>
           {teams}
-          <QuickLinks links={QUICK_LINKS} activeId={activeLinkId} />
+          <QuickLinks links={QUICK_LINKS} activeId={active} />
         </>
       )}
     </aside>

@@ -6,12 +6,17 @@ import { TeamLogo } from "./TeamLogo";
  * chance"). never "pts": that word is the fans' own points. the arrow carries the meaning, colour
  * only helps; screen readers hear "up 12 percentage points"
  */
-export function ChangeTag({ change, label, className = "" }: { change: number; label?: string; className?: string }) {
+/** a relegation chance is the one where going down is good news */
+export const lowerIsBetter = (label?: string | null) => /^relegation/i.test(label ?? "");
+
+export function ChangeTag({ change, label, invert = false, className = "" }: { change: number; label?: string; invert?: boolean; className?: string }) {
   const up = change > 0;
   const down = change < 0;
   const n = Math.abs(change);
+  const good = invert ? down : up;
+  const bad = invert ? up : down;
   return (
-    <span className={`font-semibold whitespace-nowrap tabular-nums ${up ? "text-good" : down ? "text-bad" : "text-muted"} ${className}`}>
+    <span className={`font-semibold whitespace-nowrap tabular-nums ${good ? "text-good" : bad ? "text-bad" : "text-muted"} ${className}`}>
       <span aria-hidden>
         {up ? "▲" : down ? "▼" : "±"}
         {n}
@@ -25,7 +30,7 @@ export function ChangeTag({ change, label, className = "" }: { change: number; l
   );
 }
 
-/** a team's playoff chance with its change. dark sits on the live match card */
+/** a team's most relevant chance (playoff, relegation or top 4) with its change. dark sits on the live match card */
 export function StakesChip({ chip, dark = false }: { chip: StakesChipData; dark?: boolean }) {
   return (
     <div
@@ -37,7 +42,7 @@ export function StakesChip({ chip, dark = false }: { chip: StakesChipData; dark?
         <p className="whitespace-nowrap">
           <span className={dark ? "opacity-80" : "text-muted"}>{chip.label}</span>{" "}
           <span className="font-bold tabular-nums">{chip.chance}%</span>{" "}
-          <ChangeTag change={chip.change} className="text-xs" />
+          <ChangeTag change={chip.change} invert={lowerIsBetter(chip.label)} className="text-xs" />
         </p>
       </div>
     </div>

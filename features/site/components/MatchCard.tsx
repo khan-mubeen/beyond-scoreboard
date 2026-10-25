@@ -1,6 +1,6 @@
 import type { ComingSoonCard, MatchSummary, TeamRef } from "@/shared/types";
 import { Icon } from "./Icon";
-import { ChangeTag } from "./StakesChip";
+import { ChangeTag, lowerIsBetter } from "./StakesChip";
 import { LiveBadge } from "./LiveMatchCard";
 import { Pill } from "./SectionCard";
 import { TeamLogo } from "./TeamLogo";
@@ -51,14 +51,15 @@ export function MatchCard({ match }: { match: MatchSummary }) {
   );
 }
 
-/** "88% ▲3": the playoff chance after the game and how far it moved */
-function ChanceMove({ team, now, change }: { team: TeamRef; now: number; change: number }) {
+/** "Relegation 31% ▲4": the team's most relevant chance after the game and how far it moved */
+function ChanceMove({ team, now, change, label = "Playoff chance" }: { team: TeamRef; now: number; change: number; label?: string }) {
   return (
     <span className="flex min-w-0 items-center gap-1.5 text-xs">
       <TeamLogo team={team} size={18} />
-      <span className="sr-only">{team.name} playoff chance</span>
+      <span className="sr-only">{team.name}</span>
+      <span className="text-muted">{label.replace(/ chance$/, "")}</span>
       <span className="font-semibold tabular-nums">{now}%</span>
-      <ChangeTag change={change} className="font-bold" />
+      <ChangeTag change={change} invert={lowerIsBetter(label)} className="font-bold" />
     </span>
   );
 }
@@ -92,7 +93,7 @@ function RecentCard({ match }: { match: MatchSummary }) {
         <div className="flex flex-col gap-1.5 sm:border-l sm:border-line sm:pl-4">
           {match.swing ? (
             <>
-              <span className="text-[11px] font-semibold tracking-wider text-muted uppercase">Playoff chance after</span>
+              <span className="text-[11px] font-semibold tracking-wider text-muted uppercase">Chance after the game</span>
               <ChanceMove team={match.home} {...match.swing.home} />
               <ChanceMove team={match.away} {...match.swing.away} />
             </>
