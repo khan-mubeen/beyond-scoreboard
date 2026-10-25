@@ -48,14 +48,14 @@ function lastLeadChange(m: MatchFactsInput): number {
 
 /** one live line after a goal: who scored and what the chance is if it ends now */
 /** the latest goal and what it means; `final` once the game is decided ("after the game", not "if it ends like this") */
-export function whatItMeansLine(l: MatchLedger, goalIndex: number, final = false): string {
+export function whatItMeansLine(l: MatchLedger, goalIndex: number, final = false, noun = "playoff chance"): string {
   const g = l.goals[goalIndex];
-  if (!g) return final ? `After the game, ${ph(l.ids.team)}'s playoff chance is ${ph(l.ids.chanceAfter)}%.` : `${ph(l.ids.team)}'s playoff chance is ${ph(l.ids.chanceAfter)}% if it ends like this.`;
+  if (!g) return final ? `After the game, ${ph(l.ids.team)}'s ${noun} is ${ph(l.ids.chanceAfter)}%.` : `${ph(l.ids.team)}'s ${noun} is ${ph(l.ids.chanceAfter)}% if it ends like this.`;
   const who = g.scorer ? `${ph(g.scorer)}'s ` : `${ph(g.team)}'s `;
   const kind = g.kind ? `${ph(g.kind)} ` : "";
   return final
-    ? `${who}${kind}goal at ${ph(g.time)} of period ${ph(g.period)} made it ${ph(g.homeScore)}–${ph(g.awayScore)}. After the game, ${ph(l.ids.team)}'s playoff chance is ${ph(l.ids.chanceAfter)}%.`
-    : `${who}${kind}goal at ${ph(g.time)} of period ${ph(g.period)} makes it ${ph(g.homeScore)}–${ph(g.awayScore)}: if it ends like this, ${ph(l.ids.team)}'s playoff chance is ${ph(l.ids.chanceAfter)}%.`;
+    ? `${who}${kind}goal at ${ph(g.time)} of period ${ph(g.period)} made it ${ph(g.homeScore)}–${ph(g.awayScore)}. After the game, ${ph(l.ids.team)}'s ${noun} is ${ph(l.ids.chanceAfter)}%.`
+    : `${who}${kind}goal at ${ph(g.time)} of period ${ph(g.period)} makes it ${ph(g.homeScore)}–${ph(g.awayScore)}: if it ends like this, ${ph(l.ids.team)}'s ${noun} is ${ph(l.ids.chanceAfter)}%.`;
 }
 
 export function filled(templates: string[], l: MatchLedger): ContentSentence[] {

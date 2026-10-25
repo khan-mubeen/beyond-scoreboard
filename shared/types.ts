@@ -314,8 +314,22 @@ export interface ApiMeta {
 export interface TeamRef {
   id: string;
   name: string;
+  /** the 3-letter code from the liiga team data ("KÄR", "PEL"), for chips with no room for a name */
+  abbr?: string;
   city?: string;
   logo: string;
+}
+
+/** the header's one-line ticker: the rotation's match while it runs, else the next game */
+export interface TickerData {
+  matchId: string;
+  phase: "lobby" | "live" | "summary" | "next";
+  home: TeamRef;
+  away: TeamRef;
+  /** the score as the server sees it now (the live channel keeps it fresh); null before the game */
+  score: Score | null;
+  /** "18:30", "Tomorrow 18:30": for the next game only */
+  when: string | null;
 }
 
 /** a link in the top nav */
@@ -400,7 +414,8 @@ export interface MatchSummary {
   /** a demo rotation match not on yet: when it starts (ms, server clock), for a countdown */
   startsAt?: number;
   /** a result card: both teams' playoff chance after the game and its change, in points */
-  swing?: { home: { now: number; change: number }; away: { now: number; change: number } } | null;
+  /** each team's most relevant chance after the game, how far it moved, and which chance it is */
+  swing?: { home: { now: number; change: number; label?: string }; away: { now: number; change: number; label?: string } } | null;
   /** a result card: the winner's next game ("Next for Kärpät: vs TPS · Fri 23 Oct") */
   teaser?: { text: string; href: string } | null;
 }
@@ -560,8 +575,12 @@ export interface SeasonStakes {
   tableTitle: string;
   tableBadge: string;
   rows: StakesTableRow[];
-  /** playoff chance for each way the game can end */
+  /** the chance (metric) for each way the game can end */
   worth: Record<GameOutcome, number>;
+  /** which chance chance/before/now/steps/worth are: the one this game moves most for the team */
+  metric?: "playoffs" | "relegation" | "top4";
+  /** "Playoff chance", "Relegation chance", "Top-4 chance" */
+  metricLabel?: string;
   /** the games "what if?" can set; null once the match is decided */
   whatIf?: WhatIfOptions | null;
 }
@@ -580,6 +599,8 @@ export interface WhatIfOptions {
   games: WhatIfGame[];
   /** most results set at once */
   max: number;
+  /** the match teams' most relevant chance (what this game moves most), by team id: the gauge shown first */
+  metrics?: Record<string, "playoffs" | "top4" | "relegation">;
 }
 
 /** a set result, from the home team's view */
@@ -880,8 +901,8 @@ export interface NextTimePanel {
   home: boolean;
   /** "Fri 23 Oct · 18:30" */
   when: string;
-  /** playoff chance now and with a regulation win / loss there, % */
-  worth: { now: number; win: number; loss: number } | null;
+  /** the chance that game moves most (label), now and with a regulation win / loss there, % */
+  worth: { label: string; now: number; win: number; loss: number } | null;
   /** this season's games between the two, oldest first, from the focus team's view */
   headToHead: { matchId: string; date: string; result: FormResult; score: string }[];
   /** the last five of both teams, oldest first */
@@ -1256,6 +1277,8 @@ export interface MeResponse extends ApiMeta {
   /** liiga team ids the viewer chose to follow (empty for a guest, who sees the site's team) */
   follows: string[];
   notificationPrefs: NotificationPrefs;
+  /** DEMO_MODE is on (the saved-data banner stays hidden) */
+  demoMode?: boolean;
   /** the pinned demo clock when DEMO_MODE is on */
   demo?: { label: string; now: string } | null;
   /** what the fan can spend (a guest: the welcome balance they start with) */

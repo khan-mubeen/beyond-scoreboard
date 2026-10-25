@@ -27,7 +27,12 @@ export interface MatchFactsInput {
   /** "Saturday 24 October 2026" */
   date: string;
   goals: MatchGoalFact[];
-  /** playoff chance in % for `team` */
+  /**
+   * which chance chanceBefore / chanceAfter / worth are ("relegation chance"); the playoff chance
+   * when unset. only "what it means" sets it: the stories and summaries stay on the playoff chance
+   */
+  chanceNoun?: string;
+  /** playoff chance (or chanceNoun) in % for `team` */
   chanceBefore: number | null;
   chanceAfter: number | null;
   positionBefore: number | null;
@@ -90,14 +95,15 @@ export function buildMatchLedger(m: MatchFactsInput): MatchLedger {
     date: add("date", m.date),
   };
   if (m.venue) ids.venue = add("venue", m.venue);
-  if (m.chanceBefore !== null) ids.chanceBefore = add(`${m.team} playoff chance before the game`, m.chanceBefore, "%");
-  if (m.chanceAfter !== null) ids.chanceAfter = add(`${m.team} playoff chance after the game`, m.chanceAfter, "%");
+  const noun = m.chanceNoun ?? "playoff chance";
+  if (m.chanceBefore !== null) ids.chanceBefore = add(`${m.team} ${noun} before the game`, m.chanceBefore, "%");
+  if (m.chanceAfter !== null) ids.chanceAfter = add(`${m.team} ${noun} after the game`, m.chanceAfter, "%");
   if (m.positionBefore !== null) ids.positionBefore = add(`${m.team} league position before the game`, m.positionBefore);
   if (m.positionAfter !== null) ids.positionAfter = add(`${m.team} league position after the game`, m.positionAfter);
   if (m.dateFi) ids.dateFi = add("date (finnish)", m.dateFi);
   if (m.worth) {
-    ids.worthWin = add(`${m.team} playoff chance with a regulation win`, m.worth.win, "%");
-    ids.worthLoss = add(`${m.team} playoff chance with a regulation loss`, m.worth.loss, "%");
+    ids.worthWin = add(`${m.team} ${noun} with a regulation win`, m.worth.win, "%");
+    ids.worthLoss = add(`${m.team} ${noun} with a regulation loss`, m.worth.loss, "%");
   }
   if (m.turningPoint) {
     ids.turnBefore = add(`${m.team} playoff chance before the turning-point goal`, m.turningPoint.before, "%");

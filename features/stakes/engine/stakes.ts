@@ -51,8 +51,9 @@ export interface TimelinePoint {
 }
 
 /**
- * the playoff chance after each goal, as if the game ended right then. goals in time order.
- * a goal in period 4 or later (overtime, shootout) ends the game as an overtime result
+ * a chance (the playoff chance by default) after each goal, as if the game ended right then.
+ * goals in time order. a goal in period 4 or later (overtime, shootout) ends the game as an
+ * overtime result
  */
 export function chanceTimeline(
   goals: { id: string; homeScore: number; awayScore: number; period?: number }[],
@@ -60,13 +61,14 @@ export function chanceTimeline(
   start: number,
   worth: Record<GameOutcome, TeamChances>,
   otWinRate = 0.5,
+  metric: "playoffs" | "relegation" | "top4" = "playoffs",
 ): TimelinePoint[] {
   const points: TimelinePoint[] = [{ label: "Start", chance: start, delta: 0 }];
   for (const g of goals) {
     const own = side === "home" ? g.homeScore : g.awayScore;
     const other = side === "home" ? g.awayScore : g.homeScore;
     const extra = (g.period ?? 0) >= 4;
-    const chance = extra ? (own > other ? worth.overtimeWin : worth.overtimeLoss).playoffs : ifEndsNow(worth, own, other, otWinRate).playoffs;
+    const chance = extra ? (own > other ? worth.overtimeWin : worth.overtimeLoss)[metric] : ifEndsNow(worth, own, other, otWinRate)[metric];
     points.push({ label: `${g.homeScore}–${g.awayScore}`, chance, delta: chance - points[points.length - 1].chance, goalId: g.id });
   }
   return points;

@@ -7,6 +7,7 @@ import type { FactInputs, StakesCard } from "@/shared/types";
 export { checkRulesAgainstApi, forecastBefore, forecastNow, forecastWhatIf, getSeasonContext } from "./forecast";
 export type { ForecastResult, SeasonContext } from "./forecast";
 // the pure engine pieces the site and the live loop read forecasts with
+export { METRIC_LABELS, metricNoun, relevantMetric, type ChanceMetric } from "../engine/metric";
 export { chanceTimeline, goalOfTheGame, ifEndsNow, leverage, rankOf, tableIfEndsNow, worthFor } from "../engine/stakes";
 export type { TimelinePoint } from "../engine/stakes";
 export { compareRows, tableWithOutcome, type TableRow } from "../engine/standings";

@@ -70,10 +70,10 @@ async function makeAudioLater(matchId: string, teamId: string, lang: Language, t
 export function whatItMeansText(m: MatchFactsInput): string {
   const ledger = buildMatchLedger(m);
   if (m.goals.length === 0) {
-    const s = fill(`Before the game: {${ledger.ids.team}}'s playoff chance is {${ledger.ids.chanceBefore}}%.`, ledger.facts);
+    const s = fill(`Before the game: {${ledger.ids.team}}'s ${m.chanceNoun ?? "playoff chance"} is {${ledger.ids.chanceBefore}}%.`, ledger.facts);
     return ledger.ids.chanceBefore ? s.text : "";
   }
-  return filled([whatItMeansLine(ledger, m.goals.length - 1, m.decidedIn !== null)], ledger)[0].text;
+  return filled([whatItMeansLine(ledger, m.goals.length - 1, m.decidedIn !== null, m.chanceNoun)], ledger)[0].text;
 }
 
 export { buildMatchLedger, type MatchFactsInput, type MatchLedger } from "../ledger/match-ledger";
