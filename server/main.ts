@@ -3,6 +3,7 @@
 // binds every interface (0.0.0.0): phones on the wifi, a tunnel or a host's proxy can all reach it
 import "./env";
 import express from "express";
+import { readFileSync } from "node:fs";
 import { networkInterfaces } from "node:os";
 import { fileURLToPath } from "node:url";
 import { healthz } from "@/features/site/server/routes/health";
@@ -22,8 +23,14 @@ app.use("/api", api);
 
 if (prod) {
   const dist = fileURLToPath(new URL("../dist/", import.meta.url));
-  app.use(express.static(dist));
-  app.get("/{*path}", (_req, res) => res.sendFile("index.html", { root: dist }));
+  app.use(express.static(dist, { index: false }));
+  // link previews need an absolute image url: the public address, else this request's own
+  const page = readFileSync(`${dist}index.html`, "utf8");
+  app.get("/{*path}", (req, res) => {
+    const host = req.get("host") ?? "";
+    const origin = process.env.PUBLIC_BASE_URL?.replace(/\/+$/, "") ?? (/^[\w.:-]+$/.test(host) ? `${req.protocol}://${host}` : "");
+    res.type("html").send(page.replaceAll('content="/og-image.png"', `content="${origin}/og-image.png"`));
+  });
 } else {
   const { createServer } = await import("vite");
   // vite's dev server refuses unknown host names: let the tunnel's (and PUBLIC_BASE_URL's) through
