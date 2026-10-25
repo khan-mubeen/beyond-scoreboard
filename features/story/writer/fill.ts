@@ -1,5 +1,6 @@
 import type { ContentSentence, Fact, Language } from "@/shared/types";
 import { FI_CASES, FI_GOAL_KIND, teamCase, type FiCase } from "../i18n/fi-team-names";
+import { fixArticles } from "@/shared/copy/articles";
 
 const PLACEHOLDER = /\{(F\d+)(?::(\w+))?\}/g;
 
@@ -20,7 +21,8 @@ function format(value: string | number, f: string | undefined, lang: Language): 
 
 /**
  * swaps {F12} (and formatted {F12:gen}, {F1:ord}) for ledger values, so the model never types a
- * number or inflects a name itself. every placeholder becomes a citation. unknown ids stay in the
+ * number or inflects a name itself. every placeholder becomes a citation. english articles follow
+ * the filled-in value (a/an). unknown ids stay in the
  * text and get cited, so the validator blocks the sentence
  */
 export function fill(template: string, ledger: Fact[], lang: Language = "en"): ContentSentence {
@@ -30,5 +32,6 @@ export function fill(template: string, ledger: Fact[], lang: Language = "en"): C
     const fact = ledger.find((x) => x.id === id);
     return fact ? format(fact.value, f, lang) : whole;
   });
-  return { text, factIds };
+  // the values are only known now: "a {F7}%" becomes "an 85%" in english
+  return { text: lang === "en" ? fixArticles(text) : text, factIds };
 }

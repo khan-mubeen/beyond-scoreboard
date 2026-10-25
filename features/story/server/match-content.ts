@@ -1,7 +1,9 @@
-// texts for real matches: content_cache first (llm texts stored by `npm run pregen`), else the
-// template. cached text is checked again against today's ledger, so stale numbers never show
+// texts for real matches: an approved text from content_cache first (stored by `npm run pregen`,
+// reviewed by an editor in /editor), else the template. a stored text is checked again against
+// today's ledger, so stale numbers never show, and a text no editor approved is never shown. every
+// served text carries its origin: who wrote it (ai or the template) and whether it was reviewed
 import { getDb } from "@/shared/db";
-import type { Content, Language, SpokenSummary } from "@/shared/types";
+import type { Content, Language, SpokenSummary, TextOrigin } from "@/shared/types";
 import { buildMatchLedger, type MatchFactsInput, type MatchLedger } from "../ledger/match-ledger";
 import { filled, templateContent, whatItMeansLine } from "../templates/match";
 import { summaryContent } from "../templates/summary";
@@ -12,32 +14,37 @@ import { fill } from "../writer/fill";
 
 export const contentKey = (matchId: string, teamId: string, kind: string, lang: Language) => `${matchId}:${teamId}:${kind}:${lang}`;
 
-/** the match story: a stored llm text if it still checks out, else the template */
-export async function matchStory(m: MatchFactsInput, teamId: string, lang: Language = "en"): Promise<{ content: Content; ledger: MatchLedger }> {
-  const ledger = buildMatchLedger(m);
+/** a stored text that may be shown: approved by an editor, and still passing the validator today */
+async function approvedText(key: string, ledger: MatchLedger): Promise<{ content: Content; origin: TextOrigin } | null> {
   const cached = await getDb()
-    .content.get(contentKey(m.matchId, teamId, "story", lang))
-    .catch(() => null);
-  if (cached) {
-    const content = cached.content as Content;
-    if (Array.isArray(content?.sentences) && content.sentences.length && verify(content, ledger.facts).blockedCount === 0) {
-      return { content, ledger };
-    }
-  }
-  return { content: templateContent("story", m, ledger, teamId, lang), ledger };
-}
-
-/** the ~60-second summary: a stored llm text if it still checks out, else the template (both languages) */
-export async function matchSummary(m: MatchFactsInput, teamId: string, lang: Language): Promise<{ content: Content; ledger: MatchLedger; source: "llm" | "template" }> {
-  const ledger = buildMatchLedger(m);
-  const cached = await getDb()
-    .content.get(contentKey(m.matchId, teamId, "summary", lang))
+    .content.get(key)
     .catch(() => null);
   const content = cached?.content as Content | undefined;
-  if (content && Array.isArray(content.sentences) && content.sentences.length && verify(content, ledger.facts).blockedCount === 0) {
-    return { content, ledger, source: "llm" };
-  }
-  return { content: summaryContent(m, ledger, teamId, lang), ledger, source: "template" };
+  const review = content?.review;
+  if (!cached || !content || review?.status !== "approved" || !Array.isArray(content.sentences) || !content.sentences.length) return null;
+  if (verify(content, ledger.facts).blockedCount > 0) return null;
+  const origin: TextOrigin = { source: cached.source === "llm" ? "ai" : "template", reviewed: review.by && review.at ? { by: review.by, at: review.at } : null, key };
+  return { content: { ...content, origin }, origin };
+}
+
+const templateOrigin = (key: string): TextOrigin => ({ source: "template", reviewed: null, key });
+
+/** the match story: an approved stored text, else the template */
+export async function matchStory(m: MatchFactsInput, teamId: string, lang: Language = "en"): Promise<{ content: Content; ledger: MatchLedger }> {
+  const ledger = buildMatchLedger(m);
+  const key = contentKey(m.matchId, teamId, "story", lang);
+  const approved = await approvedText(key, ledger);
+  if (approved) return { content: approved.content, ledger };
+  return { content: { ...templateContent("story", m, ledger, teamId, lang), origin: templateOrigin(key) }, ledger };
+}
+
+/** the ~60-second summary: an approved stored text, else the template (both languages) */
+export async function matchSummary(m: MatchFactsInput, teamId: string, lang: Language): Promise<{ content: Content; ledger: MatchLedger; source: "llm" | "template" }> {
+  const ledger = buildMatchLedger(m);
+  const key = contentKey(m.matchId, teamId, "summary", lang);
+  const approved = await approvedText(key, ledger);
+  if (approved) return { content: approved.content, ledger, source: approved.origin.source === "ai" ? "llm" : "template" };
+  return { content: { ...summaryContent(m, ledger, teamId, lang), origin: templateOrigin(key) }, ledger, source: "template" };
 }
 
 export const summaryText = (c: Content) => c.sentences.map((s) => s.text).join(" ");
@@ -53,7 +60,7 @@ export async function spokenSummary(m: MatchFactsInput, teamId: string, lang: La
     if (!ttsEnabled()) sayOnce("story: TTS API disabled — using stored audio");
     else void makeAudioLater(m.matchId, teamId, lang, text);
   }
-  return spokenFrom(lang, text, rec, m.matchId);
+  return { ...spokenFrom(lang, text, rec, m.matchId), origin: content.origin ?? null };
 }
 
 // a running server with TTS_ENABLED=true fills in missing audio once, in the background

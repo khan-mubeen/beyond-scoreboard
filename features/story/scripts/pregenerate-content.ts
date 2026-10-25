@@ -1,6 +1,7 @@
-// writes llm match texts into content_cache, ahead of time: the post-game story and the ~60-second
-// spoken summary, in english and/or finnish. only texts that pass every validator check are
-// stored; otherwise the page keeps its template (which reaches the same length from the facts).
+// writes match texts into content_cache, ahead of time: the post-game story and the ~60-second
+// spoken summary, in english and/or finnish. an llm text when LLM_ENABLED=true and it passes every
+// validator check; otherwise the template text (stored too, so an editor can review it). every
+// stored text starts pending: public pages show it only once an editor approves it in /editor.
 // run: npm run pregen -- --match 2027-2701404 [--match ...] [--lang en,fi]
 //      npm run pregen:demo   (the demo rotation's three matches, en and fi)
 // works with any openai-compatible endpoint (LLM_BASE_URL)
@@ -27,13 +28,11 @@ if (matches.length === 0 || langs.length === 0) {
 }
 
 const { llmEnabled } = await import("../llm/client");
-if (!llmEnabled()) {
-  console.log("LLM_ENABLED is not true (or LLM_BASE_URL is empty): nothing to generate, the site uses its templates (stories and summaries).");
-  process.exit(0);
-}
+const useLlm = llmEnabled();
+if (!useLlm) console.log("LLM_ENABLED is not true (or LLM_BASE_URL is empty): storing the template texts for review.");
 
 const { matchFactsFor } = await import("@/features/site/server");
-const { buildMatchLedger, contentKey } = await import("@/features/story/server");
+const { buildMatchLedger, contentKey, templateStory, templateSummary } = await import("@/features/story/server");
 const { writeWithLlm } = await import("../writer/llm-writer");
 const { verify } = await import("../validator/validator");
 const { FI_CASES, isTeamName } = await import("../i18n/fi-team-names");
@@ -64,7 +63,19 @@ const TASKS = {
     ].join("\n"),
 };
 
+/** no llm text: the template's, stored for review (the story template is english only) */
+async function writeTemplate(kind: keyof typeof TASKS, id: string, teamId: string, facts: Parameters<typeof buildMatchLedger>[0], lang: Lang) {
+  if (kind === "story" && lang !== "en") return;
+  const ledger = buildMatchLedger(facts);
+  const content = { ...(kind === "story" ? templateStory("story", facts, ledger, teamId, lang) : templateSummary(facts, ledger, teamId, lang)), review: { status: "pending" as const, by: null, at: null } };
+  const report = verify(content, ledger.facts);
+  if (report.blockedCount > 0) return console.log(`${id} ${kind} ${lang}: the template has ${report.blockedCount} blocked sentence(s); not stored`);
+  await getDb().content.put(contentKey(id, teamId, kind, lang), content, "template");
+  console.log(`${id} ${kind} ${lang}: stored the template text for review (${content.sentences.length} sentences, ${getDb().mode})`);
+}
+
 async function write(kind: keyof typeof TASKS, id: string, teamId: string, facts: Parameters<typeof buildMatchLedger>[0], lang: Lang) {
+  if (!useLlm) return writeTemplate(kind, id, teamId, facts, lang);
   const ledger = buildMatchLedger(facts);
   const t0 = Date.now();
   const sentences = await writeWithLlm({
@@ -76,9 +87,15 @@ async function write(kind: keyof typeof TASKS, id: string, teamId: string, facts
     language: lang,
   });
   const where = `${id} ${kind} ${lang}`;
-  if (!sentences) return console.log(`${where}: the llm text did not pass validation (or timed out after ${Date.now() - t0} ms); template stays`);
+  if (!sentences) {
+    console.log(`${where}: the llm text did not pass validation (or timed out after ${Date.now() - t0} ms); storing the template`);
+    return writeTemplate(kind, id, teamId, facts, lang);
+  }
   const chars = sentences.map((s) => s.text).join(" ").length;
-  if (kind === "summary" && (chars < 750 || chars > 1150)) return console.log(`${where}: ${chars} characters, outside 750-1150; template stays`);
+  if (kind === "summary" && (chars < 750 || chars > 1150)) {
+    console.log(`${where}: ${chars} characters, outside 750-1150; storing the template`);
+    return writeTemplate(kind, id, teamId, facts, lang);
+  }
   const content = {
     id: `${kind}.${teamId}.${id}.${lang}`,
     kind: "story" as const,
@@ -88,6 +105,8 @@ async function write(kind: keyof typeof TASKS, id: string, teamId: string, facts
     sentences,
     status: "verified" as const,
     generatedAt: new Date().toISOString(),
+    // never auto-approved: an editor reviews it in /editor
+    review: { status: "pending" as const, by: null, at: null },
   };
   const report = verify(content, ledger.facts);
   if (report.blockedCount > 0) return console.log(`${where}: ${report.blockedCount} sentence(s) blocked on recheck; not stored`);

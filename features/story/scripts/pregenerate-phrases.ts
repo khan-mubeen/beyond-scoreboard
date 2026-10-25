@@ -68,7 +68,8 @@ for (const kind of Object.keys(PHRASE_VARS) as CallKind[]) {
     }
     const known = new Set(await db.phrases.listApproved(kind, lang));
     const rows = phrases.filter((t) => !known.has(t)).map((t) => ({ callType: kind, lang, template: t, problem: phraseProblem(kind, t) }));
-    await db.phrases.insert(rows.map(({ callType, lang: l, template, problem }) => ({ callType, lang: l, template, approved: problem === null })));
+    // a wording is used only once an editor approves it in /editor (the rules only filter what's stored)
+    await db.phrases.insert(rows.filter((r) => r.problem === null).map(({ callType, lang: l, template }) => ({ callType, lang: l, template, approved: false })));
     const ok = rows.filter((r) => !r.problem).length;
     approvedTotal += ok;
     const rejected = rows.filter((r) => r.problem).map((r) => `${r.problem}: ${r.template}`);

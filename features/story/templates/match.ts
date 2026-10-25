@@ -3,6 +3,7 @@
 import type { Content, ContentSentence, Language } from "@/shared/types";
 import type { MatchFactsInput, MatchLedger } from "../ledger/match-ledger";
 import { fill } from "../writer/fill";
+import { repeatedFacts } from "../validator/checks/repeated-fact";
 
 const ph = (id: string | undefined) => (id ? `{${id}}` : "");
 const ord = (id: string | undefined) => (id ? `{${id}:ord}` : "");
@@ -58,6 +59,13 @@ export function whatItMeansLine(l: MatchLedger, goalIndex: number, final = false
     : `${who}${kind}goal at ${ph(g.time)} of period ${ph(g.period)} makes it ${ph(g.homeScore)}–${ph(g.awayScore)}: if it ends like this, ${ph(l.ids.team)}'s ${noun} is ${ph(l.ids.chanceAfter)}%.`;
 }
 
+/** the sentences with any that repeats an earlier claim left out (the validator's repeated_fact) */
+function withoutRepeats(sentences: ContentSentence[], l: MatchLedger): ContentSentence[] {
+  const out: ContentSentence[] = [];
+  for (const s of sentences) if (repeatedFacts([...out, s], l.facts).at(-1) === null) out.push(s);
+  return out;
+}
+
 export function filled(templates: string[], l: MatchLedger): ContentSentence[] {
   return templates.map((t) => fill(t, l.facts));
 }
@@ -75,7 +83,7 @@ export function templateContent(
     gameId: m.matchId,
     teamId,
     language,
-    sentences: filled(matchStorySentences(m, l), l),
+    sentences: withoutRepeats(filled(matchStorySentences(m, l), l), l),
     status: "fallback",
     generatedAt: new Date().toISOString(),
   };

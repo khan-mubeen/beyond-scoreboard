@@ -20,6 +20,10 @@ export {
   type MatchFactsInput,
   type MatchLedger,
 } from "./match-content";
+// the templates and the validator, for npm run pregen:demo and the editor (/editor re-checks edits)
+export { templateContent as templateStory } from "../templates/match";
+export { summaryContent as templateSummary } from "../templates/summary";
+export { verify } from "../validator/validator";
 // the spoken summaries' audio (prep-time scripts)
 export { AUDIO_BUCKET, generateAudio, saveAudio, storedAudio, transcriptHash, type AudioRecord } from "./audio";
 export { hasAzureKey, ttsEnabled, ttsFromEnv, voices } from "../tts";

@@ -1,12 +1,15 @@
 // pure: the ~60-second spoken match summary, in english and finnish, from ledger facts only.
 // five parts: what was at stake before the game, how it unfolded (every goal), the turning point,
 // what it meant (chance and position before -> after), and what's next. every value is a {F#}
-// placeholder, so the validator passes it by construction. optional lines keep it near 900-1,000
+// placeholder, so the validator passes it by construction, and no claim is said twice (the "what
+// it meant" line doesn't repeat the starting point, a turning point that is the whole change says
+// it once). optional lines keep it near 900-1,000
 // characters (about a minute of speech); a per-match choice of wordings keeps matches apart.
 // finnish uses the team case table ({F2:ade}) and keeps player names in the nominative
 import type { Content, Language } from "@/shared/types";
 import type { MatchFactsInput, MatchLedger } from "../ledger/match-ledger";
 import { fill } from "../writer/fill";
+import { repeatedFacts } from "../validator/checks/repeated-fact";
 
 export const SUMMARY_LENGTH = { min: 900, max: 1050 };
 
@@ -60,7 +63,7 @@ function linesEn(m: MatchFactsInput, l: MatchLedger): Line[] {
   const venue = ids.venue ? ` at ${ph(ids.venue)}` : "";
   out.push({ text: pick(m.matchId, [`${ph(ids.home)} hosted ${ph(ids.away)}${venue} on ${ph(ids.date)}.`, `${ph(ids.home)} met ${ph(ids.away)}${venue} on ${ph(ids.date)}.`]), keep: 1 });
   // 1. what was at stake
-  if (ids.positionBefore && ids.chanceBefore) out.push({ text: `${ph(ids.team)} came in ${ph(ids.positionBefore, "ord")} in the Liiga table with a ${ph(ids.chanceBefore)}% playoff chance.`, keep: 9 });
+  if (ids.positionBefore && ids.chanceBefore) out.push({ text: `${ph(ids.team)} came in ${ph(ids.positionBefore, "ord")} in the Liiga table with a ${ph(ids.chanceBefore)}% playoff chance.`, keep: 10 });
   if (ids.worthWin && ids.worthLoss) out.push({ text: `A regulation win was worth a ${ph(ids.worthWin)}% playoff chance, while a regulation loss would leave it at ${ph(ids.worthLoss)}%.`, keep: 6 });
   // 2. how it unfolded
   m.goals.forEach((goal, i) => {
@@ -90,17 +93,21 @@ function linesEn(m: MatchFactsInput, l: MatchLedger): Line[] {
     const g = l.goals[tp.goal];
     const who = g.scorer ? `${ph(g.scorer)}'s goal` : `the ${ph(g.team)} goal`;
     const when = isShootout(m, tp.goal) ? "in the shootout" : at(g, tp.goal);
-    out.push({ text: `The turning point was ${who} ${when}: it moved ${ph(ids.team)}'s playoff chance from ${ph(ids.turnBefore)}% to ${ph(ids.turnAfter)}%.`, keep: TURNING_POINT });
+    const whole = tp.before === m.chanceBefore && tp.after === m.chanceAfter;
+    out.push({
+      text: whole
+        ? `The turning point was ${who} ${when}: it decided where ${ph(ids.team)} stand in the playoff race.`
+        : `The turning point was ${who} ${when}: it moved ${ph(ids.team)}'s playoff chance from ${ph(ids.turnBefore)}% to ${ph(ids.turnAfter)}%.`,
+      keep: TURNING_POINT,
+    });
   }
   // 4. what it meant
   if (ids.positionBefore && ids.positionAfter && ids.chanceBefore && ids.chanceAfter) {
     out.push({
       text:
         m.positionBefore === m.positionAfter
-          ? `${ph(ids.team)} stays ${ph(ids.positionAfter, "ord")}, with a playoff chance of ${ph(ids.chanceAfter)}%, from ${ph(ids.chanceBefore)}% before the game.`
-          : m.chanceBefore === m.chanceAfter
-            ? `That moved ${ph(ids.team)} from ${ph(ids.positionBefore, "ord")} to ${ph(ids.positionAfter, "ord")}, and the playoff chance stayed at ${ph(ids.chanceAfter)}%.`
-            : `That moved ${ph(ids.team)} from ${ph(ids.positionBefore, "ord")} to ${ph(ids.positionAfter, "ord")}, and the playoff chance went from ${ph(ids.chanceBefore)}% to ${ph(ids.chanceAfter)}%.`,
+          ? `${ph(ids.team)} stays ${ph(ids.positionAfter, "ord")}, and the playoff chance is now ${ph(ids.chanceAfter)}%.`
+          : `That moved ${ph(ids.team)} ${(m.positionAfter ?? 0) < (m.positionBefore ?? 0) ? "up" : "down"} to ${ph(ids.positionAfter, "ord")}, and the playoff chance is now ${ph(ids.chanceAfter)}%.`,
       keep: 10,
     });
   }
@@ -150,7 +157,7 @@ function linesFi(m: MatchFactsInput, l: MatchLedger): Line[] {
   if (ids.venue) out.push({ text: `Pelipaikkana oli ${ph(ids.venue)}.`, keep: 1 });
   // 1. what was at stake
   if (ids.positionBefore && ids.chanceBefore)
-    out.push({ text: `Ennen ottelua ${ph(ids.team, "ade")} oli sarjataulukossa ${ph(ids.positionBefore, "ord")} sija, ja pudotuspelipaikan todennäköisyys oli ${ph(ids.chanceBefore)} %.`, keep: 9 });
+    out.push({ text: `Ennen ottelua ${ph(ids.team, "ade")} oli sarjataulukossa ${ph(ids.positionBefore, "ord")} sija, ja pudotuspelipaikan todennäköisyys oli ${ph(ids.chanceBefore)} %.`, keep: 10 });
   if (ids.worthWin && ids.worthLoss)
     out.push({ text: `Voitto varsinaisella peliajalla olisi nostanut todennäköisyyden ${ph(ids.worthWin)} prosenttiin, tappio laskenut sen ${ph(ids.worthLoss)} prosenttiin.`, keep: 6 });
   // 2. how it unfolded
@@ -180,15 +187,18 @@ function linesFi(m: MatchFactsInput, l: MatchLedger): Line[] {
     const g = l.goals[tp.goal];
     const who = g.scorer ? ph(g.scorer) : ph(g.team);
     const when = isShootout(m, tp.goal) ? "voittolaukauskilpailussa" : at(g, tp.goal);
+    const whole = tp.before === m.chanceBefore && tp.after === m.chanceAfter;
     out.push({
-      text: `Ottelun käännekohta nähtiin ${when}, kun ${who} teki maalin: ${ph(ids.team, "gen")} pudotuspelipaikan todennäköisyys muuttui ${ph(ids.turnBefore)} prosentista ${ph(ids.turnAfter)} prosenttiin.`,
+      text: whole
+        ? `Ottelun käännekohta nähtiin ${when}, kun ${who} teki maalin: se ratkaisi ${ph(ids.team, "gen")} aseman pudotuspelikilvassa.`
+        : `Ottelun käännekohta nähtiin ${when}, kun ${who} teki maalin: ${ph(ids.team, "gen")} pudotuspelipaikan todennäköisyys muuttui ${ph(ids.turnBefore)} prosentista ${ph(ids.turnAfter)} prosenttiin.`,
       keep: TURNING_POINT,
     });
   }
   // 4. what it meant
   if (ids.positionBefore && ids.positionAfter && ids.chanceBefore && ids.chanceAfter) {
     out.push({
-      text: `Tuloksen jälkeen ${ph(ids.team, "ade")} on sarjan ${ph(ids.positionAfter, "ord")} sija (ennen ${ph(ids.positionBefore, "ord")}), ja pudotuspelipaikan todennäköisyys on ${ph(ids.chanceAfter)} %, kun se ennen ottelua oli ${ph(ids.chanceBefore)} %.`,
+      text: `Tuloksen jälkeen ${ph(ids.team, "ade")} on sarjan ${ph(ids.positionAfter, "ord")} sija, ja pudotuspelipaikan todennäköisyys on nyt ${ph(ids.chanceAfter)} %.`,
       keep: 10,
     });
   }
@@ -214,7 +224,7 @@ const FILLERS_FI = (m: MatchFactsInput, l: MatchLedger) => {
 
 /** the summary's sentences, filled: near the target length, the lowest-priority lines dropped first */
 export function summarySentences(m: MatchFactsInput, l: MatchLedger, lang: Language) {
-  const lines = lang === "fi" ? linesFi(m, l) : linesEn(m, l);
+  const lines = withoutRepeats(lang === "fi" ? linesFi(m, l) : linesEn(m, l), l, lang);
   const len = (xs: Line[]) => xs.reduce((n, x) => n + fill(x.text, l.facts, lang).text.length + 1, 0);
   let chosen = [...lines];
   // too long: drop the least important lines, keeping the order
@@ -225,9 +235,22 @@ export function summarySentences(m: MatchFactsInput, l: MatchLedger, lang: Langu
   // too short: a line or two that only use facts we have
   for (const f of lang === "fi" ? FILLERS_FI(m, l) : FILLERS_EN(m, l)) {
     if (len(chosen) >= SUMMARY_LENGTH.min) break;
-    chosen.splice(Math.max(1, chosen.length - 2), 0, { text: f, keep: 0 });
+    const next = [...chosen];
+    next.splice(Math.max(1, chosen.length - 2), 0, { text: f, keep: 0 });
+    // a filler never repeats what a line says
+    if (withoutRepeats(next, l, lang).length === next.length) chosen = next;
   }
   return chosen.map((x) => fill(x.text, l.facts, lang));
+}
+
+/** the lines with every one that repeats an earlier claim (the validator's repeated_fact) left out */
+function withoutRepeats(lines: Line[], l: MatchLedger, lang: Language): Line[] {
+  const out: Line[] = [];
+  for (const x of lines) {
+    const filled = [...out, x].map((y) => fill(y.text, l.facts, lang));
+    if (repeatedFacts(filled, l.facts).at(-1) === null) out.push(x);
+  }
+  return out;
 }
 
 export function summaryContent(m: MatchFactsInput, l: MatchLedger, teamId: string, lang: Language): Content {
