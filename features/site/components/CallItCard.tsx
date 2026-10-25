@@ -68,7 +68,7 @@ function CallBody({ view, display = false, answered = null }: { view: CallItView
   const { phase, picked, secondsLeft, options: opts, split } = view;
   const open = phase === "open";
   return (
-    <div className={`flex flex-col gap-4 p-5 ${open ? "bg-gradient-to-b from-accent-soft to-surface" : "bg-gradient-to-b from-accent-soft/40 to-surface"}`}>
+    <div className={`flex flex-col gap-4 p-5 ${open ? "bg-gradient-to-b from-live-soft to-surface" : "bg-gradient-to-b from-surface-2 to-surface"}`}>
       <div className="flex items-start justify-between gap-3">
         <div>
           <p className={`font-bold ${display ? "text-3xl" : "text-lg"}`}>{view.question}</p>
@@ -210,9 +210,9 @@ export function CallItCard({
   const header = (
     <header className="flex items-center justify-between border-b border-line px-5 py-4">
       <h2 className={`flex items-center gap-1.5 font-semibold ${display ? "text-2xl" : "text-[17px]"}`}>
-        <Icon name="target" className="size-5 text-accent" />
+        <Icon name="target" className={`size-5 ${open ? "text-live" : "text-accent"}`} />
         {NAMES.call}
-        {open && <span className="ml-1 rounded-md bg-accent px-2 py-0.5 text-[11px] font-bold tracking-wider text-accent-ink">OPEN NOW</span>}
+        {open && <span className="ml-1 rounded-md bg-live px-2 py-0.5 text-[11px] font-bold tracking-wider text-live-ink">OPEN NOW</span>}
       </h2>
       <Pill tone="accent">+{view?.points ?? points} pts if right</Pill>
     </header>
@@ -236,7 +236,7 @@ export function CallItCard({
     >
       <button
         type="button"
-        className={`flex w-full items-center justify-between rounded-t-card px-4 py-3 text-sm font-semibold md:hidden ${open ? "bg-accent text-accent-ink" : "bg-dark text-dark-ink"}`}
+        className={`flex w-full items-center justify-between rounded-t-card px-4 py-3 text-sm font-semibold md:hidden ${open ? "bg-live text-live-ink" : "bg-dark text-dark-ink"}`}
         aria-expanded={sheetOpen}
         onClick={() => onSheetOpenChange?.(!sheetOpen)}
       >
@@ -254,7 +254,7 @@ export function CallItCard({
         </span>
         <Icon name="chevronDown" className={`size-4 transition-transform ${sheetOpen ? "" : "rotate-180"}`} />
       </button>
-      <div className={`max-md:max-h-[70vh] max-md:overflow-y-auto max-md:border-t max-md:border-line ${open ? "max-md:bg-accent-soft" : "max-md:bg-surface"} ${sheetOpen ? "" : "max-md:hidden"}`}>
+      <div className={`max-md:max-h-[70vh] max-md:overflow-y-auto max-md:border-t max-md:border-line ${open ? "max-md:bg-live-soft" : "max-md:bg-surface"} ${sheetOpen ? "" : "max-md:hidden"}`}>
         <div className="max-md:hidden">{header}</div>
         {body}
       </div>
@@ -268,10 +268,10 @@ export function CallBanner({ view, onGo }: { view: CallItView; onGo: () => void 
     <button
       type="button"
       onClick={onGo}
-      className="sticky top-16 z-30 flex w-full items-center justify-center gap-2 bg-accent px-4 py-2 text-sm font-semibold text-accent-ink"
+      className="sticky top-16 z-30 flex w-full items-center justify-center gap-2 bg-live px-4 py-2 text-sm font-semibold text-live-ink"
     >
       <Icon name="target" className="size-4" />
-      <span className="shrink-0 rounded bg-accent-ink/15 px-1.5 py-0.5 text-[11px] tracking-wider whitespace-nowrap">NEW QUESTION</span>
+      <span className="shrink-0 rounded bg-live-ink/15 px-1.5 py-0.5 text-[11px] tracking-wider whitespace-nowrap">NEW QUESTION</span>
       <span className="truncate">{view.question}</span>
       <span className="shrink-0 tabular-nums whitespace-nowrap">· {fmtClock(view.secondsLeft)}</span>
       <span className="hidden underline underline-offset-2 sm:inline">· Answer now</span>

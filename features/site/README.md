@@ -8,7 +8,7 @@ The Kaleva Sports pages from `docs/design/`: Sports home, the live and finished 
 - **Server:** `server/` builds each page from liiga, stakes, story and the db (`home.ts`, `match.ts`, `rewards.ts`, `state.ts`), and `live-render.ts` is the renderer the live engine uses, so a broadcast and a page load always agree. `routes/site.ts` validates with zod and refuses any response with a betting field.
 - **Theme:** site routes set `data-theme="site"` on `<html>` (see `app/main.tsx`). That theme redefines the shared tokens in `shared/styles/tokens.css` to white, black and Kaleva red (`#d80016`, sampled from the designs). Room and dev pages keep the dark theme. Components use token classes only, never raw colours.
 - **Layout:** full width, like YouTube. `SiteLayout` owns the sidebar. Home, rewards and the placeholder pages dock it at the far left on screens of 1024px and up, and the hamburger hides or shows it (the choice is remembered). Match pages, and every page below 1024px, open it as a drawer from the left over a 50% black layer. Esc, the layer or the menu button closes it.
-- **Fonts:** Playfair Display for editorial headlines, Inter for the UI (Google Fonts, linked in `index.html`).
+- **Fonts:** Playfair Display for editorial headlines, Inter for the UI; the kaleva.fi front page uses free stand-ins for its fonts: Source Serif 4, Barlow and Zilla Slab for the wordmark (Google Fonts, linked in `index.html`).
 - **Images:** placeholders in `public/placeholders/` (team circles, initials, rink gradients). Every path lives in the mock data, so real images are a data change.
 - **Reuse:** `zoneLabel` comes from `@/features/stakes`, and the match story is a story `Content`.
 
@@ -16,7 +16,8 @@ The Kaleva Sports pages from `docs/design/`: Sports home, the live and finished 
 
 | route                                                    | screen                                                                                 |
 | -------------------------------------------------------- | -------------------------------------------------------------------------------------- |
-| `/`                                                      | `SportsHome`                                                                           |
+| `/`                                                      | `KalevaHome`: the kaleva.fi front page rebuilt (`kaleva.ts`, `kaleva-front.json`, `components/kaleva/KalevaChrome.tsx`) |
+| `/sports`                                                | `SportsHome`                                                                           |
 | `/match/:id`                                             | `MatchPage`: `LiveMatch` or `FinishedMatch` by status, `Placeholder` for an unknown id |
 | `/rewards`                                               | `Rewards`                                                                              |
 | `/calls`, `/calls/history`, `/achievements`, `/settings`, `/teams`, `/profile` | the fan's pages (see the root README) |
@@ -38,7 +39,11 @@ Match ids are `{season}-{gameId}` (`2027-2701404`). The design's mock pages stay
 - **Debug:** `?debug=1` on a match page shows your user id, the party and cycle, the channel status, the last event, the watching count and its source, and whether the server is the engine leader.
 - **Discussion, likes, reminders:** stored in the db; new comments arrive over realtime.
 - **Host:** `?host=1` shows the replay controls; the server checks `HOST_TOKEN`.
-- **Subscribe and offer buttons:** toasts (no payments).
+- **Charts** (`components/charts.tsx`, our own svg like `StepChart`): `ArcGauge`, `MovingTable` (rows slide, zone lines stay), `MirroredBars`, `FormStrip`, `StackedBar`. Team colours come from `team-colors.ts`.
+- **Finished match** (`server/insights.ts`, `components/FinishedGraphics.tsx`): season impact (gauge, the table moving), next time (what it's worth, head-to-head, last 5, a player on a hot streak, reminder and follow), the game in one chart (tap a goal), shots and puck control per period, the player of the game.
+- **What if?** (`components/WhatIfPanel.tsx`): result cards, gauges, the table tonight, the other games as chips, and the fan's one match prediction (`server/prediction.ts`).
+- **Leaderboards:** every row is a bar that opens the fan's breakdown (`server/breakdown.ts`): by source, per match, right answers, the best call.
+- **Rewards:** plan cards with a live price preview (the checkout's rules), a prefilled checkout, fictional partner offers with a category filter. No payments.
 
 ## Test alone
 

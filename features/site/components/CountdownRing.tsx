@@ -13,13 +13,13 @@ export function CountdownRing({ seconds, total, size = 56 }: { seconds: number; 
       aria-label={seconds > 0 ? `${seconds} seconds left` : "Time is up"}
     >
       <svg viewBox="0 0 56 56" className="absolute inset-0 -rotate-90">
-        <circle cx="28" cy="28" r={r} fill="none" className="stroke-accent-soft" strokeWidth="4" />
+        <circle cx="28" cy="28" r={r} fill="none" className="stroke-live-soft" strokeWidth="4" />
         <circle
           cx="28"
           cy="28"
           r={r}
           fill="none"
-          className="stroke-accent transition-[stroke-dashoffset] duration-1000 ease-linear"
+          className="stroke-live transition-[stroke-dashoffset] duration-1000 ease-linear"
           strokeWidth="4"
           strokeLinecap="round"
           strokeDasharray={c}

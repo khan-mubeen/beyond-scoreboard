@@ -1,25 +1,26 @@
 import type { StakesChipData } from "@/shared/types";
-import { fmtChange } from "../format";
 import { TeamLogo } from "./TeamLogo";
 
-/** ▲ +12 / ▼ −9. arrow and sign carry the meaning, colour only helps */
-export function ChangeTag({
-  change,
-  unit = "",
-  className = "",
-}: {
-  change: number;
-  unit?: string;
-  className?: string;
-}) {
+/**
+ * a change in a chance, in percentage points: "▲12", "▼9", "±0" (with `label`: "▲6 playoff
+ * chance"). never "pts": that word is the fans' own points. the arrow carries the meaning, colour
+ * only helps; screen readers hear "up 12 percentage points"
+ */
+export function ChangeTag({ change, label, className = "" }: { change: number; label?: string; className?: string }) {
   const up = change > 0;
   const down = change < 0;
+  const n = Math.abs(change);
   return (
-    <span className={`font-semibold tabular-nums ${up ? "text-good" : down ? "text-bad" : "text-muted"} ${className}`}>
-      <span aria-hidden>{up ? "▲" : down ? "▼" : ""}</span>
-      <span className="sr-only">{up ? "up" : down ? "down" : "no change"}</span>
-      {fmtChange(change)}
-      {unit}
+    <span className={`font-semibold whitespace-nowrap tabular-nums ${up ? "text-good" : down ? "text-bad" : "text-muted"} ${className}`}>
+      <span aria-hidden>
+        {up ? "▲" : down ? "▼" : "±"}
+        {n}
+        {label && ` ${label}`}
+      </span>
+      <span className="sr-only">
+        {up || down ? `${up ? "up" : "down"} ${n} percentage ${n === 1 ? "point" : "points"}` : "no change"}
+        {label && ` ${label}`}
+      </span>
     </span>
   );
 }

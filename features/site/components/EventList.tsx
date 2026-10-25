@@ -1,18 +1,13 @@
 import type { MatchEvent } from "@/shared/types";
-import { fmtChange } from "../format";
+import { ChangeTag } from "./StakesChip";
 import { Icon } from "./Icon";
 import { ActionLink, SectionCard } from "./SectionCard";
 import { LiigaLink } from "./VideoPlayer";
 
-/** effect on the playoff chance: "+6 pts" / "−6 pts" */
+/** effect on the playoff chance: "▲6 playoff chance" */
 export function EffectTag({ effect }: { effect: number | null }) {
   if (effect === null || effect === 0) return null;
-  return (
-    <span className={`text-xs font-semibold whitespace-nowrap tabular-nums ${effect > 0 ? "text-good" : "text-bad"}`}>
-      {fmtChange(effect)} pts
-      <span className="sr-only"> playoff chance</span>
-    </span>
-  );
+  return <ChangeTag change={effect} label="playoff chance" className="text-xs" />;
 }
 
 export const WATCH_CLASS = "inline-flex items-center gap-1 rounded-md border border-accent/40 px-2.5 py-1.5 text-xs font-semibold text-accent hover:bg-accent-soft";

@@ -19,28 +19,123 @@
   ],
   "offers": [
     {
-      "id": "tickets",
-      "tag": "Hockey",
-      "title": "Kärpät home game ticket discount",
-      "description": "Partner reward concept",
-      "costPoints": 500,
-      "partnerUrl": "https://www.karpat.fi/"
-    },
-    {
-      "id": "fan-shop",
-      "tag": "Fan merchandise",
-      "title": "Kärpät fan shop −15%",
-      "description": "For eligible members",
-      "costPoints": null,
-      "partnerUrl": "https://kauppa.karpat.fi/"
+      "id": "kiekkokori",
+      "tag": "Food",
+      "category": "food",
+      "title": "Match-night snack box −30%",
+      "description": "Chips, dips and drinks for the game at any Kiekkokori Market.",
+      "costPoints": 300,
+      "partnerUrl": null,
+      "partner": {
+        "name": "Kiekkokori Market",
+        "monogram": "KK",
+        "bg": "#E8461E",
+        "fg": "#FFFFFF",
+        "accent": "#FFD3C2",
+        "pattern": "dots"
+      }
     },
     {
       "id": "local",
-      "tag": "Local businesses",
-      "title": "Local partner offer",
-      "description": "Explore neighbourhood benefits",
+      "tag": "Food",
+      "category": "food",
+      "title": "Free coffee on match days",
+      "description": "A coffee with any shop at Lehvälaakso Market, for members.",
       "costPoints": null,
-      "partnerUrl": null
+      "partnerUrl": null,
+      "partner": {
+        "name": "Lehvälaakso Market",
+        "monogram": "LM",
+        "bg": "#0E7A3B",
+        "fg": "#FFFFFF",
+        "accent": "#B7E4C7",
+        "pattern": null
+      }
+    },
+    {
+      "id": "sokerisilta",
+      "tag": "Food",
+      "category": "food",
+      "title": "A bag of match sweets on us",
+      "description": "Pick it up with your code at Sokerisilta Confectionery.",
+      "costPoints": 200,
+      "partnerUrl": null,
+      "partner": {
+        "name": "Sokerisilta Confectionery",
+        "monogram": "SS",
+        "bg": "#1D3E9E",
+        "fg": "#FFFFFF",
+        "accent": "#F2C14E",
+        "pattern": "dots"
+      }
+    },
+    {
+      "id": "fan-shop",
+      "tag": "Sports",
+      "category": "sports",
+      "title": "Hockey gear −15%",
+      "description": "Sticks, skates and fan jerseys at Kaukalokamari Sport, for members.",
+      "costPoints": null,
+      "partnerUrl": null,
+      "partner": {
+        "name": "Kaukalokamari Sport",
+        "monogram": "KS",
+        "bg": "#1F2933",
+        "fg": "#FFFFFF",
+        "accent": "#B6F23A",
+        "pattern": "stripes"
+      }
+    },
+    {
+      "id": "tickets",
+      "tag": "Travel",
+      "category": "travel",
+      "title": "Away-game weekend flight −15%",
+      "description": "Follow your team on the road with Tähtisiipi Air.",
+      "costPoints": 500,
+      "partnerUrl": null,
+      "partner": {
+        "name": "Tähtisiipi Air",
+        "monogram": "TA",
+        "bg": "#0A2E73",
+        "fg": "#FFFFFF",
+        "accent": "#FFFFFF",
+        "pattern": null
+      }
+    },
+    {
+      "id": "syvansini",
+      "tag": "Shopping",
+      "category": "shopping",
+      "title": "Big-screen TV −10% for match nights",
+      "description": "Home cinema and sound at Syvänsini Electronics.",
+      "costPoints": 400,
+      "partnerUrl": null,
+      "partner": {
+        "name": "Syvänsini Electronics",
+        "monogram": "SE",
+        "bg": "#002A5C",
+        "fg": "#FFFFFF",
+        "accent": "#3AA0E0",
+        "pattern": null
+      }
+    },
+    {
+      "id": "raitarumba",
+      "tag": "Shopping",
+      "category": "shopping",
+      "title": "Design fan scarf −25%",
+      "description": "A bold striped scarf for the stands from Raitarumba Design, for members.",
+      "costPoints": null,
+      "partnerUrl": null,
+      "partner": {
+        "name": "Raitarumba Design",
+        "monogram": "RR",
+        "bg": "#111111",
+        "fg": "#FFFFFF",
+        "accent": "#FF3B30",
+        "pattern": "stripes"
+      }
     }
   ],
   "achievements": [

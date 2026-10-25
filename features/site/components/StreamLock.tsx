@@ -40,7 +40,7 @@ export function StreamLock({ lock, onSubscribe, overlay, matchId }: { lock: NonN
                   1 free live match from {lock.guestPass.from}
                 </p>
                 <p className="text-xs opacity-85 sm:text-sm">Use it on this match: it's yours until the match ends.</p>
-                <button type="button" onClick={() => void watchFree()} disabled={busy} className="flex h-11 items-center gap-2 rounded-lg bg-accent px-6 font-semibold text-accent-ink hover:brightness-110 disabled:opacity-60">
+                <button type="button" onClick={() => void watchFree()} disabled={busy} className="flex h-11 items-center gap-2 rounded-lg bg-dark-ink text-ink hover:bg-white/85 px-6 font-semibold disabled:opacity-60">
                   <Icon name="play" className="size-4" /> {busy ? "Starting…" : "Watch free"}
                 </button>
               </>
@@ -50,7 +50,7 @@ export function StreamLock({ lock, onSubscribe, overlay, matchId }: { lock: NonN
                   {lock.passUsed ? `Your free match is used — get ${lock.planName}` : `Watch the game live with ${lock.planName}`}
                 </p>
                 <p className="text-xs opacity-85 sm:text-sm">{lock.priceLabel} · pay part of it with your points</p>
-                <button type="button" onClick={onSubscribe} className="flex h-11 items-center gap-2 rounded-lg bg-accent px-6 font-semibold text-accent-ink hover:brightness-110">
+                <button type="button" onClick={onSubscribe} className="flex h-11 items-center gap-2 rounded-lg bg-dark-ink text-ink hover:bg-white/85 px-6 font-semibold">
                   Subscribe
                 </button>
               </>

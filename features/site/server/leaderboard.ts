@@ -12,8 +12,8 @@ import { NAMES } from "@/shared/copy/names";
 const TOP = 20;
 
 const TITLES: Record<LeaderboardScope, { title: string; note: string }> = {
-  weekly: { title: "Weekly Leaderboard", note: `Points from ${NAMES.call} this week, Monday to Sunday (Finnish time).` },
-  season: { title: "Season Leaderboard", note: "Every point this season." },
+  weekly: { title: "Weekly Leaderboard", note: `Points earned with ${NAMES.call}, predictions and trivia this week, Monday to Sunday (Finnish time).` },
+  season: { title: "Season Leaderboard", note: "Every point earned this season. Welcome points and spending don't count." },
   room: { title: "Watch Party", note: "Everyone in the match's party now, by points this match (0 points too)." },
 };
 

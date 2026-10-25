@@ -58,7 +58,7 @@ function Ticker({ feed }: { feed: Comment[] }) {
     <div className="overflow-hidden rounded-card bg-dark px-5 py-3 text-xl text-dark-ink shadow-card" aria-live="polite" data-testid="tv-ticker">
       <AnimatePresence mode="wait" initial={false}>
         <motion.p key={last.id} className="truncate" initial={{ y: 24, opacity: 0 }} animate={{ y: 0, opacity: 1 }} exit={{ y: -24, opacity: 0 }} transition={{ duration: 0.3 }}>
-          <span className="mr-2 font-bold text-accent">{last.kind === "fact" ? "ASK" : last.kind === "system" ? "★" : "CHAT"}</span>
+          <span className="mr-2 font-bold text-live-bright">{last.kind === "fact" ? "ASK" : last.kind === "system" ? "★" : "CHAT"}</span>
           {text}
         </motion.p>
       </AnimatePresence>

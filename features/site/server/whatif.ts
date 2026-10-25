@@ -2,9 +2,9 @@
 // race changes. the other games are simulated as usual (same seeded seasons as the stakes card,
 // so a set "win" gives exactly the card's "win" number). only games not played as of the
 // league clock can be set
-import { forecastNow, forecastWhatIf, getSeasonContext, type SeasonContext, type TeamChances } from "@/features/stakes/server";
+import { compareRows, forecastNow, forecastWhatIf, getSeasonContext, tableWithOutcome, zoneForRank, type SeasonContext, type TableRow, type TeamChances } from "@/features/stakes/server";
 import { helsinkiDate } from "@/shared/clock";
-import type { GameOutcome, WhatIfChances, WhatIfOptions, WhatIfOverride, WhatIfResult } from "@/shared/types";
+import type { GameOutcome, WhatIfChances, WhatIfOptions, WhatIfOverride, WhatIfResult, WhatIfTableRow } from "@/shared/types";
 import { pct, shortDate, timeLabel } from "./labels";
 import { teamBook } from "./teams";
 
@@ -35,6 +35,25 @@ export async function whatIfOptions(ctx: SeasonContext, matchId: string): Promis
 
 const chances = (c: TeamChances | undefined): WhatIfChances => ({ playoffs: pct(c?.playoffs ?? 0), top4: pct(c?.top4 ?? 0), relegation: pct(c?.relegation ?? 0) });
 
+/**
+ * the table tonight if the set results happen (the games left unset add nothing): each team's
+ * place and points before and after, for the rows that slide into their new places
+ */
+function tableAfter(table: TableRow[], set: { homeTeamId: string; awayTeamId: string; outcome: GameOutcome }[], book: Awaited<ReturnType<typeof teamBook>>): WhatIfTableRow[] {
+  const before = [...table].sort(compareRows);
+  let rows: TableRow[] = before;
+  for (const g of set) rows = tableWithOutcome(rows, g, g.outcome);
+  const was = new Map(before.map((r, i) => [r.teamId, { rank: i + 1, points: r.points }]));
+  return rows.map((r, i) => ({
+    team: book.ref(r.teamId),
+    rank: i + 1,
+    rankBefore: was.get(r.teamId)?.rank ?? i + 1,
+    points: r.points,
+    pointsBefore: was.get(r.teamId)?.points ?? r.points,
+    zone: zoneForRank(i + 1),
+  }));
+}
+
 const cache = new Map<string, WhatIfResult>();
 
 export async function whatIf(matchId: string, overrides: WhatIfOverride[]): Promise<WhatIfResult> {
@@ -53,7 +72,8 @@ export async function whatIf(matchId: string, overrides: WhatIfOverride[]): Prom
   const hit = cache.get(canonical);
   if (hit) return hit;
 
-  const before = forecastNow(ctx, [matchId]).forecast.teams;
+  const now = forecastNow(ctx, [matchId]);
+  const before = now.forecast.teams;
   const after = forecastWhatIf(ctx, fixed).forecast.teams;
   const book = await teamBook();
   const teamIds = [...new Set([match.homeTeamId, match.awayTeamId, ...ids.flatMap((id) => [open.get(id)!.homeTeamId, open.get(id)!.awayTeamId])])];
@@ -61,6 +81,11 @@ export async function whatIf(matchId: string, overrides: WhatIfOverride[]): Prom
     matchId,
     overrides: [...overrides].sort((a, b) => a.gameId.localeCompare(b.gameId)),
     teams: teamIds.map((id) => ({ team: book.ref(id), before: chances(before[id]), after: chances(after[id]) })),
+    table: tableAfter(
+      now.world.table,
+      overrides.map((o) => ({ homeTeamId: open.get(o.gameId)!.homeTeamId, awayTeamId: open.get(o.gameId)!.awayTeamId, outcome: o.outcome })),
+      book,
+    ),
     asOf: ctx.asOf,
     source: ctx.source,
   };

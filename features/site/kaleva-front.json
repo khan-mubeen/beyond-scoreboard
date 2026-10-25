@@ -1,0 +1,493 @@
+{
+ "studied": "2026-10-25",
+ "rightNow": [
+  {
+   "label": "Kellot",
+   "title": "Suomi siirtyy taas talviaikaan",
+   "href": "https://www.kaleva.fi/suomi-siirtyy-taas-talviaikaan/13722915"
+  }
+ ],
+ "blocks": [
+  {
+   "kind": "lead",
+   "item": {
+    "title": "Oululainen Arto Karppinen ei piitannut liikunnasta mutta uudet älylaitteet mullistivat sen – Ne tekevät ihmisen puolesta melkein kaiken",
+    "href": "https://www.kaleva.fi/oululainen-arto-karppinen-ei-piitannut-liikunnasta/13719659",
+    "topic": "VOIMAHARJOITTELU",
+    "date": "24.10.",
+    "related": [
+     {
+      "title": "Egym on aidosti kestävää tekoälyä",
+      "href": "https://www.kaleva.fi/egym-on-aidosti-kestavaa-tekoalya/13718629"
+     }
+    ]
+   }
+  },
+  {
+   "kind": "pair",
+   "items": [
+    {
+     "title": "Isähahmo Rasmus Rissasen ulosajo lamaannutti Kärpät – oululaisten pitkä pisteputki päättyi",
+     "href": "https://www.kaleva.fi/isahahmo-rasmus-rissasen-ulosajo-lamaannutti-karpa/13723001",
+     "topic": "JÄÄKIEKKO",
+     "date": "24.10.",
+     "related": [
+      {
+       "title": "Kolme nostoa illan kärppäottelusta: Oululaisjoukkue jäi pitkästä aikaa pisteittä",
+       "href": "https://www.kaleva.fi/kolme-nostoa-illan-karppaottelusta-oululaisjoukkue/13723254"
+      }
+     ]
+    },
+    {
+     "title": "Kaleva Live: Theo Kolehmaisen tähdittämä Art Of Fight 15 iskettiin Oulun Kamppailuklubilla – katso massiivinen vapaaotteluilta tallenteena",
+     "href": "https://www.kaleva.fi/kaleva-live-theo-kolehmaisen-tahdittama-art-of-fig/13699089",
+     "topic": "KAMPPAILULAJIT",
+     "date": "21.10."
+    }
+   ]
+  },
+  {
+   "kind": "pair",
+   "items": [
+    {
+     "title": "16-vuotias debytanttivahti Tobias Backman lupasi tarjota maalintekijöille karkkia, kun AC Oulu otti elintärkeän voiton maalitalkoissa",
+     "href": "https://www.kaleva.fi/16-vuotias-debytanttivahti-tobias-backman-lupasi-t/13723322",
+     "topic": "JALKAPALLO",
+     "date": "24.10."
+    },
+    {
+     "title": "Kunta ei halunnut Paavo Väyrysen tilaa – nyt viiden miljoonan Pohjanrannalle etsitään ostajaa",
+     "href": "https://www.kaleva.fi/kunta-ei-halunnut-paavo-vayrysen-tilaa-nyt-viiden/13718806",
+     "topic": "KIINTEISTÖT",
+     "date": "24.10."
+    }
+   ]
+  },
+  {
+   "kind": "videos",
+   "title": "Kalevan lyhytvideot"
+  },
+  {
+   "kind": "pair",
+   "items": [
+    {
+     "title": "Oululaisperheet ovat löytäneet Kotilon – Tällainen on uusi lastenkulttuurikeskus",
+     "href": "https://www.kaleva.fi/oululaisperheet-ovat-loytaneet-kotilon-tallainen-o/13722949",
+     "topic": "LASTENKULTTUURI",
+     "date": "24.10."
+    },
+    {
+     "title": "OLS:n umpisolmu ei hellitä – tappioputki venähti jo viiteen otteluun",
+     "href": "https://www.kaleva.fi/olsn-umpisolmu-ei-hellita-tappioputki-venahti-jo-v/13723389",
+     "topic": "SALIBANDY",
+     "date": "24.10."
+    }
+   ]
+  },
+  {
+   "kind": "lift",
+   "band": "Luitko jo nämä",
+   "lead": {
+    "title": "Olimme mukana, kun viranomaiset ratsasivat ravintoloita Oulun yössä – \"Mua haukuttiin aluehallintoviraston mulkuksi\"",
+    "href": "https://www.kaleva.fi/olimme-mukana-kun-viranomaiset-ratsasivat-ravintol/13718833",
+    "topic": "RAVINTOLAT",
+    "date": "24.10."
+   },
+   "items": [
+    {
+     "title": "Esa Saajanto nappasi unelmiensa asunnon Toppilansalmen siilotalosta – Korkeat betoniseinät hän täyttää julkkisten muotokuvilla",
+     "href": "https://www.kaleva.fi/esa-saajanto-nappasi-unelmiensa-asunnon-toppilansa/13717482",
+     "topic": "ASUMINEN",
+     "date": "24.10."
+    },
+    {
+     "title": "Tekoälystrategi varoittaa: Kukaan ei voi tehdä tulevaisuudessa tietotyötä ilman tekoälyä",
+     "href": "https://www.kaleva.fi/tekoalystrategi-varoittaa-kukaan-ei-voi-tehda-tule/13709183",
+     "topic": "TEKOÄLY",
+     "date": "24.10."
+    },
+    {
+     "title": "Paavo Pesusienet häiriköivät keskustassa ja juoksivat poliisia karkuun – Poliisin tietojen mukaan tapaus liittyi Slikin keikkaan",
+     "href": "https://www.kaleva.fi/paavo-pesusienet-hairikoivat-keskustassa-ja-juoksi/13722723",
+     "topic": "POLIISI",
+     "date": "24.10."
+    }
+   ]
+  },
+  {
+   "kind": "pair",
+   "items": [
+    {
+     "title": "Rankat Ankat kaatoi hallitsevan mestarin huiman jännitysnäytelmän päätteeksi – \"Saimme todella hyvän fiiliksen tälle päivälle\"",
+     "href": "https://www.kaleva.fi/rankat-ankat-kaatoi-hallitsevan-mestarin-huiman-ja/13723178",
+     "topic": "SALIBANDY",
+     "date": "24.10."
+    }
+   ],
+   "tip": true
+  },
+  {
+   "kind": "podcasts",
+   "title": "Uusimmat podcastit",
+   "items": [
+    {
+     "show": "Lämärin jälkipelit",
+     "title": "KalPa horjutti Kärppiä toisessa erässä – oululaisten pitkä pisteputki poikki",
+     "href": "https://www.kaleva.fi/podcastit/lamarin-jalkipelit-55/kalpa-horjutti-karppia-toisessa-erassa-oululaisten/13723355",
+     "date": "24.10."
+    },
+    {
+     "show": "Kokonaista puhetta",
+     "title": "Vieläkö haluttaa? Keski-iässä seksuaalisuuden merkitys voimistuu",
+     "href": "https://www.kaleva.fi/podcastit/kokonaista-puhetta-23/vielako-haluttaa-keski-iassa-seksuaalisuuden-merki/13716802",
+     "date": "24.10."
+    },
+    {
+     "show": "Lämärin jälkipelit",
+     "title": "Kärpät vihdoin kolmen pisteen voittoon – kolme pelaajaa avasi kauden maalitilinsä",
+     "href": "https://www.kaleva.fi/podcastit/lamarin-jalkipelit-55/karpat-vihdoin-kolmen-pisteen-voittoon-kolme-pelaa/13722524",
+     "date": "23.10."
+    },
+    {
+     "show": "Kalevan uutispodcast",
+     "title": "Tyhjät rakennukset houkuttelevat seikkailijoita ja vandaaleja – Missä menee hyväksyttävän urbex-harrastuksen raja?",
+     "href": "https://www.kaleva.fi/podcastit/kalevan-uutispodcast-61/tyhjat-rakennukset-houkuttelevat-seikkailijoita-ja/13721490",
+     "date": "23.10."
+    },
+    {
+     "show": "Kalevan uutispodcast",
+     "title": "Miksi Googlen hakkuut Muhoksella saivat jatkua kuukausia? – Kuuntele uusi Kalevan uutispodcast",
+     "href": "https://www.kaleva.fi/podcastit/kalevan-uutispodcast-61/miksi-googlen-hakkuut-muhoksella-saivat-jatkua-kuu/13719073",
+     "date": "21.10."
+    },
+    {
+     "show": "MP tästä",
+     "title": "Voisiko osan eläkkeestä käyttää parikymppisenä?",
+     "href": "https://www.kaleva.fi/podcastit/mp-tasta-25/voisiko-osan-elakkeesta-kayttaa-parikymppisena/13715899",
+     "date": "21.10."
+    }
+   ]
+  },
+  {
+   "kind": "pair",
+   "items": [
+    {
+     "title": "Lintuturvallinen rakentaminen yleistyy Suomessa – Kempeleessä lintujen ikkunoihin törmäilyjä minimoidaan jo kaavoituksessa",
+     "href": "https://www.kaleva.fi/lintuturvallinen-rakentaminen-yleistyy-suomessa-ke/13718297",
+     "topic": "LINNUT",
+     "date": "24.10."
+    },
+    {
+     "title": "Israel aloitti operaatiot Länsirannalla – \"Voi parantaa Netanjahun asemaa\"",
+     "href": "https://www.kaleva.fi/israel-aloitti-operaatiot-lansirannalla-voi-parant/13723230",
+     "topic": "ISRAEL",
+     "date": "24.10."
+    }
+   ]
+  },
+  {
+   "kind": "pair",
+   "items": [
+    {
+     "title": "Umpityhmä vai sikahärski – kummin vain, niin Google teki Suomelle palveluksen",
+     "href": "https://www.kaleva.fi/umpityhma-vai-sikaharski-kummin-vain-niin-google-t/13721536",
+     "topic": "DATAKESKUKSET",
+     "date": "23.10.",
+     "byline": "Antti Kokkonen",
+     "opinion": "Kolumni"
+    },
+    {
+     "title": "Tietokirjailijapalkinnot, 8 000 euroa, Jenni Räinälle ja Markku Heikkilälle Ouluun – Perusteena laaja ja ansiokas tietoteostuotanto",
+     "href": "https://www.kaleva.fi/tietokirjailijapalkinnot-8-000-euroa-jenni-rainall/13719565",
+     "topic": "KIRJAT",
+     "date": "24.10."
+    }
+   ]
+  },
+  {
+   "kind": "lift",
+   "band": "Luetuimmat tähtijutut",
+   "lead": {
+    "title": "Ylikiimingin Seo sulkee ovensa – ”Olisi pitänyt luovuttaa jo aiemmin”",
+    "href": "https://www.kaleva.fi/ylikiimingin-seo-sulkee-ovensa-olisi-pitanyt-luovu/13722099",
+    "topic": "HUOLTOASEMAT",
+    "date": "23.10."
+   },
+   "items": [
+    {
+     "title": "Somen urbex-videoiden karu seuraus Oulussa: Esa Pullin taloon on murtauduttu jo 12 kertaa",
+     "href": "https://www.kaleva.fi/somen-urbex-videoiden-karu-seuraus-oulussa-esa-pul/13716072",
+     "topic": "RIKOS JA OIKEUS",
+     "date": "22.10."
+    },
+    {
+     "title": "Oulun HarrasteFutis lopettaa toimintansa – Taustalla kymmenien tuhansien eurojen kavallusepäily ja kadonnut seurajohtaja",
+     "href": "https://www.kaleva.fi/oulun-harrastefutis-lopettaa-toimintansa-taustalla/13717633",
+     "topic": "JALKAPALLO",
+     "date": "23.10."
+    },
+    {
+     "title": "Lähimyllyn hiutaleista tehty kaurapuuro maistuu erilaiselta – tyrnäväläinen mylläri epäilee tietävänsä, mistä se johtuu",
+     "href": "https://www.kaleva.fi/lahimyllyn-hiutaleista-tehty-kaurapuuro-maistuu-er/13715896",
+     "topic": "KAURA",
+     "date": "23.10."
+    }
+   ]
+  },
+  {
+   "kind": "pair",
+   "items": [
+    {
+     "title": "Kolme Limingan Niittomiesten juoksijaa viiden parhaan joukossa SM-maastoissa",
+     "href": "https://www.kaleva.fi/kolme-limingan-niittomiesten-juoksijaa-viiden-parh/13723156",
+     "topic": "YLEISURHEILU",
+     "date": "24.10."
+    },
+    {
+     "title": "Tunnistatko töpselitervehdyksen? Testaa tietosi Oulun pöpöhistoriasta",
+     "href": "https://www.kaleva.fi/tunnistatko-topselitervehdyksen-testaa-tietosi-oul/13720004",
+     "topic": "TIETOVISA",
+     "date": "24.10."
+    }
+   ]
+  },
+  {
+   "kind": "lift",
+   "band": "Kaleva Live",
+   "lead": {
+    "title": "Kaleva Live: Theo Kolehmaisen tähdittämä Art Of Fight 15 iskettiin Oulun Kamppailuklubilla – katso massiivinen vapaaotteluilta tallenteena",
+    "href": "https://www.kaleva.fi/kaleva-live-theo-kolehmaisen-tahdittama-art-of-fig/13699089",
+    "topic": "KAMPPAILULAJIT",
+    "date": "21.10."
+   },
+   "items": [
+    {
+     "title": "Kaleva Live: Syksyn ohjelmistossa verta, hikeä ja kyyneleitä – katso lista tulevista lähetyksistä sekä aiempien lähetysten tallenteet",
+     "href": "https://www.kaleva.fi/kaleva-live-syksyn-ohjelmistossa-verta-hikea-ja-ky/4042532",
+     "topic": "KALEVA LIVE",
+     "date": "26.6."
+    },
+    {
+     "title": "Kaleva Live: Pitääkö meidän etsiä onnellisuutta? PikiTalkissa keskusteltiin onnellisuudesta ja siitä, mistä se muodostuu",
+     "href": "https://www.kaleva.fi/kaleva-live-pitaako-meidan-etsia-onnellisuutta-pik/13721365",
+     "topic": "KALEVA LIVE",
+     "date": "23.10."
+    },
+    {
+     "title": "Kaleva Live: Padelin kansalliset kisat pelattiin Kempeleen Padelkeskuksessa – katso tallenne pääkentän finaalimatseista täältä",
+     "href": "https://www.kaleva.fi/kaleva-live-padelin-kansalliset-kisat-pelattiin-ke/13705300",
+     "topic": "PADEL",
+     "date": "15.10."
+    }
+   ]
+  },
+  {
+   "kind": "pair",
+   "items": [
+    {
+     "title": "Arvio: Kohujen ja listamenestyksen koulima Ahti näytti olevansa tavallinen ihminen epätavallisissa olosuhteissa – ja yleisö rakasti sitä",
+     "href": "https://www.kaleva.fi/arvio-kohujen-ja-listamenestyksen-koulima-ahti-nay/13722864",
+     "topic": "ARVIOT",
+     "date": "24.10."
+    },
+    {
+     "title": "Kaleva seuraa korkotasoa päivittyvässä artikkelissa: Katso täältä euribor-korkojen tuoreimmat lukemat",
+     "href": "https://www.kaleva.fi/kaleva-seuraa-korkotasoa-paivittyvassa-artikkeliss/5306550",
+     "topic": "KORKOSEURANTA",
+     "date": "7.2.2023"
+    }
+   ]
+  },
+  {
+   "kind": "games"
+  },
+  {
+   "kind": "pair",
+   "items": [
+    {
+     "title": "Lihavuuslääkkeet pakottavat kysymään, kuinka paljon syöminen on oma valinta",
+     "href": "https://www.kaleva.fi/lihavuuslaakkeet-pakottavat-kysymaan-kuinka-paljon/13707002",
+     "topic": "LIHAVUUS",
+     "date": "24.10.",
+     "byline": "Silja Aitoaho",
+     "opinion": "Essee"
+    },
+    {
+     "title": "Arvio: Taiteilijakirjaan tarttuminen on kuin avaisi laatikon, jonka sisältöä ei tiedä",
+     "href": "https://www.kaleva.fi/arvio-taiteilijakirjaan-tarttuminen-on-kuin-avaisi/13721896",
+     "topic": "KUVATAIDE",
+     "date": "24.10."
+    }
+   ]
+  },
+  {
+   "kind": "pair",
+   "items": [
+    {
+     "title": "Luksusliikkeitä ryöstetään Pariisin mellakoissa – Vapaaehtoisesti töihin jääneet vartijat turvasivat Diorin lippulaivamyymälää",
+     "href": "https://www.kaleva.fi/luksusliikkeita-ryostetaan-pariisin-mellakoissa-va/13717531",
+     "topic": "LUKSUS",
+     "date": "24.10."
+    },
+    {
+     "title": "Keski-ikä vapauttaa naisen nautintoa – Katso Kokonaista puhetta -podcast täältä",
+     "href": "https://www.kaleva.fi/keski-ika-vapauttaa-naisen-nautintoa-katso-kokonai/13715434",
+     "topic": "KOKONAISTA PUHETTA",
+     "date": "24.10."
+    }
+   ]
+  },
+  {
+   "kind": "pair",
+   "items": [
+    {
+     "title": "Yhdysvaltojen muodonmuutos on saanut tolkulliset maat etsimään tukea toisistaan",
+     "href": "https://www.kaleva.fi/yhdysvaltojen-muodonmuutos-on-saanut-tolkulliset-m/13710220",
+     "topic": "POLITIIKKA",
+     "date": "17.10.",
+     "byline": "Petteri Taalas",
+     "opinion": "Essee"
+    },
+    {
+     "title": "Lääninvankilaan tulossa teatteria ja suunnitteilla majoitustiloja – Uudet omistajat ostaneet myös Uroksen toimitiloja Kaarnatieltä",
+     "href": "https://www.kaleva.fi/laaninvankilaan-tulossa-teatteria-ja-suunnitteilla/13721421",
+     "topic": "OULUN LÄÄNINVANKILA",
+     "date": "23.10."
+    }
+   ]
+  },
+  {
+   "kind": "mostRead"
+  }
+ ],
+ "latest": [
+  {
+   "title": "OLS:n umpisolmu ei hellitä – tappioputki venähti jo viiteen otteluun",
+   "href": "https://www.kaleva.fi/olsn-umpisolmu-ei-hellita-tappioputki-venahti-jo-v/13723389",
+   "topic": "Salibandy",
+   "date": "24.10."
+  },
+  {
+   "title": "Isähahmo Rasmus Rissasen ulosajo lamaannutti Kärpät – oululaisten pitkä pisteputki päättyi",
+   "href": "https://www.kaleva.fi/isahahmo-rasmus-rissasen-ulosajo-lamaannutti-karpa/13723001",
+   "topic": "Jääkiekko",
+   "date": "24.10."
+  },
+  {
+   "title": "Suomi siirtyy taas talviaikaan",
+   "href": "https://www.kaleva.fi/suomi-siirtyy-taas-talviaikaan/13722915",
+   "topic": "Talviaika",
+   "date": "24.10."
+  },
+  {
+   "title": "KalPa horjutti Kärppiä toisessa erässä – oululaisten pitkä pisteputki poikki",
+   "href": "https://www.kaleva.fi/podcastit/lamarin-jalkipelit-55/kalpa-horjutti-karppia-toisessa-erassa-oululaisten/13723355",
+   "topic": "Lämärin jälkipelit",
+   "date": "24.10."
+  },
+  {
+   "title": "16-vuotias debytanttivahti Tobias Backman lupasi tarjota maalintekijöille karkkia, kun AC Oulu otti elintärkeän voiton maalitalkoissa",
+   "href": "https://www.kaleva.fi/16-vuotias-debytanttivahti-tobias-backman-lupasi-t/13723322",
+   "topic": "Jalkapallo",
+   "date": "24.10."
+  },
+  {
+   "title": "Israel aloitti operaatiot Länsirannalla – \"Voi parantaa Netanjahun asemaa\"",
+   "href": "https://www.kaleva.fi/israel-aloitti-operaatiot-lansirannalla-voi-parant/13723230",
+   "topic": "Israel",
+   "date": "24.10."
+  },
+  {
+   "title": "Kolme nostoa illan kärppäottelusta: Oululaisjoukkue jäi pitkästä aikaa pisteittä",
+   "href": "https://www.kaleva.fi/kolme-nostoa-illan-karppaottelusta-oululaisjoukkue/13723254",
+   "topic": "Jääkiekko",
+   "date": "24.10."
+  },
+  {
+   "title": "Rankat Ankat kaatoi hallitsevan mestarin huiman jännitysnäytelmän päätteeksi – \"Saimme todella hyvän fiiliksen tälle päivälle\"",
+   "href": "https://www.kaleva.fi/rankat-ankat-kaatoi-hallitsevan-mestarin-huiman-ja/13723178",
+   "topic": "Salibandy",
+   "date": "24.10."
+  },
+  {
+   "title": "Kolme Limingan Niittomiesten juoksijaa viiden parhaan joukossa SM-maastoissa",
+   "href": "https://www.kaleva.fi/kolme-limingan-niittomiesten-juoksijaa-viiden-parh/13723156",
+   "topic": "Yleisurheilu",
+   "date": "24.10."
+  },
+  {
+   "title": "Egym on aidosti kestävää tekoälyä",
+   "href": "https://www.kaleva.fi/egym-on-aidosti-kestavaa-tekoalya/13718629",
+   "topic": "Kuntosalit",
+   "date": "24.10."
+  }
+ ],
+ "mostRead": [
+  {
+   "title": "Kunta ei halunnut Paavo Väyrysen tilaa – nyt viiden miljoonan Pohjanrannalle etsitään ostajaa",
+   "href": "https://www.kaleva.fi/kunta-ei-halunnut-paavo-vayrysen-tilaa-nyt-viiden/13718806"
+  },
+  {
+   "title": "Kaleva Live: Theo Kolehmaisen tähdittämä Art Of Fight 15 iskettiin Oulun Kamppailuklubilla – katso massiivinen vapaaotteluilta tallenteena",
+   "href": "https://www.kaleva.fi/kaleva-live-theo-kolehmaisen-tahdittama-art-of-fig/13699089"
+  },
+  {
+   "title": "16-vuotias debytanttivahti Tobias Backman lupasi tarjota maalintekijöille karkkia, kun AC Oulu otti elintärkeän voiton maalitalkoissa",
+   "href": "https://www.kaleva.fi/16-vuotias-debytanttivahti-tobias-backman-lupasi-t/13723322"
+  },
+  {
+   "title": "Oululainen Arto Karppinen ei piitannut liikunnasta mutta uudet älylaitteet mullistivat sen – Ne tekevät ihmisen puolesta melkein kaiken",
+   "href": "https://www.kaleva.fi/oululainen-arto-karppinen-ei-piitannut-liikunnasta/13719659"
+  },
+  {
+   "title": "Olimme mukana, kun viranomaiset ratsasivat ravintoloita Oulun yössä – \"Mua haukuttiin aluehallintoviraston mulkuksi\"",
+   "href": "https://www.kaleva.fi/olimme-mukana-kun-viranomaiset-ratsasivat-ravintol/13718833"
+  },
+  {
+   "title": "Isähahmo Rasmus Rissasen ulosajo lamaannutti Kärpät – oululaisten pitkä pisteputki päättyi",
+   "href": "https://www.kaleva.fi/isahahmo-rasmus-rissasen-ulosajo-lamaannutti-karpa/13723001"
+  },
+  {
+   "title": "Kolme nostoa illan kärppäottelusta: Oululaisjoukkue jäi pitkästä aikaa pisteittä",
+   "href": "https://www.kaleva.fi/kolme-nostoa-illan-karppaottelusta-oululaisjoukkue/13723254"
+  },
+  {
+   "title": "Suomi siirtyy taas talviaikaan",
+   "href": "https://www.kaleva.fi/suomi-siirtyy-taas-talviaikaan/13722915"
+  },
+  {
+   "title": "Rankat Ankat kaatoi hallitsevan mestarin huiman jännitysnäytelmän päätteeksi – \"Saimme todella hyvän fiiliksen tälle päivälle\"",
+   "href": "https://www.kaleva.fi/rankat-ankat-kaatoi-hallitsevan-mestarin-huiman-ja/13723178"
+  },
+  {
+   "title": "Oululaisperheet ovat löytäneet Kotilon – Tällainen on uusi lastenkulttuurikeskus",
+   "href": "https://www.kaleva.fi/oululaisperheet-ovat-loytaneet-kotilon-tallainen-o/13722949"
+  }
+ ],
+ "games": [
+  {
+   "title": "Salasana",
+   "href": "https://www.kaleva.fi/pelit/salasana/13283171"
+  },
+  {
+   "title": "Mahjong",
+   "href": "https://www.kaleva.fi/pelit/mahjong/13283455"
+  },
+  {
+   "title": "Sanahaku",
+   "href": "https://www.kaleva.fi/pelit/sanahaku/13283491"
+  },
+  {
+   "title": "Sudoku",
+   "href": "https://www.kaleva.fi/pelit/sudoku/13283485"
+  },
+  {
+   "title": "Matopeli",
+   "href": "https://www.kaleva.fi/pelit/matopeli/13283464"
+  },
+  {
+   "title": "Pasianssi",
+   "href": "https://www.kaleva.fi/pelit/pasianssi/13283439"
+  }
+ ]
+}

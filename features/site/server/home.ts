@@ -6,13 +6,13 @@ import { activeReplays, engineMatch, rotationConfig, rotationNow, type RotationN
 import { compareRows, forecastNow, getSeasonContext, zoneForRank, type SeasonContext, type TableRow } from "@/features/stakes/server";
 import { demoMode } from "@/shared/clock";
 import { whatItMeansText } from "@/features/story/server";
-import type { ApiMeta, DataSource, FeaturedMatch, HomePage, LiigaTableData, StakesStripItem } from "@/shared/types";
+import type { ApiMeta, DataSource, FeaturedMatch, HomePage, LiigaTableData, MatchSummary, StakesStripItem } from "@/shared/types";
 import { SITE } from "./config";
 import { favoriteTeamIds } from "./favorites";
 import { teamsWorld } from "./teams-data";
-import { gameStakes, type GameStakes } from "./game-stakes";
+import { chanceNow, gameStakes, type GameStakes } from "./game-stakes";
 import type { Viewer } from "./identity";
-import { longDate, ordinal, pct } from "./labels";
+import { longDate, ordinal, pct, shortDate } from "./labels";
 import { chips, factsFor } from "./match";
 import { summaryOf } from "./match-parts";
 import { weeklyLeaderboard } from "./points";
@@ -45,6 +45,26 @@ function resultNote(f: LiigaFixture, book: TeamBook): string {
   const extra = f.decidedIn === "overtime" ? " in overtime" : f.decidedIn === "shootout" ? " in a shootout" : "";
   const [w, l] = homeWon ? [f.homeGoals, f.awayGoals] : [f.awayGoals, f.homeGoals];
   return `${winner} won ${w}–${l}${extra}.`;
+}
+
+/**
+ * a result card's graphic and teaser: both teams' playoff chance after the game and how far it
+ * moved (the game judged as the season stood before it), and the winner's next game
+ */
+function resultCard(ctx: SeasonContext, f: LiigaFixture, book: TeamBook, nowIso: string): Pick<MatchSummary, "swing" | "teaser"> {
+  const s = gameStakes(ctx, f);
+  const g = gameOfFixture(f);
+  const side = (x: "home" | "away") => {
+    const now = pct(chanceNow(s!, x, g).playoffs);
+    return { now, change: now - pct(s!.baseline[x].playoffs) };
+  };
+  const winner = (f.homeGoals ?? 0) > (f.awayGoals ?? 0) ? f.homeTeamId : f.awayTeamId;
+  const next = ctx.schedule.find((x) => x.status === "scheduled" && x.start > f.start && x.start > nowIso && (x.homeTeamId === winner || x.awayTeamId === winner));
+  const opp = next && (next.homeTeamId === winner ? book.ref(next.awayTeamId, next.awayName) : book.ref(next.homeTeamId, next.homeName));
+  return {
+    swing: s ? { home: side("home"), away: side("away") } : null,
+    teaser: next && opp ? { text: `Next for ${book.ref(winner).name}: ${next.homeTeamId === winner ? "vs" : "at"} ${opp.name} · ${shortDate(new Date(next.start))}`, href: `/match/${next.id}` } : null,
+  };
 }
 
 /** how far a game swings both teams' seasons: playoff and relegation chance, win vs loss */
@@ -189,7 +209,7 @@ export async function homePage(viewer: Viewer, opts: { team?: string; date?: str
     return item ? [{ team: item.team, slug: item.slug, next: item.next }] : [];
   });
 
-  const recent = ctx.schedule.filter((f) => f.status === "final" && !rotationIds.has(f.id)).slice(-3).reverse();
+  const recent = ctx.schedule.filter((f) => f.status === "final" && !rotationIds.has(f.id)).slice(-6).reverse();
   const sources: DataSource[] = [ctx.source, standings.source, today?.source ?? "live"];
   const favLive = games.some((g) => g.status === "live" && isFav(g));
   return {
@@ -199,7 +219,7 @@ export async function homePage(viewer: Viewer, opts: { team?: string; date?: str
     seasonStakesToday,
     live: games.filter((g) => g.status === "live").map((g) => summaryOf(g, book, now)),
     upcoming: [...rotationUpcoming, ...upcoming.map((f) => summaryOf(gameOfFixture(f), book, now, favWorth(f)))],
-    recent: recent.map((f) => summaryOf(gameOfFixture(f), book, now, resultNote(f, book))),
+    recent: recent.map((f) => ({ ...summaryOf(gameOfFixture(f), book, now, resultNote(f, book)), ...resultCard(ctx, f, book, nowIso) })),
     comingSoon: [...SITE.comingSoon],
     leaderboard: { ...SITE.leaderboard, entries: await leaderboardP },
     // demo mode never shows the api's table: it already counts games after the demo date

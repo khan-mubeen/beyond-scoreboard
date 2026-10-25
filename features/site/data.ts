@@ -15,6 +15,8 @@ import type {
   LeaderboardPageData,
   LeaderboardScope,
   MatchDetail,
+  MatchPrediction,
+  PointsBreakdown,
   MeResponse,
   MyCallsData,
   NotificationsResponse,
@@ -335,6 +337,27 @@ export const postCommentApi = (matchId: string, text: string) => postJson<{ comm
 export const setReminderApi = (matchId: string, on: boolean) => postJson(`/api/site/reminders`, { matchId, on });
 
 export const answerCallApi = (callId: string, optionId: string) => postJson(`/api/site/calls/${callId}/answer`, { optionId });
+
+// ---------- the match prediction (what if? and the lobby card answer the same record) ----------
+
+export const predictionUrl = (matchId: string) => `/api/site/matches/${encodeURIComponent(matchId)}/prediction`;
+export const usePrediction = (matchId: string | null) => useQuery<MatchPrediction>(matchId && !USE_MOCKS && !isMockMatch(matchId) ? predictionUrl(matchId) : null, { refreshMs: 20_000 });
+/** the lobby card hears about a prediction made in what if? (and the other way round) */
+export const PREDICTION_EVENT = "ks:prediction";
+
+export async function predictApi(matchId: string, optionId: string) {
+  const r = await postJson<MatchPrediction>(predictionUrl(matchId), { optionId });
+  if (r.ok) {
+    setData<MatchPrediction>(predictionUrl(matchId), () => r.data);
+    if (typeof window !== "undefined" && r.data.callId) window.dispatchEvent(new CustomEvent(PREDICTION_EVENT, { detail: { callId: r.data.callId, optionId } }));
+    refreshMeSoon();
+  } else invalidate(predictionUrl(matchId));
+  return r;
+}
+
+/** one fan's points on a board, by source and match (the leaderboard's expanded row) */
+export const useBreakdown = (scope: LeaderboardScope, userId: string | null) =>
+  useQuery<PointsBreakdown>(userId && !USE_MOCKS ? `/api/site/leaderboard/breakdown?scope=${scope}&user=${encodeURIComponent(userId)}` : null);
 
 export async function markNotificationsRead(id?: string) {
   setData<NotificationsResponse>(NOTIFICATIONS_URL, (old) =>

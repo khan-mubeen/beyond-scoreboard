@@ -20,7 +20,7 @@ export function JoinAt({
   const text = { md: "text-xl", lg: "text-3xl", xl: "text-5xl" }[size];
   return (
     <div className={`rounded-card bg-dark px-5 py-4 text-dark-ink shadow-card ${className}`} data-testid="join-at">
-      <p className="text-sm font-bold tracking-wider text-accent uppercase">Play along on your phone</p>
+      <p className="text-sm font-bold tracking-wider text-live-bright uppercase">Play along on your phone</p>
       <p className={`mt-1 font-bold break-all ${text}`}>
         Join at <span className="font-mono">{joinUrl(me)}</span>
       </p>

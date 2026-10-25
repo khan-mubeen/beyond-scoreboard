@@ -1,39 +1,18 @@
 import { useState } from "react";
-import type { LeaderboardScope, SiteLeaderboardEntry } from "@/shared/types";
+import type { LeaderboardScope } from "@/shared/types";
 import { fmtInt } from "../format";
 import { Breadcrumbs, SiteLayout } from "../components/SiteLayout";
 import { DataUnavailable, ListSkeleton } from "../components/Skeleton";
 import { type TabItem, Tabs } from "../components/Tabs";
-import { Avatar } from "../components/TeamLogo";
+import { BoardRow } from "../components/Leaderboard";
 import { useLeaderboard } from "../data";
 import { NAMES } from "@/shared/copy/names";
 
 const TABS: TabItem<LeaderboardScope>[] = [
   { id: "weekly", label: "Weekly" },
   { id: "season", label: "Season" },
-  { id: "room", label: "Watch Together" },
+  { id: "room", label: "Watch Party" },
 ];
-
-const MEDAL = ["bg-highlight text-gold", "bg-surface-2 text-ink", "bg-accent-soft text-accent"];
-
-function Row({ e, pinned = false }: { e: SiteLeaderboardEntry; pinned?: boolean }) {
-  return (
-    <li
-      className={`flex items-center gap-3 px-4 py-2.5 ${e.isYou ? "bg-accent-soft font-semibold text-accent" : ""} ${
-        pinned ? "sticky bottom-0 border-t-2 border-accent shadow-card" : ""
-      }`}
-      aria-current={e.isYou ? "true" : undefined}
-    >
-      <span className={`grid size-8 shrink-0 place-items-center rounded-full text-sm tabular-nums ${MEDAL[e.rank - 1] ?? "text-muted"}`}>{e.rank}</span>
-      <Avatar src={e.avatar} name="" size={34} />
-      <span className="min-w-0 flex-1 truncate">
-        {e.nickname}
-        {e.isYou && <span className="ml-2 text-xs font-bold">YOU</span>}
-      </span>
-      <span className="font-semibold tabular-nums">{fmtInt(e.score)} pts</span>
-    </li>
-  );
-}
 
 const initialScope = (): LeaderboardScope => {
   const s = typeof window === "undefined" ? null : new URLSearchParams(window.location.search).get("scope");
@@ -62,7 +41,7 @@ export function LeaderboardPage() {
             ) : (
               <section className="overflow-hidden rounded-card border border-line bg-surface shadow-card">
                 <p className="border-b border-line px-4 py-3 text-sm text-muted">
-                  {data.note} {data.total > 0 && `${fmtInt(data.total)} fans.`}
+                  {data.note} {data.total > 0 && `${fmtInt(data.total)} ${data.total === 1 ? "fan" : "fans"}.`} Tap a fan to see where their points came from.
                 </p>
                 {data.entries.length === 0 ? (
                   <p className="px-4 py-8 text-center text-muted">
@@ -71,9 +50,9 @@ export function LeaderboardPage() {
                 ) : (
                   <ol className="relative max-h-[70vh] divide-y divide-line overflow-y-auto">
                     {data.entries.map((e) => (
-                      <Row key={e.playerId} e={e} />
+                      <BoardRow key={e.playerId} e={e} max={data.entries[0]?.score ?? 1} scope={scope} />
                     ))}
-                    {data.you && <Row e={data.you} pinned />}
+                    {data.you && <BoardRow e={data.you} max={data.entries[0]?.score ?? 1} scope={scope} pinned />}
                   </ol>
                 )}
               </section>

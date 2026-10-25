@@ -22,9 +22,12 @@ describe("site copy guardrails", () => {
     expect(flagged).toEqual([]);
   });
 
-  it("states chances as percentages (or a change in percentage points, '+6 pts')", () => {
+  it("states chances as percentages, or a change as an arrow ('▲6 playoff chance'), never in 'pts' (the fans' points)", () => {
     const chances = all.filter(([, t]) => /chance/i.test(t) && /\d/.test(t));
     expect(chances.length).toBeGreaterThan(0);
-    for (const [path, text] of chances) expect(text, path).toMatch(/\d+%|[+−-]\d+ pts/);
+    for (const [path, text] of chances) {
+      expect(text, path).toMatch(/\d+%|[▲▼]\d+/);
+      expect(text, path).not.toMatch(/\d+ pts\b.*chance|chance.*[+−-]\d+ pts\b/i);
+    }
   });
 });

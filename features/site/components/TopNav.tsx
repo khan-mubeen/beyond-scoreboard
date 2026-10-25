@@ -1,8 +1,7 @@
-import type { MeResponse, NavLink } from "@/shared/types";
+import type { MeResponse } from "@/shared/types";
 import { SEARCH_PLACEHOLDER } from "../chrome";
 import type { Resource } from "../data";
 import { Icon } from "./Icon";
-import { SocialLinks } from "./media/MediaChrome";
 import { NotificationsBell } from "./NotificationsBell";
 import { Bone } from "./Skeleton";
 import { Avatar } from "./TeamLogo";
@@ -40,9 +39,9 @@ export function SportsWordmark({ variant = "a", className = "text-[30px] md:text
   return (
     <span className={`inline-flex items-baseline leading-none whitespace-nowrap text-ink ${className}`}>
       {kaleva}
-      {variant === "a" && <span className="ml-[0.16em] font-serif text-[0.62em] font-bold text-accent italic">Sports</span>}
+      {variant === "a" && <span className="ml-[0.16em] font-serif text-[0.62em] font-bold text-live italic">Sports</span>}
       {variant === "b" && (
-        <span className="ml-[0.22em] -translate-y-[0.32em] self-center rounded-[3px] bg-accent px-[0.28em] py-[0.12em] font-sans text-[0.3em] font-bold tracking-[0.12em] text-accent-ink">SPORTS</span>
+        <span className="ml-[0.22em] -translate-y-[0.32em] self-center rounded-[3px] bg-live px-[0.28em] py-[0.12em] font-sans text-[0.3em] font-bold tracking-[0.12em] text-live-ink">SPORTS</span>
       )}
       {variant === "c" && (
         <>
@@ -62,25 +61,8 @@ export function Wordmark() {
   );
 }
 
-/** above the sports header, like kalevamedia.fi's top bar: the way back to kaleva media */
-export function MediaBar() {
-  return (
-    <div className="h-[30px] bg-km-sand font-km">
-      <div className="flex h-full items-center justify-between px-4 md:px-6">
-        <a href="/" className="flex items-center gap-1 text-[12px] font-semibold text-black hover:underline">
-          <Icon name="chevronRight" className="size-3 rotate-180" />
-          Kaleva Media
-        </a>
-        <div className="hidden md:block">
-          <SocialLinks size={16} />
-        </div>
-      </div>
-    </div>
-  );
-}
-
-/** the kaleva sports header: menu, wordmark, the sports sections, the demo clock, search, bell, avatar */
-export function TopNav({ me, menu, nav }: { me: Resource<MeResponse>; menu: MenuButtonProps; nav: NavLink[] }) {
+/** the kaleva sports header: menu, wordmark, the demo clock, search, bell, avatar (the sidebar's quick links are the navigation) */
+export function TopNav({ me, menu }: { me: Resource<MeResponse>; menu: MenuButtonProps }) {
   const user = me.data?.user;
   return (
     <header className="sticky top-0 z-40 border-b border-line bg-surface">
@@ -88,18 +70,6 @@ export function TopNav({ me, menu, nav }: { me: Resource<MeResponse>; menu: Menu
         <MenuButton {...menu} />
         <Wordmark />
 
-        <nav aria-label="Sports sections" className="ml-4 hidden h-full items-stretch gap-6 font-km xl:flex">
-          {nav.map((l) => (
-            <a
-              key={l.label}
-              href={l.href}
-              aria-current={l.active ? "page" : undefined}
-              className={`flex items-center border-b-2 text-[14px] font-semibold whitespace-nowrap ${l.active ? "border-accent text-accent" : "border-transparent text-ink hover:text-accent"}`}
-            >
-              {l.label}
-            </a>
-          ))}
-        </nav>
 
         <div className="ml-auto flex items-center gap-3">
           {me.data?.demo && (

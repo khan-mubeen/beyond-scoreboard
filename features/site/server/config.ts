@@ -8,17 +8,20 @@ export const SITE = {
   /** the team slug the demo profile follows ("kärpät" in "495643563:kärpät") */
   favoriteSlug: process.env.FAVORITE_TEAM ?? "kärpät",
   hero: {
-    kicker: "KALEVA",
-    titleLead: "Sports",
-    titleAccent: "Experience",
-    subtitle: "Follow the games. Understand what they mean.",
-    body: "Live scores, expert analysis and season context — all in one place, only at Kaleva.",
+    // the wordmark above already says Kaleva Sports: the hero is the tagline
+    kicker: "",
+    titleLead: "Every game,",
+    titleAccent: "what it means",
+    subtitle: "Live scores, season stakes and your calls, in one place.",
+    // one line under the title (the body repeated the subtitle)
+    body: "",
     tagline: "Sports lives here in the North.",
     image: "/placeholders/hero.svg",
   } satisfies HeroData,
   // liiga only: no other-sport "coming soon" cards
   comingSoon: [] as ComingSoonCard[],
-  leaderboard: { title: "Weekly Leaderboard", sponsor: "Oulun Energia", href: "/leaderboard" },
+  // the sponsor is one of the fictional partners (rewards.config.json), never a real company
+  leaderboard: { title: "Weekly Leaderboard", sponsor: "Kaukalokamari Sport", href: "/leaderboard" },
   /** points needed for each level, level 1 starts at 0 */
   levels: [0, 50, 150, 300, 500, 750, 1000, 1500, 2000, 2750, 3500, 4500],
   callPoints: 20,

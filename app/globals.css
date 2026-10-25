@@ -16,16 +16,25 @@ html {
   outline: 2px solid var(--pp-accent);
   outline-offset: 2px;
 }
+/* the primary's hover is a darker red; on dark surfaces focus rings are white */
+[data-theme="site"] :is(a, button).bg-accent:hover {
+  background-color: var(--pp-accent-hover, var(--pp-accent));
+}
+.bg-dark :focus-visible,
+.on-dark :focus-visible {
+  outline-color: #ffffff;
+}
 
 /*
  * your call! and watch together stand out from ordinary cards.
- * idle: a red accent bar on the left and a stronger shadow.
- * active (a question is open, someone just joined): a 2px red border, a light red tint, a visible
- * ring plus a soft drop shadow that pulse gently; reduced motion keeps them still
+ * idle: a red bar on the left (the primary) and a stronger shadow.
+ * active (a question is open, someone just joined): live red, a 2px border, a light tint, a
+ * visible ring plus a soft drop shadow that pulse gently; reduced motion keeps them still
  */
 @utility feature-idle {
   border: 1px solid var(--pp-line);
   border-left: 4px solid var(--pp-accent);
+  /* (ink: the card is a feature, nothing is happening yet) */
   background-color: var(--pp-surface);
   box-shadow:
     0 1px 3px rgb(0 0 0 / 0.08),
@@ -35,25 +44,37 @@ html {
   0%,
   100% {
     box-shadow:
-      0 0 0 4px color-mix(in srgb, var(--pp-accent) 28%, transparent),
-      0 12px 32px -8px color-mix(in srgb, var(--pp-accent) 45%, transparent);
+      0 0 0 4px color-mix(in srgb, var(--pp-live, var(--pp-accent)) 28%, transparent),
+      0 12px 32px -8px color-mix(in srgb, var(--pp-live, var(--pp-accent)) 45%, transparent);
   }
   50% {
     box-shadow:
-      0 0 0 8px color-mix(in srgb, var(--pp-accent) 14%, transparent),
-      0 16px 40px -6px color-mix(in srgb, var(--pp-accent) 60%, transparent);
+      0 0 0 8px color-mix(in srgb, var(--pp-live, var(--pp-accent)) 14%, transparent),
+      0 16px 40px -6px color-mix(in srgb, var(--pp-live, var(--pp-accent)) 60%, transparent);
   }
 }
 @utility feature-active {
-  border: 2px solid var(--pp-accent);
-  background-color: color-mix(in srgb, var(--pp-accent) 6%, var(--pp-surface));
+  border: 2px solid var(--pp-live, var(--pp-accent));
+  background-color: color-mix(in srgb, var(--pp-live, var(--pp-accent)) 6%, var(--pp-surface));
   box-shadow:
-    0 0 0 4px color-mix(in srgb, var(--pp-accent) 28%, transparent),
-    0 12px 32px -8px color-mix(in srgb, var(--pp-accent) 45%, transparent);
+    0 0 0 4px color-mix(in srgb, var(--pp-live, var(--pp-accent)) 28%, transparent),
+    0 12px 32px -8px color-mix(in srgb, var(--pp-live, var(--pp-accent)) 45%, transparent);
   animation: feature-pulse 1.8s ease-in-out infinite;
   @media (prefers-reduced-motion: reduce) {
     animation: none;
   }
+}
+/*
+ * a light tint of a team colour (what if? cards): set --team and the hex fallbacks with tintVars()
+ * (features/site/team-colors.ts). the second declaration wins where color-mix() is supported
+ */
+@utility team-tint {
+  background-color: var(--team-tint);
+  background-color: color-mix(in srgb, var(--team) 12%, white);
+}
+@utility team-tint-strong {
+  background-color: var(--team-tint-strong);
+  background-color: color-mix(in srgb, var(--team) 22%, white);
 }
 /* kept for the room screens */
 @utility call-glow {

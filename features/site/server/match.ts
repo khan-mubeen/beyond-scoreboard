@@ -3,6 +3,7 @@ import { liigaGameUrl, parseMatchId, type LiigaFixture, type LiigaGame } from "@
 import { getGame, getGameStats, getLineups, getPastAndFuture, liigaNow } from "@/features/liiga/server";
 import { goalOfTheGame, rankOf, zoneForRank, zoneLabel, getSeasonContext, type SeasonContext } from "@/features/stakes/server";
 import { engineMatch, ensureLiveLoop, roomScope } from "@/features/live/server";
+import { PREDICTION_POINTS, PREDICTION_TYPE } from "@/features/live";
 import { matchStory, spokenSummary, whatItMeansText, type MatchFactsInput } from "@/features/story/server";
 import { getDb } from "@/shared/db";
 import type {
@@ -29,6 +30,7 @@ import { previewDetail } from "./preview";
 import { hasLiveStream, streamLockFor } from "./wallet";
 import { passFor } from "./friends";
 import { matchStarted } from "./started";
+import { finishedInsights } from "./insights";
 
 export type Side = "home" | "away";
 
@@ -209,7 +211,17 @@ async function yourNight(matchId: string, youId: string | null): Promise<Finishe
   const myPoints = totals.get(youId) ?? 0;
   const best = mine.find((a) => a.correct);
   const bestCall = best ? calls.find((c) => c.id === best.callId)?.question ?? "" : "";
+  // the match prediction (made before the game) gets its own line
+  const predictionCall = calls.find((c) => c.type === PREDICTION_TYPE);
+  const predicted = predictionCall && mine.find((a) => a.callId === predictionCall.id);
   return {
+    prediction: predicted
+      ? {
+          label: predictionCall.options.find((o) => o.id === predicted.optionId)?.label ?? predicted.optionId,
+          correct: predicted.optionId === predictionCall.correctOptionId,
+          points: predicted.optionId === predictionCall.correctOptionId ? PREDICTION_POINTS : 0,
+        }
+      : null,
     points: myPoints,
     callsCorrect: mine.filter((a) => a.correct).length,
     callsTotal: mine.length,
@@ -324,13 +336,14 @@ export async function matchDetail(id: string, viewer: Viewer, opts: { host?: boo
   const coming = await nextGame(g, side, ctx, book);
   // the spoken summary also says what's next, so it gets the next game's facts
   const summaryFacts = factsFor(g, s, side, book, coming);
-  const [{ content }, night, room, discussion, en, fi] = await Promise.all([
+  const [{ content }, night, room, discussion, en, fi, insights] = await Promise.all([
     matchStory(facts, g[side].teamId),
     yourNight(g.id, youId),
     roomSummary(g.id, youId, true),
     recentComments(g.id),
     spokenSummary(summaryFacts, g[side].teamId, "en"),
     spokenSummary(summaryFacts, g[side].teamId, "fi"),
+    s ? finishedInsights({ g, s, side, ctx, book, stats: stats?.data ?? null, coming, clip }).catch((err) => (console.warn(`site: insights for ${g.id}: ${(err as Error).message}`), null)) : null,
   ]);
   const next = nextUp(coming, book);
   const posBefore = facts.positionBefore ?? 0;
@@ -360,7 +373,8 @@ export async function matchDetail(id: string, viewer: Viewer, opts: { host?: boo
             meta: [clockIn(goal.gameTime, goal.period), periodName(goal.period), ...describeGoalTypes(goal.types).labels].join(" · "),
             title: `${goal.scorer ?? g[goal.side].name}'s ${goal.homeScore}–${goal.awayScore} goal`,
             effectText: `Playoff chance for ${g[side].name}: ${pct(timeline[before - 1]?.chance ?? 0)}% → ${pct(gotg.chance)}%.`,
-            chip: `Playoff chance ${Math.round(gotg.delta * 100) > 0 ? "+" : "−"}${Math.abs(Math.round(gotg.delta * 100))}%`,
+            // in percentage points, never "pts" (that is the fans' points) and never "%" (it reads as a share)
+            chip: `${Math.round(gotg.delta * 100) > 0 ? "▲" : "▼"}${Math.abs(Math.round(gotg.delta * 100))} playoff chance`,
             video: clip(goal, `${goal.scorer ?? ""} · ${goal.homeScore}–${goal.awayScore}`) ?? { poster: "/placeholders/goal-thumb.svg", title: "Goal", src: null, href: liigaUrl },
           }
         : null,
@@ -369,6 +383,7 @@ export async function matchDetail(id: string, viewer: Viewer, opts: { host?: boo
     discussion,
     nextUp: next,
     summary: { en, fi },
+    insights,
   };
   return detail;
 }

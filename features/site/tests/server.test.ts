@@ -174,7 +174,7 @@ describe("subscriptions and offers: demo money plus points", () => {
     const one = await http("/offers/tickets/redeem", { method: "POST", cookie: fan, body: {} });
     expect(one.status).toBe(200);
     expect(one.body.code).toMatch(/^KALEVA-DEMO-[2-9A-Z]{6}$/);
-    expect(one.body).toMatchObject({ pointsUsed: 500, balance: 750, partnerUrl: "https://www.karpat.fi/" });
+    expect(one.body).toMatchObject({ pointsUsed: 500, balance: 750, partnerUrl: null });
     const two = await http("/offers/tickets/redeem", { method: "POST", cookie: fan, body: {} });
     expect(two.body).toMatchObject({ code: one.body.code, replayed: true, balance: 750 });
     // members only
@@ -182,7 +182,7 @@ describe("subscriptions and offers: demo money plus points", () => {
     await buy(fan, { planId: "weekend", pointsToUse: 0, idempotencyKey: "member-key-01" });
     const member = await http("/offers/fan-shop/redeem", { method: "POST", cookie: fan, body: {} });
     expect(member.status).toBe(200);
-    expect(member.body).toMatchObject({ pointsUsed: 0, partnerUrl: "https://kauppa.karpat.fi/" });
+    expect(member.body).toMatchObject({ pointsUsed: 0, partnerUrl: null });
     expect((await http("/offers/nope/redeem", { method: "POST", cookie: fan, body: {} })).status).toBe(404);
     const offers = (await http("/rewards", { cookie: fan })).body.offers;
     expect(offers.find((o: Json) => o.id === "tickets").redemption.code).toBe(one.body.code);
@@ -364,7 +364,7 @@ describe("host controls", () => {
 });
 
 describe("demo replay end to end", () => {
-  it("opens a call, takes one answer per fan, resolves it and pays 20 points", async () => {
+  it("opens the who-wins prediction, takes one answer per fan, resolves it and pays 30 points", async () => {
     const joinA = await http(`/matches/${MATCH}/join`, { method: "POST", body: { nickname: "Aino" } });
     const joinB = await http(`/matches/${MATCH}/join`, { method: "POST", body: { nickname: "Bea" } });
     expect([joinA.status, joinB.status]).toEqual([200, 200]);
@@ -380,21 +380,21 @@ describe("demo replay end to end", () => {
     // an open call never carries its answer
     expect(call.correctOptionId).toBeNull();
     expect(call.split).toBeNull();
-    expect((await http(`/calls/${call.id}/answer`, { method: "POST", body: { optionId: "away_reg" }, cookie: a })).status).toBe(201);
-    expect((await http(`/calls/${call.id}/answer`, { method: "POST", body: { optionId: "home_reg" }, cookie: b })).status).toBe(201);
-    expect((await http(`/calls/${call.id}/answer`, { method: "POST", body: { optionId: "home_reg" }, cookie: a })).status).toBe(409);
+    expect((await http(`/calls/${call.id}/answer`, { method: "POST", body: { optionId: "away_win" }, cookie: a })).status).toBe(201);
+    expect((await http(`/calls/${call.id}/answer`, { method: "POST", body: { optionId: "home_win" }, cookie: b })).status).toBe(201);
+    expect((await http(`/calls/${call.id}/answer`, { method: "POST", body: { optionId: "home_win" }, cookie: a })).status).toBe(409);
 
     const done = await until<LiveState>("the end of the replay", async () => {
       const s = (await http(`/matches/${MATCH}/state`, { cookie: a })).body as LiveState;
       return s.status === "final" && !s.call ? s : null;
     }, 45_000);
     expect(done.score).toEqual({ home: 0, away: 3 });
-    expect(done.me?.matchPoints).toBe(20);
+    expect(done.me?.matchPoints).toBe(30);
     expect((await http(`/matches/${MATCH}/state`, { cookie: b })).body.me.matchPoints).toBe(0);
 
     const pageA = (await http(`/matches/${MATCH}`, { cookie: a })).body as FinishedMatchDetail;
     expect(pageA.status).toBe("final");
-    expect(pageA.yourNight).toMatchObject({ points: 20, callsCorrect: 1, callsTotal: 1 });
+    expect(pageA.yourNight).toMatchObject({ points: 30, callsCorrect: 1, callsTotal: 1 });
     expect(((await http(`/matches/${MATCH}`, { cookie: b })).body as FinishedMatchDetail).yourNight).toMatchObject({ points: 0, callsCorrect: 0 });
   }, 60_000);
 

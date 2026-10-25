@@ -187,7 +187,7 @@ export function HighlightPlayer({
         )}
         {video && !failed && waitForTap && (
           <button type="button" onClick={() => setTapped(true)} className="absolute inset-0 grid place-items-center bg-dark/40">
-            <span className="flex items-center gap-2 rounded-full bg-accent px-5 py-3 font-semibold text-accent-ink">
+            <span className="flex items-center gap-2 rounded-full bg-dark-ink text-ink hover:bg-white/85 px-5 py-3 font-semibold">
               <Icon name="play" className="size-4" /> Watch highlight
             </span>
           </button>

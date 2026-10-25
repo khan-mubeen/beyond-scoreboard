@@ -119,9 +119,9 @@ export function SportsHome() {
                 </MatchSection>
               )}
               {show("results") && home.recent.length > 0 && (
-                <MatchSection title="Recent Matches">
-                  <div className="flex flex-col gap-3">
-                    {home.recent.map((m) => (
+                <MatchSection title={filter === "results" ? "Results" : "Recent Matches"}>
+                  <div className={`grid gap-3 ${filter === "results" ? "lg:grid-cols-2" : ""}`}>
+                    {(filter === "results" ? home.recent : home.recent.slice(0, 3)).map((m) => (
                       <MatchCard key={m.id} match={m} />
                     ))}
                   </div>

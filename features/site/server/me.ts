@@ -43,7 +43,7 @@ export async function mePage(viewer: Viewer, publicUrl = ""): Promise<MeResponse
     friends,
     friendRequests,
     guestPass,
-    demo: demoMode() ? { label: demoLabel() ?? "Demo", now: leagueNow().toISOString() } : null,
+    // demo: demoMode() ? { label: demoLabel() ?? "Demo", now: leagueNow().toISOString() } : null,
     asOf: new Date().toISOString(),
     source: "db",
   };

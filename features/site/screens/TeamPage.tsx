@@ -14,7 +14,7 @@ const RESULT: Record<FormResult, { label: string; cls: string }> = {
   W: { label: "Win", cls: "bg-good-soft text-good" },
   OTW: { label: "Overtime win", cls: "bg-good-soft text-good" },
   OTL: { label: "Overtime loss", cls: "bg-surface-2 text-ink" },
-  L: { label: "Loss", cls: "bg-accent-soft text-bad" },
+  L: { label: "Loss", cls: "bg-live-soft text-bad" },
 };
 
 /** /teams/:slug: place, chances, the last five results and the next three games */

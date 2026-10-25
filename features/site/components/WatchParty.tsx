@@ -84,7 +84,7 @@ function PartyHeader({
               watching
             </span>
           </span>
-          <span aria-hidden className="size-2 shrink-0 animate-pulse rounded-full bg-accent" />
+          <span aria-hidden className="size-2 shrink-0 animate-pulse rounded-full bg-live" />
         </h2>
         <button
           type="button"
@@ -122,7 +122,7 @@ function TabBar({ tab, onTab, unread, people }: { tab: PartyTab; onTab: (t: Part
         <>
           Chat
           {unread > 0 && (
-            <span className="rounded-full bg-accent px-1.5 text-[11px] font-bold text-accent-ink tabular-nums">
+            <span className="rounded-full bg-live px-1.5 text-[11px] font-bold text-live-ink tabular-nums">
               {unread > 9 ? "9+" : unread}
             </span>
           )}
@@ -247,10 +247,10 @@ export function FactCardView({ card, by, compact = false }: { card: FactCard; by
 export function TriviaCard({ t, display = false }: { t: TriviaView; display?: boolean }) {
   return (
     <div
-      className={`rounded-lg border-2 ${t.phase === "open" ? "border-accent" : "border-line"} bg-surface p-3`}
+      className={`rounded-lg border-2 ${t.phase === "open" ? "border-live" : "border-line"} bg-surface p-3`}
       data-testid="trivia-card"
     >
-      <p className="flex items-center justify-between text-xs font-bold tracking-wide text-accent uppercase">
+      <p className={`flex items-center justify-between text-xs font-bold tracking-wide uppercase ${t.phase === "open" ? "text-live" : "text-muted"}`}>
         <span className="flex items-center gap-1.5">
           <Icon name="sparkle" className="size-4" /> Party trivia
         </span>

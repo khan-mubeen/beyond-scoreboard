@@ -4,7 +4,8 @@ import { Router, type NextFunction, type Request, type RequestHandler, type Resp
 import { z } from "zod";
 import { findGamblingFields } from "@/features/liiga";
 import { getStandings, getSeason } from "@/features/liiga/server";
-import { answerCall, controlReplay, controlRotation, engineMatch, publish, refreshRotation, roomScope } from "@/features/live/server";
+import { PREDICTION_TYPE } from "@/features/live";
+import { answerCall, controlReplay, controlRotation, engineMatch, predictionClosed, publish, refreshRotation, roomScope } from "@/features/live/server";
 import { forecastNow, getSeasonContext } from "@/features/stakes/server";
 import { demoMode, leagueNow } from "@/shared/clock";
 import { getDb } from "@/shared/db";
@@ -29,6 +30,8 @@ import { allowWhatIf, WHAT_IF_MAX, whatIf, WhatIfError } from "../whatif";
 import { heartbeat, leave, partyStandings } from "../presence";
 import { matchStarted, NOT_STARTED } from "../started";
 import { cancel, purchase, redeemOffer, WalletError } from "../wallet";
+import { predict, predictionFor, PredictionError } from "../prediction";
+import { breakdownFor } from "../breakdown";
 
 const matchId = z.string().regex(/^\d{4}-\d+$/, "match ids look like 2027-2701404");
 const nickname = z.string().trim().min(1).max(24);
@@ -38,6 +41,7 @@ const schemas = {
   join: z.object({ nickname: nickname.optional(), roomCode: z.string().regex(/^[A-Z]{4}$/).optional(), bot: z.boolean().optional() }),
   read: z.object({ id: z.string().uuid().optional() }),
   leaderboard: z.object({ scope: z.enum(["weekly", "season", "room"]).default("weekly") }),
+  breakdown: z.object({ scope: z.enum(["weekly", "season", "room"]).default("weekly"), user: z.string().uuid() }),
   answer: z.object({ optionId: z.string().min(1).max(40) }),
   comment: z.object({ text: z.string().max(400) }),
   ask: z.object({ text: z.string().trim().min(1).max(200) }),
@@ -289,7 +293,9 @@ siteRouter.post(
     const callId = z.string().uuid().parse(req.params.callId);
     const { optionId } = schemas.answer.parse(req.body ?? {});
     const call = await getDb().calls.get(callId);
-    if (call && !(await matchStarted(call.matchId))) return void res.status(409).json(NOT_STARTED);
+    // the match prediction is made before the game (what if? on the preview page); every other call only during it
+    if (call && call.type !== PREDICTION_TYPE && !(await matchStarted(call.matchId))) return void res.status(409).json(NOT_STARTED);
+    if (call && predictionClosed(call)) return void res.status(409).json({ error: "this call is locked" });
     const v = await viewerOf(req, res);
     const user = await ensureUser(v);
     const result = await answerCall(callId, user.id, optionId);
@@ -360,6 +366,49 @@ siteRouter.get(
   handle(async (req, res) => {
     const v = await viewerOf(req, res);
     return { reminders: v.user ? await getDb().reminders.listForUser(v.user.id) : [], ...asOfNow() };
+  }),
+);
+
+/** the fan's one prediction for the match (the lobby's "who wins?"), made from what if? */
+siteRouter.get(
+  "/matches/:id/prediction",
+  handle(
+    predicting(async (req, res) => predictionFor(matchId.parse(req.params.id), await viewerOf(req, res))),
+  ),
+);
+
+siteRouter.post(
+  "/matches/:id/prediction",
+  handle(
+    predicting(async (req, res) => {
+      const id = matchId.parse(req.params.id);
+      const { optionId } = schemas.answer.parse(req.body ?? {});
+      res.status(201);
+      return predict(id, await viewerOf(req, res), optionId);
+    }),
+  ),
+);
+
+/** a prediction error is the fan's answer (400 / 404 / 409) */
+function predicting(fn: (req: Request, res: Response) => Promise<unknown>) {
+  return async (req: Request, res: Response) => {
+    try {
+      return await fn(req, res);
+    } catch (err) {
+      if (err instanceof PredictionError) return void res.status(err.status).json({ error: err.message });
+      throw err;
+    }
+  };
+}
+
+/** one fan's points on a board, by source and by match (the leaderboard's expanded row) */
+siteRouter.get(
+  "/leaderboard/breakdown",
+  handle(async (req, res) => {
+    const { scope, user } = schemas.breakdown.parse(req.query);
+    const b = await breakdownFor(await viewerOf(req, res), scope, user);
+    if (!b) return void res.status(404).json({ error: "not on this board" });
+    return b;
   }),
 );
 

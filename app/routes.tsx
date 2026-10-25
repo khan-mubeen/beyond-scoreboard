@@ -10,8 +10,7 @@ const page = <P extends object>(load: () => Promise<Record<string, unknown>>, na
   lazy(async () => ({ default: (await load())[name] as ComponentType<P> }));
 
 const SportsHome = page(() => import("@/features/site/screens/SportsHome"), "SportsHome");
-const MediaHome = page(() => import("@/features/site/screens/MediaHome"), "MediaHome");
-const MediaPlaceholder = page<{ slug: string }>(() => import("@/features/site/screens/MediaHome"), "MediaPlaceholder");
+const KalevaHome = page(() => import("@/features/site/screens/KalevaHome"), "KalevaHome");
 const BrandPage = page(() => import("@/features/site/screens/BrandPage"), "BrandPage");
 const MatchPage = page<{ id: string }>(() => import("@/features/site/screens/MatchPage"), "MatchPage");
 const Rewards = page(() => import("@/features/site/screens/Rewards"), "Rewards");
@@ -41,9 +40,8 @@ const DevStory = page(() => import("@/features/story/screens/DevStory"), "DevSto
 export type Theme = "site" | "room";
 
 const ROUTES: [RegExp, (params: string[]) => ReactNode, Theme][] = [
-  // kaleva media (the group site, rebuilt) and its pages we don't rebuild
-  [/^\/$/, () => <MediaHome />, "site"],
-  [/^\/media\/([a-z0-9-]+)$/, ([slug]) => <MediaPlaceholder slug={slug} />, "site"],
+  // the kaleva.fi front page, rebuilt; its links open kaleva.fi, Kaleva Sports is the one way in
+  [/^\/$/, () => <KalevaHome />, "site"],
   // kaleva sports pages
   [/^\/sports$/, () => <SportsHome />, "site"],
   [/^\/dev\/brand$/, () => <BrandPage />, "site"],
@@ -166,7 +164,7 @@ export function App() {
 }
 
 const DEV_PAGES = [
-  { href: "/", owner: "site", what: "kaleva media front page (rebuilt)" },
+  { href: "/", owner: "site", what: "kaleva.fi front page (rebuilt)" },
   { href: "/sports", owner: "site", what: "kaleva sports home" },
   { href: "/leaderboard", owner: "site", what: "weekly, season and watch together leaderboards" },
   { href: "/rewards", owner: "site", what: "kaleva rewards" },

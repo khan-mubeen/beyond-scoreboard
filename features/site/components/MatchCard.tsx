@@ -1,5 +1,6 @@
 import type { ComingSoonCard, MatchSummary, TeamRef } from "@/shared/types";
 import { Icon } from "./Icon";
+import { ChangeTag } from "./StakesChip";
 import { LiveBadge } from "./LiveMatchCard";
 import { Pill } from "./SectionCard";
 import { TeamLogo } from "./TeamLogo";
@@ -30,7 +31,7 @@ export function MatchCard({ match }: { match: MatchSummary }) {
     >
       <div className="flex items-center justify-between gap-2 text-sm">
         {live ? (
-          <span className="flex items-center gap-2 font-medium text-accent">
+          <span className="flex items-center gap-2 font-medium text-live">
             <LiveBadge className="px-2 py-0.5 text-[11px]" />
             {match.periodLabel} {match.clock}
           </span>
@@ -50,26 +51,65 @@ export function MatchCard({ match }: { match: MatchSummary }) {
   );
 }
 
-function RecentCard({ match }: { match: MatchSummary }) {
+/** "88% ▲3": the playoff chance after the game and how far it moved */
+function ChanceMove({ team, now, change }: { team: TeamRef; now: number; change: number }) {
   return (
-    <a
-      href={match.href}
-      className={`${cardCls} grid items-center gap-3 sm:grid-cols-[auto_1fr_auto_1.2fr]`}
-      aria-label={`Result: ${match.home.name} ${match.score?.home}, ${match.away.name} ${match.score?.away}`}
-    >
-      <span className="text-sm text-muted"><WhenLabel match={match} /></span>
-      <div className="flex flex-wrap items-center gap-x-3 gap-y-2">
-        <TeamLogo team={match.home} size={30} />
-        <span className="font-semibold">{match.home.name}</span>
-        <span className="text-lg font-bold tabular-nums">{match.score?.home}</span>
-        <span className="text-muted">–</span>
-        <span className="text-lg font-bold tabular-nums">{match.score?.away}</span>
-        <TeamLogo team={match.away} size={30} />
-        <span className="font-semibold">{match.away.name}</span>
-      </div>
-      <Pill className="justify-self-start">{match.league}</Pill>
-      {match.note && <p className="text-sm text-muted">{match.note}</p>}
-    </a>
+    <span className="flex min-w-0 items-center gap-1.5 text-xs">
+      <TeamLogo team={team} size={18} />
+      <span className="sr-only">{team.name} playoff chance</span>
+      <span className="font-semibold tabular-nums">{now}%</span>
+      <ChangeTag change={change} className="font-bold" />
+    </span>
+  );
+}
+
+/** a result: the score, both teams' playoff chance after it (and how far it moved), the winner's next game */
+function RecentCard({ match }: { match: MatchSummary }) {
+  const homeWon = (match.score?.home ?? 0) > (match.score?.away ?? 0);
+  return (
+    <article className={`${cardCls} flex flex-col gap-3 p-0`}>
+      <a
+        href={match.href}
+        className="grid items-center gap-3 px-4 pt-4 sm:grid-cols-[minmax(0,1fr)_minmax(0,1fr)]"
+        aria-label={`Result: ${match.home.name} ${match.score?.home}, ${match.away.name} ${match.score?.away}`}
+      >
+        <div className="flex flex-col gap-1.5">
+          <span className="flex items-center justify-between gap-2 text-sm text-muted">
+            <WhenLabel match={match} />
+            <Pill>{match.league}</Pill>
+          </span>
+          <span className="flex items-center gap-2">
+            <TeamLogo team={match.home} size={30} />
+            <span className={`min-w-0 flex-1 truncate ${homeWon ? "font-bold" : "font-semibold text-muted"}`}>{match.home.name}</span>
+            <span className={`text-2xl tabular-nums ${homeWon ? "font-black" : "font-bold text-muted"}`}>{match.score?.home}</span>
+          </span>
+          <span className="flex items-center gap-2">
+            <TeamLogo team={match.away} size={30} />
+            <span className={`min-w-0 flex-1 truncate ${!homeWon ? "font-bold" : "font-semibold text-muted"}`}>{match.away.name}</span>
+            <span className={`text-2xl tabular-nums ${!homeWon ? "font-black" : "font-bold text-muted"}`}>{match.score?.away}</span>
+          </span>
+        </div>
+        <div className="flex flex-col gap-1.5 sm:border-l sm:border-line sm:pl-4">
+          {match.swing ? (
+            <>
+              <span className="text-[11px] font-semibold tracking-wider text-muted uppercase">Playoff chance after</span>
+              <ChanceMove team={match.home} {...match.swing.home} />
+              <ChanceMove team={match.away} {...match.swing.away} />
+            </>
+          ) : (
+            match.note && <p className="text-sm text-muted">{match.note}</p>
+          )}
+        </div>
+      </a>
+      {match.teaser ? (
+        <a href={match.teaser.href} className="flex items-center justify-between gap-2 border-t border-line px-4 py-2.5 text-sm font-semibold text-accent hover:bg-accent-soft">
+          <span className="truncate">{match.teaser.text}</span>
+          <Icon name="arrowRight" className="size-4 shrink-0" />
+        </a>
+      ) : (
+        <span className="pb-1" />
+      )}
+    </article>
   );
 }
 

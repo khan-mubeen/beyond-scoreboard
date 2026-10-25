@@ -12,6 +12,10 @@
   --pp-accent: #4cc3ff;
   --pp-accent-ink: #04131d;
   --pp-accent-soft: #12283a;
+  --pp-live: #ff5a6a;
+  --pp-live-ink: #04131d;
+  --pp-live-soft: #2e1a20;
+  --pp-live-bright: #ff6b78;
   --pp-good: #3ddc97;
   --pp-good-soft: #123128;
   --pp-bad: #ff6b6b;
@@ -42,17 +46,31 @@
   --pp-shadow: none;
 }
 
-/* site theme: the kaleva sports pages (white, black, kaleva red) */
+/*
+ * site theme: the kaleva sports pages. white cards float on a light grey page; the primary colour
+ * (accent) is kaleva red: selected states, buttons, links, focus, toggles, sliders. "live" has its
+ * own token (the same red today) for live badges and dots, open questions and their countdown,
+ * notification badges and errors, so the two can be told apart again by changing one line
+ */
 [data-theme="site"] {
-  --pp-bg: #ffffff;
+  --pp-bg: #f4f5f7;
   --pp-surface: #ffffff;
   --pp-surface-2: #f4f5f7;
-  --pp-line: #e6e8eb;
+  --pp-line: #e5e7eb;
   --pp-ink: #111418;
   --pp-muted: #6b7280;
+  /* the primary, kaleva red: 5.3:1 on white, 4.9:1 on the page grey, white text on it 5.3:1 */
   --pp-accent: #d80016;
+  --pp-accent-hover: #b00012;
   --pp-accent-ink: #ffffff;
+  /* a selected or "you" row: a light red tint, the red text on it 4.8:1 */
   --pp-accent-soft: #fdeef0;
+  /* kaleva red: 5.3:1 on white, white text on it 5.3:1 */
+  --pp-live: #d80016;
+  --pp-live-ink: #ffffff;
+  --pp-live-soft: #fdeef0;
+  /* red text on the dark surfaces (tv, the lobby, the featured card): 6.3:1 on #17191d */
+  --pp-live-bright: #ff6b78;
   /* 5.3:1 on white, 4.7:1 on good-soft: green text stays readable at 14px (was #0f8d69, 4.2:1) */
   --pp-good: #0c7a5b;
   --pp-good-soft: #e6f5ef;
@@ -75,7 +93,8 @@
   --pp-font-serif: "Playfair Display", Georgia, "Times New Roman", serif;
 
   --pp-radius: 14px;
-  --pp-shadow: 0 1px 2px rgb(16 24 40 / 0.04), 0 2px 8px rgb(16 24 40 / 0.04);
+  /* top-level cards float above the grey page; nested items only get a border */
+  --pp-shadow: 0 1px 2px rgb(17 24 39 / 0.06), 0 6px 16px rgb(17 24 39 / 0.06);
 }
 
 /* expose the tokens as tailwind utilities: bg-surface, text-muted, bg-playoffs, ... */
@@ -89,6 +108,13 @@
   --color-accent: var(--pp-accent);
   --color-accent-ink: var(--pp-accent-ink);
   --color-accent-soft: var(--pp-accent-soft);
+  /* the same primary by its meaning, and kaleva red for live */
+  --color-primary: var(--pp-accent);
+  --color-primary-ink: var(--pp-accent-ink);
+  --color-live: var(--pp-live);
+  --color-live-ink: var(--pp-live-ink);
+  --color-live-soft: var(--pp-live-soft);
+  --color-live-bright: var(--pp-live-bright);
   --color-good: var(--pp-good);
   --color-good-soft: var(--pp-good-soft);
   --color-bad: var(--pp-bad);
@@ -117,6 +143,18 @@
   --color-km-ink: #18191a;
   --font-km: "Open Sans", Helvetica, Arial, sans-serif;
   --font-km-logo: "Montserrat", "Open Sans", Arial, sans-serif;
+  /* kaleva.fi (the news site, rebuilt on /): its orange, greys and footer, with free stand-ins for
+     its fonts (a serif for headlines, a grotesque for the rest, a slab for the wordmark) */
+  --color-kf-orange: #ff8c30;
+  --color-kf-orange-ink: #c25700;
+  --color-kf-grey: #f3f3f3;
+  --color-kf-label: #767676;
+  --color-kf-footer: #2d2d2d;
+  --color-kf-blue: #009ac1;
+  --color-kf-pink: #d6007a;
+  --font-kf: "Barlow", "Helvetica Neue", Arial, sans-serif;
+  --font-kf-serif: "Source Serif 4", Georgia, "Times New Roman", serif;
+  --font-kf-logo: "Zilla Slab", Rockwell, Georgia, serif;
   --spacing-gutter: var(--pp-gutter);
   --radius-card: var(--pp-radius);
   --shadow-card: var(--pp-shadow);

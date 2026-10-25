@@ -42,7 +42,7 @@ export function NotificationsBell() {
       >
         <Icon name="bell" className="size-6" />
         {unread > 0 && (
-          <span className="absolute top-0.5 right-0.5 grid min-w-5 place-items-center rounded-full border-2 border-surface bg-accent px-1 text-[10px] leading-4 font-bold text-accent-ink tabular-nums">
+          <span className="absolute top-0.5 right-0.5 grid min-w-5 place-items-center rounded-full border-2 border-surface bg-live px-1 text-[10px] leading-4 font-bold text-live-ink tabular-nums">
             {unread > 9 ? "9+" : unread}
           </span>
         )}
@@ -70,7 +70,7 @@ export function NotificationsBell() {
                   onClick={() => !n.read && void markNotificationsRead(n.id)}
                   className={`flex gap-3 px-4 py-3 hover:bg-surface-2 ${n.read ? "" : "bg-accent-soft/40"}`}
                 >
-                  <span aria-hidden className={`mt-1.5 size-2 shrink-0 rounded-full ${n.read ? "bg-transparent" : "bg-accent"}`} />
+                  <span aria-hidden className={`mt-1.5 size-2 shrink-0 rounded-full ${n.read ? "bg-transparent" : "bg-live"}`} />
                   <span className="min-w-0 flex-1">
                     <span className="block text-sm font-semibold">{n.title}</span>
                     {n.body && <span className="block text-sm text-muted">{n.body}</span>}

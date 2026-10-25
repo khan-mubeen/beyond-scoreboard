@@ -8,8 +8,7 @@ import type { Viewer } from "./identity";
 import { teamBook } from "./teams";
 import { NAMES } from "@/shared/copy/names";
 import { balanceOf, isEarned } from "@/shared/points";
-
-const CALL_POINTS = 20;
+import { pointsFor, sourceOf } from "@/features/live";
 
 interface Played {
   answer: DbAnswer;
@@ -52,7 +51,8 @@ async function rows(user: DbUser, list: Played[]): Promise<MyCallRow[]> {
       myAnswer: label(p.answer.optionId),
       answer: p.call.status === "resolved" ? label(p.call.correctOptionId) : null,
       status,
-      points: status === "won" ? CALL_POINTS : 0,
+      points: status === "won" ? pointsFor(p.call.type) : 0,
+      kind: sourceOf(p.call.type),
       openedAt: p.call.openedAt,
     };
   });

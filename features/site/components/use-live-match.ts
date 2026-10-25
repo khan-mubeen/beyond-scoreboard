@@ -4,7 +4,7 @@
 // a toast and refreshes your points
 import { useEffect, useMemo, useRef, useState } from "react";
 import type { Burst, Comment, LiveCall, LiveMatchDetail, LiveState, MeResponse, PartyMember } from "@/shared/types";
-import { answerCallApi, refreshMeSoon, serverNowMs } from "../data";
+import { answerCallApi, invalidate, PREDICTION_EVENT, predictionUrl, refreshMeSoon, serverNowMs } from "../data";
 import { toast } from "./Toast";
 import type { CallItView } from "./use-call-it";
 import { applyBroadcast, type ChannelDebug, type Connection, mergeFeed, useMatchChannel } from "./use-match-channel";
@@ -106,6 +106,15 @@ export function useLiveMatch(detail: LiveMatchDetail | null, me: MeResponse | nu
   });
 
   const [own, setAnswers] = useState<Record<string, string>>({});
+  // a prediction made in what if? is this page's lobby answer too
+  useEffect(() => {
+    const on = (e: Event) => {
+      const { callId, optionId } = (e as CustomEvent<{ callId: string; optionId: string }>).detail;
+      setAnswers((a) => ({ ...a, [callId]: optionId }));
+    };
+    window.addEventListener(PREDICTION_EVENT, on);
+    return () => window.removeEventListener(PREDICTION_EVENT, on);
+  }, []);
   const [answerError, setAnswerError] = useState<string | null>(null);
   // a refresh keeps your locked answers: /me knows them for every open call
   const openAnswers = me?.openCallAnswers;
@@ -205,6 +214,8 @@ export function useLiveMatch(detail: LiveMatchDetail | null, me: MeResponse | nu
   const answer = (target: LiveCall, optionId: string) => {
     setAnswers((a) => ({ ...a, [target.id]: optionId }));
     void answerCallApi(target.id, optionId).then((r) => {
+      // the lobby's "who wins?" is the match prediction: what if? shows it too
+      if (target.type === "who_wins" && id) invalidate(predictionUrl(id));
       if (r.ok) return setAnswerError(null);
       setAnswerError(r.status === 409 ? `Not counted: ${r.error}.` : r.error);
       if (r.status === 409 && r.error === "already answered") return;

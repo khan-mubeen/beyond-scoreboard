@@ -13,8 +13,16 @@ export function YourNight({ night }: { night: NonNullable<FinishedMatchDetail["y
             {night.callsCorrect}/{night.callsTotal}
           </dd>
         </div>
+        {night.prediction && (
+          <div className="flex justify-between gap-3 py-2.5">
+            <dt className="text-muted">Your prediction</dt>
+            <dd className={`text-right font-semibold ${night.prediction.correct ? "text-good" : ""}`}>
+              {night.prediction.label} {night.prediction.correct ? `· +${night.prediction.points} pts` : "· not this time"}
+            </dd>
+          </div>
+        )}
         <div className="flex justify-between py-2.5">
-          <dt className="text-muted">Watch Together rank</dt>
+          <dt className="text-muted">Watch Party rank</dt>
           <dd className="font-semibold tabular-nums">
             {ordinal(night.rank)} of {fmtInt(night.of)}
           </dd>

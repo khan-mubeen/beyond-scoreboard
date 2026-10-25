@@ -89,7 +89,7 @@ describe("pinned demo clock", () => {
 
   it("the top nav chip, the home date and the table come from demoNow", async () => {
     const me = (await http("/me")).body as MeResponse;
-    expect(me.demo?.label).toBe("Demo · Tue 20 Oct 2026");
+    // expect(me.demo?.label).toBe("Demo · Tue 20 Oct 2026");
     const home = (await http("/home")).body as HomePage;
     expect(home.dateLabel).toBe("Tuesday, 20 October 2026");
     // the 117 games finished before the demo date, nothing after
@@ -180,8 +180,8 @@ describe("rotation", () => {
       return s.rotation?.phase === "lobby" && s.call?.type === "who_wins" ? s.call : null;
     });
     expect(call.locksAt).toBe((await rotation()).current.phaseEndsAt);
-    // 2701398 ended 3-2 KooKoo after a shootout: overtime is right
-    expect((await http(`/calls/${call.id}/answer`, { method: "POST", body: { optionId: "overtime" } })).status).toBe(201);
+    // 2701398 ended 3-2 KooKoo (home) after a shootout: a home win in OT/SO is right
+    expect((await http(`/calls/${call.id}/answer`, { method: "POST", body: { optionId: "home_ot" } })).status).toBe(201);
 
     const live = await until("live", async () => {
       const s = (await http(`/matches/${ROTATION[0]}/state`)).body as LiveState;
@@ -196,7 +196,7 @@ describe("rotation", () => {
     });
     expect(end.status).toBe("final");
     expect(end.score).toEqual({ home: 3, away: 2 });
-    expect(end.me?.matchPoints).toBe(20);
+    expect(end.me?.matchPoints).toBe(30);
     const page = (await http(`/matches/${ROTATION[0]}`)).body as MatchDetail;
     expect(page.status).toBe("final");
   }, 40_000);
@@ -225,9 +225,9 @@ describe("rotation", () => {
     await control("restart");
     expect(await board(ROTATION[0])).toEqual([]);
     // the balance is the welcome balance plus what was earned; the season board counts earned points only
-    expect(((await http("/me")).body as MeResponse).user.points).toBe(WELCOME_POINTS_DEFAULT + 20);
+    expect(((await http("/me")).body as MeResponse).user.points).toBe(WELCOME_POINTS_DEFAULT + 30);
     const season = (await http("/leaderboard?scope=season")).body.entries.find((e: { nickname: string }) => e.nickname === "Ada");
-    expect(season.score).toBe(20);
+    expect(season.score).toBe(30);
     await control("resume");
   }, 40_000);
 

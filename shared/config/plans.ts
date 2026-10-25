@@ -8,6 +8,17 @@ export const MAX_POINTS_SHARE = 0.5;
 
 export type PlanId = "digital" | "sports-pass" | "weekend";
 
+/** the plan cards' checklist, in this order */
+export const FEATURES = [
+  { id: "stream", label: "Live match stream" },
+  { id: "calls", label: "Your Call!, predictions and trivia" },
+  { id: "stakes", label: "Season stakes and What if?" },
+  { id: "audio", label: "60-second audio summaries" },
+  { id: "stories", label: "Verified match stories" },
+  { id: "news", label: "All Kaleva news and the digital paper" },
+] as const;
+export type FeatureId = (typeof FEATURES)[number]["id"];
+
 export interface Plan {
   id: PlanId;
   name: string;
@@ -21,6 +32,10 @@ export interface Plan {
   durationLabel: string;
   includesLiveStream: boolean;
   maxPointsUsable: number;
+  /** what the plan's checklist ticks */
+  features: FeatureId[];
+  /** the card marked "Most popular" */
+  popular?: boolean;
 }
 
 export const PLANS: Plan[] = [
@@ -34,6 +49,7 @@ export const PLANS: Plan[] = [
     durationLabel: "month",
     includesLiveStream: false,
     maxPointsUsable: 600,
+    features: ["calls", "stakes", "stories", "news"],
   },
   {
     id: "sports-pass",
@@ -45,6 +61,8 @@ export const PLANS: Plan[] = [
     durationLabel: "month",
     includesLiveStream: true,
     maxPointsUsable: 350,
+    features: ["stream", "calls", "stakes", "audio", "stories"],
+    popular: true,
   },
   {
     id: "weekend",
@@ -56,6 +74,7 @@ export const PLANS: Plan[] = [
     durationLabel: "3 days",
     includesLiveStream: true,
     maxPointsUsable: 150,
+    features: ["stream", "calls", "stakes", "stories"],
   },
 ];
 

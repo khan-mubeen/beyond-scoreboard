@@ -33,7 +33,7 @@ export function FilterPills<T extends string>({
             }`}
           >
             {o.icon === "live" ? (
-              <span aria-hidden className={`size-2.5 rounded-full ${on ? "bg-accent-ink" : "bg-accent"}`} />
+              <span aria-hidden className="size-2.5 rounded-full bg-live" />
             ) : (
               <Icon name={o.icon} className="size-4.5" />
             )}

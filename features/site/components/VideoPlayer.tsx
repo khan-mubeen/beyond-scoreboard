@@ -43,7 +43,7 @@ export function VideoPlayer({
       <Poster src={video.poster} className="absolute inset-0 size-full object-cover" />
       {external ? (
         <a href={video.href!} target="_blank" rel="noreferrer" className="absolute inset-0 grid place-items-center" aria-label={`Watch on liiga.fi: ${video.title}`}>
-          <span className="relative z-10 flex items-center gap-2 rounded-full bg-accent px-5 py-3 text-sm font-semibold text-accent-ink shadow-card">
+          <span className="relative z-10 flex items-center gap-2 rounded-full bg-dark-ink px-5 py-3 text-sm font-semibold text-ink shadow-card">
             <Icon name="play" className="size-4" /> Watch on liiga.fi
           </span>
         </a>
@@ -56,7 +56,7 @@ export function VideoPlayer({
       </div>
       {progress !== undefined && (
         <div aria-hidden className="absolute inset-x-5 bottom-3 h-0.5 bg-dark-ink/30">
-          <div className="h-full bg-accent" style={{ width: `${progress * 100}%` }} />
+          <div className="h-full bg-dark-ink" style={{ width: `${progress * 100}%` }} />
         </div>
       )}
     </div>

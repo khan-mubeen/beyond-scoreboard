@@ -1,14 +1,13 @@
 import { AnimatePresence, MotionConfig, motion } from "motion/react";
 import { type ReactNode, useState, useSyncExternalStore } from "react";
 import type { Breadcrumb, DataSource } from "@/shared/types";
-import { sportsNav } from "../chrome";
-import { MediaFooter } from "./media/MediaChrome";
+import { KalevaBar, KalevaFooter } from "./kaleva/KalevaChrome";
 import { useMe } from "../data";
 import { Icon } from "./Icon";
 import { Sidebar } from "./Sidebar";
 import { SidebarDrawer } from "./SidebarDrawer";
 import { ToastProvider } from "./Toast";
-import { MediaBar, TopNav } from "./TopNav";
+import { TopNav } from "./TopNav";
 
 export interface SidebarConfig {
   activeLinkId?: string;
@@ -75,13 +74,13 @@ export function SiteLayout({
   const [drawerOpen, setDrawerOpen] = useState(false);
   const large = useIsLarge();
   const panel = <Sidebar me={me} activeLinkId={sidebar.activeLinkId ?? ""} variant={sidebar.variant} />;
-  const nav = sportsNav(typeof window === "undefined" ? "/sports" : window.location.pathname, typeof window === "undefined" ? "" : window.location.search);
 
   if (bare) {
     return (
       <MotionConfig reducedMotion="user">
         <ToastProvider>
-          <div className="min-h-screen overflow-x-clip bg-bg text-ink">{children}</div>
+          {/* the bare layout is tv mode: it keeps its white background (the sports pages are grey) */}
+          <div className="min-h-screen overflow-x-clip bg-surface text-ink">{children}</div>
         </ToastProvider>
       </MotionConfig>
     );
@@ -111,8 +110,8 @@ export function SiteLayout({
     <MotionConfig reducedMotion="user">
       <ToastProvider>
         <div className="min-h-screen overflow-x-clip bg-bg text-ink">
-          <MediaBar />
-          <TopNav me={me} menu={menu} nav={nav} />
+          <KalevaBar />
+          <TopNav me={me} menu={menu} />
           <div className="flex">
             <AnimatePresence initial={false}>
               {docks && (
@@ -143,8 +142,8 @@ export function SiteLayout({
               {children}
             </div>
           </div>
-          <MediaFooter note="Demo — Kaleva Sports concept" />
-          <SidebarDrawer open={drawerOpen} onClose={() => setDrawerOpen(false)} id={DRAWER_ID} nav={nav}>
+          <KalevaFooter note="Demo — Kaleva Sports concept" />
+          <SidebarDrawer open={drawerOpen} onClose={() => setDrawerOpen(false)} id={DRAWER_ID}>
             {panel}
           </SidebarDrawer>
         </div>

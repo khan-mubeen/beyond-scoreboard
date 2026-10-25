@@ -19,6 +19,7 @@ import { YourNight } from "../components/YourNight";
 import { Icon } from "../components/Icon";
 import { toast } from "../components/Toast";
 import { AudioSummary } from "../components/AudioSummary";
+import { GameChart, NextTimePanel, PeriodsPanel, PlayerOfGame, SeasonImpact } from "../components/FinishedGraphics";
 import { fmtCountdown, isMockMatch, setReminderApi, useMe, useRotation, useServerNow } from "../data";
 import type { DataSource } from "@/shared/types";
 
@@ -74,6 +75,7 @@ export function FinishedMatch({ match, source, onChange }: { match: FinishedMatc
   const stats = <MatchStats stats={match.stats} source={match.statsSource} note={match.statsNote} />;
   const gotg = match.goalOfTheGame;
   const real = !isMockMatch(match.id);
+  const insights = match.insights ?? null;
 
   return (
     <SiteLayout sidebar={{ docked: false }} source={source}>
@@ -94,6 +96,14 @@ export function FinishedMatch({ match, source, onChange }: { match: FinishedMatc
           />
           <StakesSummary chips={match.stakesSummary} />
         </div>
+
+        {/* what this means, and why to watch the next one */}
+        {insights && (
+          <div className={`mt-4 grid gap-4 ${insights.nextTime ? "xl:grid-cols-[minmax(0,1.25fr)_minmax(0,1fr)]" : ""}`}>
+            <SeasonImpact insights={insights} />
+            {insights.nextTime && <NextTimePanel next={insights.nextTime} focus={insights.focus} />}
+          </div>
+        )}
 
         <div className="mt-4 grid gap-4 xl:grid-cols-[minmax(0,1fr)_343px]">
           <main className="flex min-w-0 flex-col gap-4">
@@ -125,6 +135,13 @@ export function FinishedMatch({ match, source, onChange }: { match: FinishedMatc
               >
                 {tab === "overview" && (
                   <>
+                    {insights && <GameChart insights={insights} home={match.match.home} away={match.match.away} onWatch={setVideo} />}
+                    {insights && (insights.periods.length > 0 || insights.playerOfGame) && (
+                      <div className="grid gap-4 lg:grid-cols-2">
+                        {insights.periods.length > 0 && <PeriodsPanel insights={insights} home={match.match.home} away={match.match.away} />}
+                        {insights.playerOfGame && <PlayerOfGame player={insights.playerOfGame} />}
+                      </div>
+                    )}
                     {gotg && <GoalOfTheGame goal={gotg} onWatch={() => setVideo(gotg.video)} />}
                     <div className="grid gap-4 lg:grid-cols-2">
                       {moments}
@@ -139,7 +156,7 @@ export function FinishedMatch({ match, source, onChange }: { match: FinishedMatc
               </motion.div>
             </AnimatePresence>
 
-            {match.nextUp && (
+            {match.nextUp && !insights?.nextTime && (
               <NextUpBanner
                 next={match.nextUp}
                 onToggle={real && match.nextUp.matchId ? (on) => setReminderApi(match.nextUp!.matchId!, on).then((r) => r.ok) : undefined}

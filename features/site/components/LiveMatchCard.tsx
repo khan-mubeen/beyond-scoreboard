@@ -12,9 +12,9 @@ import { WhenLabel } from "./WhenLabel";
 export function LiveBadge({ className = "" }: { className?: string }) {
   return (
     <span
-      className={`inline-flex items-center gap-1.5 rounded-md bg-accent px-2.5 py-1 text-xs font-bold text-accent-ink ${className}`}
+      className={`inline-flex items-center gap-1.5 rounded-md bg-live px-2.5 py-1 text-xs font-bold text-live-ink ${className}`}
     >
-      <span aria-hidden className="size-2 rounded-full bg-accent-ink" />
+      <span aria-hidden className="size-2 rounded-full bg-live-ink" />
       LIVE
     </span>
   );
@@ -96,7 +96,7 @@ export function LiveMatchCard({ featured }: { featured: FeaturedMatch }) {
           <div className={`mt-4 grid gap-3 ${question || match.status === "final" ? "sm:grid-cols-2" : ""}`}>
             <a
               href={match.href}
-              className="flex h-11 items-center justify-center gap-2 rounded-lg bg-accent font-semibold text-accent-ink hover:brightness-110"
+              className={`flex h-11 items-center justify-center gap-2 rounded-lg font-semibold ${live ? "bg-live text-live-ink hover:brightness-110" : "bg-dark-ink text-ink hover:bg-white/85"}`}
             >
               <Icon name="play" className="size-4" />
               {live ? "Watch live" : "Match centre"}
@@ -112,7 +112,7 @@ export function LiveMatchCard({ featured }: { featured: FeaturedMatch }) {
                   href={`${match.href}#call-it`}
                   aria-live="polite"
                   className={`flex h-11 items-center justify-center gap-2 rounded-lg font-semibold ${
-                    question.kind === "open" ? "bg-dark-ink text-accent ring-2 ring-accent" : "border border-dark-ink/70 hover:bg-dark-ink/10"
+                    question.kind === "open" ? "bg-dark-ink text-live ring-2 ring-live" : "border border-dark-ink/70 hover:bg-dark-ink/10"
                   }`}
                 >
                   <Icon name="target" className="size-4" />

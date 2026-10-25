@@ -1,6 +1,5 @@
 import { AnimatePresence, motion } from "motion/react";
 import { type ReactNode, useEffect, useRef } from "react";
-import type { NavLink } from "@/shared/types";
 import { MenuButton, Wordmark } from "./TopNav";
 
 /**
@@ -11,13 +10,11 @@ export function SidebarDrawer({
   open,
   onClose,
   id,
-  nav,
   children,
 }: {
   open: boolean;
   onClose: () => void;
   id: string;
-  nav: NavLink[];
   children: ReactNode;
 }) {
   const closeRef = useRef<HTMLDivElement>(null);
@@ -72,28 +69,10 @@ export function SidebarDrawer({
               <Wordmark />
             </div>
             <div className="flex-1 overflow-y-auto bg-surface-2/60 px-4 py-5">
-              {/* the sports sections first: the header shows them only on wide screens */}
-              <nav aria-label="Sports sections" className="mb-5 border-b border-line pb-4 font-km xl:hidden">
-                <ul className="flex flex-col gap-1">
-                  {nav.map((l) => (
-                    <li key={l.label}>
-                      <a
-                        href={l.href}
-                        aria-current={l.active ? "page" : undefined}
-                        className={`block rounded-md px-3 py-2 font-semibold hover:bg-surface ${l.active ? "text-accent" : ""}`}
-                      >
-                        {l.label}
-                      </a>
-                    </li>
-                  ))}
-                  <li>
-                    <a href="/" className="mt-1 block rounded-md px-3 py-2 text-sm text-muted hover:bg-surface">
-                      ← Kaleva Media
-                    </a>
-                  </li>
-                </ul>
-              </nav>
               {children}
+              <a href="/" className="mt-4 block rounded-md px-3 py-2 text-sm font-semibold text-muted hover:bg-surface hover:text-ink">
+                ‹ Kaleva
+              </a>
             </div>
           </motion.div>
         </div>

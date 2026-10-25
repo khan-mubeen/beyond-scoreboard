@@ -17,8 +17,9 @@ const newKey = () => (typeof crypto !== "undefined" && "randomUUID" in crypto ? 
  * starting at the most allowed), and the live summary. one idempotency key per checkout, so a
  * double click (or a retry) buys once
  */
-export function CheckoutForm({ plan, balance, onDone }: { plan: Plan; balance: number; onDone: (r: SubscriptionResult) => void }) {
-  const [edited, setEdited] = useState<number | null>(null);
+export function CheckoutForm({ plan, balance, onDone, initialPoints = null }: { plan: Plan; balance: number; onDone: (r: SubscriptionResult) => void; initialPoints?: number | null }) {
+  // the plan card's slider value, else the most allowed
+  const [edited, setEdited] = useState<number | null>(initialPoints);
   const [key] = useState(newKey);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -104,16 +105,21 @@ export function PurchaseSuccess({ result, liveHref, onClose }: { result: Subscri
   return (
     <div className="flex flex-col items-center gap-4 text-center">
       <div className="relative grid size-24 place-items-center">
-        {[...Array(10)].map((_, i) => (
-          <motion.span
-            key={i}
-            aria-hidden
-            className={`absolute size-2 rounded-full ${i % 2 ? "bg-accent" : "bg-gold"}`}
-            initial={{ x: 0, y: 0, opacity: 1, scale: 0.6 }}
-            animate={{ x: Math.cos((i / 10) * Math.PI * 2) * 52, y: Math.sin((i / 10) * Math.PI * 2) * 52, opacity: 0, scale: 1 }}
-            transition={{ duration: 0.9, ease: "easeOut", delay: 0.1 }}
-          />
-        ))}
+        {/* confetti: two rings bursting out, then drifting down */}
+        {[...Array(24)].map((_, i) => {
+          const a = (i / 24) * Math.PI * 2;
+          const r = i % 2 ? 70 : 48;
+          return (
+            <motion.span
+              key={i}
+              aria-hidden
+              className={`absolute ${i % 3 === 0 ? "h-1.5 w-3 rounded-sm" : "size-2 rounded-full"} ${["bg-accent", "bg-gold", "bg-good", "bg-top4"][i % 4]}`}
+              initial={{ x: 0, y: 0, opacity: 1, scale: 0.6, rotate: 0 }}
+              animate={{ x: Math.cos(a) * r, y: [0, Math.sin(a) * r, Math.sin(a) * r + 30], opacity: [1, 1, 0], scale: 1, rotate: 180 }}
+              transition={{ duration: 1.4, ease: "easeOut", delay: 0.1 + (i % 4) * 0.04 }}
+            />
+          );
+        })}
         <motion.span
           className="grid size-20 place-items-center rounded-full bg-good text-white"
           initial={{ scale: 0.4, opacity: 0 }}
@@ -153,7 +159,7 @@ export function PurchaseSuccess({ result, liveHref, onClose }: { result: Subscri
 }
 
 /** the checkout for one plan, as a modal: the form, then the success screen */
-export function CheckoutModal({ planId, open, onClose, liveHref }: { planId: string | null; open: boolean; onClose: () => void; liveHref?: string }) {
+export function CheckoutModal({ planId, open, onClose, liveHref, initialPoints = null }: { planId: string | null; open: boolean; onClose: () => void; liveHref?: string; initialPoints?: number | null }) {
   const plan = planId ? planById(planId) : undefined;
   const balance = useMe().data?.wallet.balance ?? 0;
   const [done, setDone] = useState<SubscriptionResult | null>(null);
@@ -164,7 +170,7 @@ export function CheckoutModal({ planId, open, onClose, liveHref }: { planId: str
   return (
     <Modal open={open && !!plan} onClose={close} title={done ? "You're in" : "Checkout"}>
       {/* a fresh form (and idempotency key) every time the checkout opens */}
-      {plan && !done && <CheckoutForm key={String(open)} plan={plan} balance={balance} onDone={setDone} />}
+      {plan && !done && <CheckoutForm key={`${open}:${initialPoints}`} plan={plan} balance={balance} onDone={setDone} initialPoints={initialPoints} />}
       {plan && done && <PurchaseSuccess result={done} liveHref={liveHref} onClose={close} />}
     </Modal>
   );

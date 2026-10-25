@@ -13,7 +13,8 @@ import { NicknameForm } from "./SettingsPage";
 /** the fan's running plans (cancel stops renewal; they stay active until they end) and purchases */
 function PlansSection() {
   const page = useRewardsPage().data;
-  const [checkout, setCheckout] = useState<string | null>(null);
+  const balance = useMe().data?.wallet.balance ?? 0;
+  const [checkout, setCheckout] = useState<{ planId: string; points: number } | null>(null);
   const active = page?.subscriptions.filter((s) => s.active) ?? [];
   return (
     <SectionCard title="Your subscriptions" action={<ActionLink href="/rewards#plans">See plans</ActionLink>}>
@@ -24,12 +25,12 @@ function PlansSection() {
           {active.length === 0 ? (
             <p className="text-sm text-muted">No subscription yet. Kaleva Sports Pass lets you watch the games live.</p>
           ) : (
-            active.map((s) => <SubscriptionCard key={s.id} sub={s} onSubscribe={() => setCheckout(s.id)} />)
+            active.map((s) => <SubscriptionCard key={s.id} sub={s} balance={balance} onSubscribe={(points) => setCheckout({ planId: s.id, points })} />)
           )}
           {page.history && page.history.length > 0 && <PurchaseHistory items={page.history} />}
         </div>
       )}
-      <CheckoutModal planId={checkout} open={checkout !== null} onClose={() => setCheckout(null)} />
+      <CheckoutModal planId={checkout?.planId ?? null} initialPoints={checkout?.points ?? null} open={checkout !== null} onClose={() => setCheckout(null)} />
     </SectionCard>
   );
 }
