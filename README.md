@@ -1,12 +1,58 @@
-# beyond-scoreboard
+# Kaleva Sports: Beyond the Scoreboard
 
-An AI-powered sports experience featuring live match insights, personalized content, interactive predictions, fan rewards, and verified AI-generated analysis. Built for JunctionX Oulu 2026, Kaleva Media Challenge.
+**Every goal changes more than the score.** Live season stakes, Your Call! predictions with friends, and fact-checked AI match stories, starting with Liiga.
 
-## PowerPlay (working name)
+Built for **JunctionX Oulu 2026, Kaleva Media challenge**.
 
-A watch party for Liiga, played on a replayed real game.
-**Big screen:** each team's playoff and relegation chance moves with the score, and the projected table re-sorts when a goal goes in.
-**Phones:** fans type the short address the TV shows ("Join at …"), land in the match's Watch Party, make live calls for points, chat, react, ask the match about any player, answer trivia and invite friends. **AI story:** a pre-game brief and a post-game story where every number comes from a verified fact ledger.
+<!-- add before sharing: the live demo link, and a hero screenshot, e.g. ![Kaleva Sports](docs/screens/hero.png) -->
+
+**Live demo:** _add the deployed URL here_ · **How we use AI:** `/sports/ai` on the demo
+
+## The problem
+
+A scoreboard says 2–1. It doesn't say that this goal just pushed a team above the playoff line, or that the next game decides their season. Fans get results from countless apps, but what each moment *means* is nowhere. Kaleva has the trusted local sports voice to own that moment.
+
+## What it does
+
+Kaleva Sports turns official sports data into an experience before, during and after every match, inside kaleva.fi.
+
+- **Season stakes, live.** A Monte Carlo season simulation (thousands of runs on the real schedule) gives each team's playoff, top-4 and relegation chance. The chance moves with every goal, and the projected table re-sorts live.
+- **Your Call!** Live questions during the game and a match prediction before it starts. The server judges every answer against official data on its own clock and pays fixed points. No betting, no odds, no money: only "chance".
+- **Watch Party.** Everyone on a match shares one party: chat, reactions, trivia, "ask the match" answers from official data, friends and invite links. TV mode puts the match on the big screen with a short join address, so the whole room plays along on their phones.
+- **After the final whistle.** Season impact (the chance and the table before and after), the game in one chart, goal and player of the game, match statistics, and a 60-second spoken summary in English and Finnish.
+- **What if?** Set upcoming results and watch the table and the chances change.
+- **Reasons to come back.** Weekly and season leaderboards, achievements, and Kaleva Rewards, where points unlock subscription perks (the partner brands in the demo are fictional).
+
+## Responsible AI: data decides facts, AI tells stories
+
+- Stories and summaries are written only from a **fact ledger** built from official match data.
+- A deterministic **validator** blocks any sentence with a number, name or claim that isn't in the ledger, any repeated fact, and any betting language. Templates written from match data are the fallback.
+- **Human in the loop:** Kaleva editors review, edit (re-validated) and approve AI texts in `/editor`. An unapproved text is never published; fans see the version written from match data instead.
+- **Honest labels** on every text: "AI-written · facts checked against Liiga data", "Written from match data", "Reviewed by a Kaleva editor", plus a **Report a mistake** link that reaches the editors.
+- AI never decides answers or points.
+
+## Designed beyond Liiga
+
+Liiga runs about eight months a year. The core (the season model, points and predictions, the watch party, leaderboards, rewards and the fact-checked story pipeline) works from a league table and a schedule; nothing in it depends on hockey. A new sport needs a data adapter and its own live question types. Liiga, with real 2026–27 data, is the first adapter; Veikkausliiga, Superpesis or floorball can carry the summer.
+
+## Try it
+
+The demo replays real Liiga games on a pinned clock, so the whole journey runs anytime: the lobby and the match prediction, the live game with Your Call!, the summary, then the next match.
+
+```sh
+npm install
+npm run dev          # http://localhost:3000, works offline on recorded Liiga data
+```
+
+Start at `/` (the kaleva.fi front page) and follow **Kaleva Sports · NEW**. More: [the demo night](#demo-night-demo_modetrue) and [all pages](#pages).
+
+## Tech
+
+React 19 + TypeScript (strict) + Tailwind, one Express server, Supabase (Postgres + Realtime), the Liiga API, a Monte Carlo season model, a fact ledger with a validator, an optional LLM writer (Qwen, through any OpenAI-compatible endpoint), and Azure neural voices. The server is the single authority for the clock, the questions and the points. 1,300+ automated tests.
+
+---
+
+# For developers
 
 User-facing text always says "chance" ("playoff chance 64%"), never "odds". No prizes, no betting.
 
@@ -77,7 +123,7 @@ Other scripts:
 | `npm run fake-players`   | `-- <matchId> [count]`, fans that join and answer every call on a running server   |
 | `npm run pregen`         | `-- --match <id>`, LLM match stories into `content_cache`, validated               |
 | `npm run pregen:phrases` | LLM wordings for each Your Call! question into `phrase_bank`, validated              |
-| `npm run pregen:demo`    | the rotation's stories and 60-second summaries, en + fi                             |
+| `npm run pregen:demo`    | the rotation's stories and 60-second summaries, en + fi, pending review in `/editor` |
 | `npm run audio:generate` | Azure neural voice MP3s of the summaries into `match-audio` (needs `AZURE_SPEECH_KEY`) |
 | `npm run audio:import`   | `-- --match <id> --lang en\|fi --file x.mp3`, a recorded summary instead           |
 | `npm run demo:pick`      | picks the demo night and its 3 matches → `demo/rotation.json`, `demo/DOWNLOADS.md`  |
@@ -129,6 +175,7 @@ npm run build && npm start                                       # or npm run de
 - [`/teams`](http://localhost:3000/teams) all 17 teams (follow with the star), [`/teams/kärpät`](http://localhost:3000/teams/k%C3%A4rp%C3%A4t) one team: chances, last 5, next 3
 - [`/profile`](http://localhost:3000/profile), [`/calls`](http://localhost:3000/calls), [`/calls/history`](http://localhost:3000/calls/history), [`/achievements`](http://localhost:3000/achievements), [`/settings`](http://localhost:3000/settings) (nickname, language, notifications, reset), [`/guidelines`](http://localhost:3000/guidelines)
 - On a match page, Season stakes has "What if?": set this match and up to 3 other games that night, see the gauges and the table move, and make your one match prediction (+30) ([docs/what-if.md](docs/what-if.md)). A finished match leads with its season impact, the game in one chart and "Next time"
+- [`/sports/ai`](http://localhost:3000/sports/ai) how we use AI, and every label explained; [`/editor`](http://localhost:3000/editor) (host token) review, edit and approve stored stories and summaries, approve question wordings in bulk, read reported mistakes
 - [`/watch`](http://localhost:3000/watch) create or join a watch party room
 - [`/dev`](http://localhost:3000/dev) links to everything below
 - [`/dev/stakes`](http://localhost:3000/dev/stakes) meter, season strip and projected table on mock data
