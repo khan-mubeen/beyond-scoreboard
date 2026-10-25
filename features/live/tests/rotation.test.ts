@@ -58,6 +58,15 @@ describe("rotation schedule", () => {
     clock = controlClock(T, clock, "restart", at(900));
     expect(rotationAt(T, clock, at(900))).toMatchObject({ cycle: 0, phase: "lobby", current: { matchId: "a" } });
   });
+
+  it("a pause and resume (and a skip) keep the run, so the cycle's name and its party stay", () => {
+    let clock: { epoch: number; pausedAt: number | null; run?: number } = { epoch: E, pausedAt: null, run: 42 };
+    for (const [action, t] of [["pause", 20], ["resume", 80], ["skip", 90], ["pause", 95], ["resume", 300]] as const) {
+      clock = controlClock(T, clock, action, at(t));
+      expect(clock.run, action).toBe(42);
+    }
+    expect(rotationAt(T, clock, at(300)).cycle).toBe(0);
+  });
 });
 
 const DIR = new URL("../../liiga/snapshots/", import.meta.url);

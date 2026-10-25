@@ -92,7 +92,8 @@ export function controlClock(t: RotationTiming, clock: RotationClock, action: Ro
     case "pause":
       return clock.pausedAt !== null ? clock : { ...clock, pausedAt: now };
     case "resume":
-      return clock.pausedAt === null ? clock : { epoch: clock.epoch + (now - clock.pausedAt), pausedAt: null };
+      // the run stays: it names the cycle, so a pause never starts a new party
+      return clock.pausedAt === null ? clock : { ...clock, epoch: clock.epoch + (now - clock.pausedAt), pausedAt: null };
     case "skip": {
       const r = rotationAt(t, clock, now);
       return { ...clock, epoch: clock.epoch - (r.phaseEnd - (clock.pausedAt ?? now)) };

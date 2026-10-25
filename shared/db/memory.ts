@@ -171,6 +171,14 @@ export function createMemoryDb(): Db {
         calls.set(call.id, call);
         return { ...call };
       },
+      async createOnce(c) {
+        // no await between the check and the insert: one call per match and trigger
+        const there = [...calls.values()].filter((x) => x.matchId === c.matchId && x.trigger === c.trigger).sort((a, b) => a.openedAt.localeCompare(b.openedAt))[0];
+        if (there) return { call: { ...there }, created: false };
+        const call: DbCall = { ...c, id: randomUUID() };
+        calls.set(call.id, call);
+        return { call: { ...call }, created: true };
+      },
       async update(id, patch) {
         const c = calls.get(id);
         if (!c) return null;

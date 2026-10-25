@@ -16,9 +16,11 @@ import type { LiveCall, LiveRotation, LiveStakes, LiveState, MatchEvent, PartyMe
 import { optionsFi, wordCall } from "../engine/phrases";
 import { gameAt, nextMomentAfter, replayEnd, replayTime, type ReplayClock } from "../engine/replay";
 import { gameAtVideo, goalVideoTimes, planCalls, type PlannedCall } from "../engine/rotation";
-import { decidedInWindow, nextCall, resolve, whoWinsDraft, type CallDraft, type ResolveRule } from "../engine/rules";
+import { CALL_POINTS, PREDICTION_TYPE, pointsFor, sourceOf, TRIVIA_POINTS } from "../engine/points";
+import { decidedInWindow, nextCall, resolve, type CallDraft, type ResolveRule } from "../engine/rules";
 import { isLeader, onLeadership } from "./leader";
 import { publish, type MatchEvent as Broadcast } from "./realtime";
+import { createPrediction, cycleOfTrigger } from "./prediction";
 import { initRotation, isRotationMatch, phaseOf, rotationMatch, rotationNow } from "./rotation";
 
 export interface RenderedMatch {
@@ -71,9 +73,8 @@ export interface MatchRenderer {
 
 let renderer: MatchRenderer | null = null;
 const ANSWER_MS = Number(process.env.CALL_ANSWER_SECONDS ?? 20) * 1000;
-export const CALL_POINTS = 20;
-/** trivia: fixed points, a shorter window, and spacing so it only fills the gaps */
-export const TRIVIA_POINTS = 10;
+export { CALL_POINTS, TRIVIA_POINTS };
+/** trivia: a shorter window, and spacing so it only fills the gaps */
 const TRIVIA_MS = Number(process.env.TRIVIA_ANSWER_SECONDS ?? 15) * 1000;
 /** a play gap: this long since the last question or trivia (rehearsals can shorten both) */
 const TRIVIA_GAP_MS = Number(process.env.TRIVIA_GAP_SECONDS ?? 90) * 1000;
@@ -90,12 +91,15 @@ type Message = { event: Broadcast; payload: Record<string, unknown> };
 type Kind = "live" | "replay" | "rotation";
 
 const isTrivia = (c: DbCall) => c.type === "trivia";
+const isPrediction = (c: DbCall) => c.type === PREDICTION_TYPE;
 
 /** one in-app notification per fan who answered and wants them (bots never get one), in one insert */
 async function notifyResults(matchId: string, c: DbCall, correct: string, answers: { userId: string; optionId: string }[]) {
   const db = getDb();
   const wants = new Set((await db.users.getMany([...new Set(answers.map((a) => a.userId))])).filter((u) => !u.isBot && u.notificationPrefs.callResults).map((u) => u.id));
   const answer = c.options.find((o) => o.id === correct)?.label ?? correct;
+  const points = pointsFor(c.type);
+  const what = isPrediction(c) ? "Your prediction was right!" : "You got it!";
   await db.notifications.create(
     answers
       .filter((a) => wants.has(a.userId))
@@ -104,7 +108,7 @@ async function notifyResults(matchId: string, c: DbCall, correct: string, answer
         return {
           userId: a.userId,
           type: "call_result",
-          title: won ? `You got it! +${CALL_POINTS} pts` : "Not this time",
+          title: won ? `${what} +${points} pts` : "Not this time",
           body: won ? `${c.question} ${answer}.` : `${c.question} The answer was ${answer}.`,
           link: `/match/${matchId}`,
           dedupeKey: `call:${c.id}:${a.userId}`,
@@ -195,7 +199,8 @@ class MatchLoop {
       // a live game remembers its calls (no trigger fires twice after a restart); open ones from
       // before a restart are cancelled, locked ones still resolve
       const stored = await db.calls.listForMatch(this.matchId);
-      if (isLeader()) for (const c of stored.filter((x) => x.status === "open")) await db.calls.update(c.id, { status: "cancelled", resolvedAt: new Date().toISOString() });
+      // the prediction made before the game is kept: it locks at the start and resolves at the end
+      if (isLeader()) for (const c of stored.filter((x) => x.status === "open" && !isPrediction(x))) await db.calls.update(c.id, { status: "cancelled", resolvedAt: new Date().toISOString() });
       this.calls = await db.calls.listForMatch(this.matchId);
       this.lastOpenedAt = this.calls.filter((c) => !isTrivia(c)).reduce<number | null>((m, c) => Math.max(m ?? 0, c.openedGameTime), null);
     }
@@ -272,8 +277,14 @@ class MatchLoop {
     const db = getDb();
     const rows = await db.calls.listForMatch(this.matchId);
     if (isLeader() && this.kind === "rotation") {
-      // a call from an earlier cycle left open by a server that stopped: nobody would settle it
-      for (const c of rows.filter((x) => !this.owns(x) && (x.status === "open" || x.status === "locked"))) {
+      // a call from an earlier cycle left open by a server that stopped: nobody would settle it.
+      // a prediction for a later cycle of this run (made on the preview page) waits for its lobby
+      const current = this.cycle ? cycleOfTrigger(`${this.cycle}:${PREDICTION_TYPE}`) : null;
+      const later = (x: DbCall) => {
+        const at = cycleOfTrigger(x.trigger);
+        return !!at && !!current && at.run === current.run && at.n > current.n;
+      };
+      for (const c of rows.filter((x) => !this.owns(x) && !later(x) && (x.status === "open" || x.status === "locked"))) {
         await db.calls.update(c.id, { status: "cancelled", resolvedAt: new Date(now).toISOString() });
       }
     }
@@ -326,6 +337,7 @@ class MatchLoop {
       const messages: Message[] = [];
 
       if (leading) {
+        if (this.kind === "rotation") await this.holdPrediction(now);
         await this.settleCalls(game, now, messages);
         if (this.kind === "rotation") await this.openRotationCalls(game, now, messages);
         else await this.openNextCall(game, now, messages);
@@ -430,7 +442,11 @@ class MatchLoop {
         continue;
       }
       const rule = c.resolvesRule as ResolveRule;
-      if (c.status === "open" && now >= Date.parse(c.locksAt)) {
+      // a rotation's prediction locks when its game starts (a skip can start it early, a pause
+      // late): the phase decides, not the stored time
+      const rotationPrediction = isPrediction(c) && this.kind === "rotation";
+      const started = this.rotation?.phase === "live" || this.rotation?.phase === "summary";
+      if (c.status === "open" && (rotationPrediction ? started : now >= Date.parse(c.locksAt))) {
         const answers = await db.answers.listForCall(c.id);
         const split = splitOf(c.options, answers);
         this.splits.set(c.id, split);
@@ -455,7 +471,7 @@ class MatchLoop {
       await Promise.all(
         answers
           .filter((x) => x.optionId === correct)
-          .map((a) => db.points.award({ userId: a.userId, matchId: this.matchId, callId: c.id, points: CALL_POINTS, reason: `call: ${c.question}`, createdAt })),
+          .map((a) => db.points.award({ userId: a.userId, matchId: this.matchId, callId: c.id, points: pointsFor(c.type), reason: `${sourceOf(c.type)}: ${c.question}`, createdAt })),
       );
       await notifyResults(this.matchId, c, correct, answers).catch((err) => console.warn(`live: notifications failed: ${(err as Error).message}`));
       const split = this.splits.get(c.id) ?? splitOf(c.options, answers);
@@ -470,6 +486,19 @@ class MatchLoop {
       this.boardKey = JSON.stringify(this.board);
       messages.push({ event: "leaderboard", payload: { leaderboard: this.board.rows, watching: this.board.watching, members: this.board.members, at: now } });
     }
+  }
+
+  /**
+   * in the lobby the prediction's lock time follows the game's start: a pause holds it, a skip
+   * brings it forward. answers check the stored time, so it is kept fresh
+   */
+  private async holdPrediction(now: number) {
+    if (this.rotation?.phase !== "lobby") return;
+    const c = this.calls.find((x) => isPrediction(x) && x.status === "open");
+    const p = phaseOf(this.matchId, now);
+    if (!c || !p) return;
+    const target = now + Math.max(0, p.slot.liveAt - p.r.at);
+    if (Math.abs(Date.parse(c.locksAt) - target) > 1000) Object.assign(c, await getDb().calls.update(c.id, { locksAt: new Date(target).toISOString() }));
   }
 
   /** trivia's answer is known when it opens: at the lock it resolves at once, +10 for each right answer */
@@ -546,20 +575,31 @@ class MatchLoop {
 
   /** a live game or a speed replay: the trigger rules decide the next call on the spot */
   private async openNextCall(game: LiigaGame, now: number, messages: Message[]) {
+    // a real game's prediction is made before it starts (what if?), never in play
+    const used = new Set(this.calls.map((c) => c.trigger));
+    if (this.kind === "live") used.add(PREDICTION_TYPE);
     const draft = nextCall(game, {
       lastOpenedAt: this.lastOpenedAt,
       hasOpenCall: this.calls.some((c) => c.status === "open" && !isTrivia(c)),
-      used: new Set(this.calls.map((c) => c.trigger)),
+      used,
     });
     if (draft) await this.openCall(draft, game, now, now + ANSWER_MS, messages);
   }
 
-  /** the rotation: "who wins?" in the lobby (answers close when the game starts), then the planned calls */
+  /**
+   * the rotation: the prediction ("who wins?") in the lobby, answers close when the game starts.
+   * fans may have made it already on the preview page: the lobby adopts that call. then the
+   * planned calls
+   */
   private async openRotationCalls(game: LiigaGame, now: number, messages: Message[]) {
     const rot = this.rotation;
     if (!rot || rot.paused || !this.full) return;
-    if (rot.phase === "lobby" && !this.calls.some((c) => c.type === "who_wins")) {
-      await this.openCall(whoWinsDraft(this.full), game, now, rot.liveStartedAt, messages);
+    if (rot.phase === "lobby" && this.cycle && !this.calls.some(isPrediction)) {
+      const stakesLine = await renderer!.stakesLine(this.matchId, game, { kind: "who_wins", trigger: "who_wins", rule: { kind: "who_wins" }, options: [], vars: {} }).catch(() => null);
+      const { call } = await createPrediction(this.matchId, this.full, this.cycle, rot.liveStartedAt, now, stakesLine);
+      this.calls.push(call);
+      this.lastQuestionAt = now;
+      messages.push({ event: "call_open", payload: { call: this.toLive(call), serverNow: now } });
     }
     if (rot.phase !== "live" || rot.videoSec === null) return;
     const videoMs = rot.videoSec * 1000;
@@ -612,7 +652,7 @@ class MatchLoop {
       question: c.question,
       options: c.options,
       stakesLine: c.stakesLine,
-      points: isTrivia(c) ? TRIVIA_POINTS : CALL_POINTS,
+      points: pointsFor(c.type),
       status: c.status,
       openedAt: Date.parse(c.openedAt),
       locksAt: Date.parse(c.locksAt),

@@ -216,6 +216,8 @@ export interface Db {
   };
   calls: {
     create(c: Omit<DbCall, "id">): Promise<DbCall>;
+    /** one call per match and trigger, whichever server asks first (a match's prediction): the existing one, else a new one */
+    createOnce(c: Omit<DbCall, "id">): Promise<{ call: DbCall; created: boolean }>;
     update(id: string, patch: Partial<Omit<DbCall, "id">>): Promise<DbCall | null>;
     get(id: string): Promise<DbCall | null>;
     getMany(ids: string[]): Promise<DbCall[]>;

@@ -38,6 +38,8 @@ export {
   type RenderedMatch,
   type TriviaDraft,
 } from "./engine";
+// the match prediction: one per fan, match and cycle, made before the game
+export { findPrediction, openPrediction, predictionClosed, predictionWindow } from "./prediction";
 // one server runs the engine (a lease in the database); the others serve http
 export { INSTANCE, isLeader, leaderInfo, onLeadership, startLeadership, stopLeadership } from "./leader";
 // the demo rotation (DEMO_MODE=true)

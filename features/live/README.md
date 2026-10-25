@@ -17,6 +17,7 @@ Server only, `@/features/live/server`:
 - `answerCall(callId, userId, optionId)`, `publish(matchId, messages)`, `recentBroadcasts`, `phraseProblem`, `PHRASE_VARS`, `BUILT_IN`
 - leadership: `startLeadership()`, `stopLeadership()`, `isLeader()`, `leaderInfo()`, `onLeadership(fn)`, `INSTANCE`
 - the party: `roomScope(matchId)` (key, cycle, since), `refreshRoom(matchId)`, `TRIVIA_POINTS`, the renderer's `leaderboard`, `goalLine`, `post` and `trivia`
+- the match prediction: `openPrediction(matchId, game)`, `findPrediction(matchId, cycle)`, `predictionWindow(matchId, game)`, `predictionClosed(call)`; browser-safe `PREDICTION_POINTS`, `PREDICTION_TYPE`, `PREDICTION_OUTCOMES`, `pointsFor(type)`, `sourceOf(type)` (`engine/points.ts`)
 
 Route handlers (`server/routes/`): the watch party's create, join, control, state, answers, wired up in `server/api.ts`. The engine's routes are in `features/site/server/routes/site.ts`.
 
@@ -27,6 +28,7 @@ Route handlers (`server/routes/`): the watch party's create, join, control, stat
 - `server/leader.ts`: the engine leader lease (`claim_engine_leader` in Postgres, renew 5 s, TTL 15 s, followers try every 2 s; memory db: always the leader)
 - `server/realtime.ts`: Supabase Realtime broadcast over REST on private `match:{id}` channels
 - `server/calls.ts`: answering a call
+- `server/prediction.ts`: the match prediction, one per fan, match and rotation cycle: the cycle's `who_wins` call, made once by whichever server asks first (`calls.createOnce`, `create_call_once` in Postgres), open before the game (what if? on the preview page, the lobby), locked when the game starts. In the lobby the engine keeps its lock time at the game's start (a pause holds it); a rotation prediction locks when the phase goes live
 - `replay/`, `calls/`, `components/`, `screens/`, `server/store.ts`: the watch party (in memory)
 - `scripts/fake-players.ts`: fans over http only, each with its own cookie
 - `scripts/demo-tunnel.ts`: `npm run demo:tunnel`, a cloudflare quick tunnel to the local server; tells the server its public address
@@ -36,7 +38,8 @@ Route handlers (`server/routes/`): the watch party's create, join, control, stat
 - Nothing after the replay clock reaches a fan: no future goals, no final totals, no video (`tests/replay.test.ts`, on every recorded game).
 - An open call never carries its answer or the split (`tests/server.test.ts` checks every broadcast).
 - Only events after the lock decide a call; one that decides it while answers are open cancels it (`tests/rules.test.ts`).
-- One answer per fan per call, none after the lock, 20 points once per correct call (`tests/ledger.test.ts`).
+- One answer per fan per call, none after the lock, fixed points once per correct call: 20, the prediction 30, trivia 10 (`tests/ledger.test.ts`, `features/site/tests/prediction.test.ts`).
+- A host pause or resume keeps the rotation's run, so the cycle (and its party and prediction) stays (`tests/rotation.test.ts`).
 - A replay runs at 1x while a call takes answers, so the window is as long in game time as in a live game.
 
 ## Test alone

@@ -53,7 +53,7 @@ describe("when a call opens", () => {
   it("asks who wins when the game starts, once", () => {
     const draft = nextCall(game(30), fresh());
     expect(draft?.kind).toBe("who_wins");
-    expect(draft?.options.map((o) => o.id)).toEqual(["home_reg", "away_reg", "overtime"]);
+    expect(draft?.options.map((o) => o.id)).toEqual(["home_win", "home_ot", "away_ot", "away_win"]);
     expect(nextCall(game(30), { ...fresh(), used: new Set(["who_wins"]) })?.kind).not.toBe("who_wins");
     expect(nextCall(game(200), fresh())?.kind).not.toBe("who_wins");
   });
@@ -102,8 +102,8 @@ describe("how a call is decided (only events after the lock count)", () => {
   it("who wins: the final result, overtime for an overtime or shootout game, never cancelled", () => {
     const rule: ResolveRule = { kind: "who_wins" };
     expect(resolve(rule, game(3000, { goals: [["away", 100]] }), 50)).toBeNull();
-    expect(resolve(rule, game(3600, { goals: [["away", 100]], status: "final", decidedIn: "regulation" }), 50)).toBe("away_reg");
-    expect(resolve(rule, game(3700, { goals: [["home", 3650]], status: "final", decidedIn: "overtime" }), 50)).toBe("overtime");
+    expect(resolve(rule, game(3600, { goals: [["away", 100]], status: "final", decidedIn: "regulation" }), 50)).toBe("away_win");
+    expect(resolve(rule, game(3700, { goals: [["home", 3650]], status: "final", decidedIn: "overtime" }), 50)).toBe("home_ot");
     expect(decidedInWindow(rule, game(100, { goals: [["home", 60]] }), 30, 100)).toBe(false);
   });
 
@@ -202,7 +202,8 @@ describe("calls over the recorded games", () => {
       expect(calls[i].openedAt).toBeGreaterThanOrEqual(calls[i - 1].closedAt ?? Infinity);
     }
     const whoWins = calls.find((c) => c.draft.kind === "who_wins");
-    const expected = g.decidedIn !== "regulation" ? "overtime" : g.home.goals > g.away.goals ? "home_reg" : "away_reg";
+    const home = g.home.goals > g.away.goals;
+    const expected = g.decidedIn !== "regulation" ? (home ? "home_ot" : "away_ot") : home ? "home_win" : "away_win";
     expect(whoWins?.correct).toBe(expected);
   });
 

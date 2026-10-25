@@ -41,17 +41,22 @@ export interface TriggerContext {
   used: Set<string>;
 }
 
-/** "who wins?": at the start of a game, or before it (the demo rotation's lobby) */
-export function whoWinsDraft(g: LiigaGame): CallDraft {
+/**
+ * "who wins?": the match prediction (one per fan, match and rotation cycle, see prediction.ts).
+ * four outcomes from the home team's view; made before the game (what if?, the rotation's
+ * lobby), locked when it starts, decided by the final result
+ */
+export function whoWinsDraft(g: Pick<LiigaGame, "home" | "away">): CallDraft {
   const names = { home: g.home.name, away: g.away.name };
   return {
     kind: "who_wins",
     trigger: "who_wins",
     rule: { kind: "who_wins" },
     options: [
-      { id: "home_reg", label: `${names.home} in regulation` },
-      { id: "away_reg", label: `${names.away} in regulation` },
-      { id: "overtime", label: "Goes to overtime" },
+      { id: "home_win", label: `${names.home} win` },
+      { id: "home_ot", label: `${names.home} win in OT/SO` },
+      { id: "away_ot", label: `${names.away} win in OT/SO` },
+      { id: "away_win", label: `${names.away} win` },
     ],
     vars: names,
   };
@@ -130,10 +135,12 @@ export function resolve(rule: ResolveRule, g: LiigaGame, lockGameTime: number): 
   const t = g.gameTime;
   const done = g.status === "final";
   switch (rule.kind) {
-    case "who_wins":
+    case "who_wins": {
       if (!done) return null;
-      if (g.decidedIn !== "regulation") return "overtime";
-      return g.home.goals > g.away.goals ? "home_reg" : "away_reg";
+      const home = g.home.goals > g.away.goals;
+      if (g.decidedIn === "regulation") return home ? "home_win" : "away_win";
+      return home ? "home_ot" : "away_ot";
+    }
     case "first_goal_period": {
       const first = g.goals.find((x) => x.period === rule.period && x.gameTime > lockGameTime);
       if (first) return first.side;

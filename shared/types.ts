@@ -399,6 +399,10 @@ export interface MatchSummary {
   href: string;
   /** a demo rotation match not on yet: when it starts (ms, server clock), for a countdown */
   startsAt?: number;
+  /** a result card: both teams' playoff chance after the game and its change, in points */
+  swing?: { home: { now: number; change: number }; away: { now: number; change: number } } | null;
+  /** a result card: the winner's next game ("Next for Kärpät: vs TPS · Fri 23 Oct") */
+  teaser?: { text: string; href: string } | null;
 }
 
 /** a sport we don't cover yet, shown greyed out */
@@ -598,12 +602,47 @@ export interface WhatIfTeam {
   after: WhatIfChances;
 }
 
+/** a row of the table tonight if the set results happen */
+export interface WhatIfTableRow {
+  team: TeamRef;
+  rank: number;
+  rankBefore: number;
+  points: number;
+  pointsBefore: number;
+  zone: Zone;
+}
+
 /** POST /api/site/whatif */
 export interface WhatIfResult extends ApiMeta {
   matchId: string;
   overrides: WhatIfOverride[];
   /** the match's two teams first, then the other set games' teams */
   teams: WhatIfTeam[];
+  /** the whole table tonight with the set results (unset games add nothing), best first */
+  table: WhatIfTableRow[];
+}
+
+/**
+ * the fan's match prediction (GET / POST /api/site/matches/:id/prediction): one per fan, match and
+ * rotation cycle. it is the same record as the lobby's "who wins?" your call! question, made from
+ * what if? or that card, locked when the game starts, +30 if right
+ */
+export interface MatchPrediction extends ApiMeta {
+  matchId: string;
+  /** null until the first fan makes one */
+  callId: string | null;
+  /** closed: none can be made now and the fan made none */
+  status: "open" | "locked" | "won" | "lost" | "cancelled" | "closed";
+  question: string;
+  /** from the home team's view, with the what if? outcome each one sets */
+  options: { id: string; label: string; outcome: GameOutcome }[];
+  /** the fan's option id */
+  choice: string | null;
+  /** once the game is decided */
+  correctOptionId: string | null;
+  /** ms epoch, server clock */
+  locksAt: number | null;
+  points: number;
 }
 
 /** someone's comment in the match discussion */
@@ -760,7 +799,16 @@ export interface FinishedMatchDetail extends MatchDetailBase {
     video: VideoInfo;
   } | null;
   /** null for a viewer who didn't play along */
-  yourNight: { points: number; callsCorrect: number; callsTotal: number; rank: number; of: number; bestCall: string } | null;
+  yourNight: {
+    points: number;
+    callsCorrect: number;
+    callsTotal: number;
+    rank: number;
+    of: number;
+    bestCall: string;
+    /** the fan's match prediction, once the game decided it */
+    prediction?: { label: string; correct: boolean; points: number } | null;
+  } | null;
   room: RoomSummary;
   /** the match discussion, oldest first (read only once the game is over) */
   discussion: Comment[];
@@ -768,6 +816,79 @@ export interface FinishedMatchDetail extends MatchDetailBase {
   nextUp: { title: string; when: string; worth: string; matchId?: string } | null;
   /** the ~60-second spoken summary, in english and finnish */
   summary?: { en: SpokenSummary; fi: SpokenSummary } | null;
+  /** the graphics: season impact, the game in one chart, periods, player of the game, next time */
+  insights?: FinishedInsights | null;
+}
+
+/** a goal on the finished page's chart */
+export interface GoalMarker {
+  id: string;
+  side: "home" | "away";
+  team: TeamRef;
+  /** game seconds */
+  seconds: number;
+  period: number;
+  /** "12:34" in the period, "OT 2:10" */
+  time: string;
+  /** "1–0" */
+  score: string;
+  scorer: string | null;
+  assists: string[];
+  /** the scorer's photo when the api has one (pictureUrl) */
+  photo: string | null;
+  initials: string;
+  /** the focus team's playoff chance before and after the goal, % */
+  chanceBefore: number | null;
+  chanceAfter: number | null;
+  kind: string | null;
+  video: VideoInfo | null;
+}
+
+/** what a finished game means, and why to watch the next one */
+export interface FinishedInsights {
+  /** the team the chances are for (the favourite when it plays, else home) */
+  focus: { team: TeamRef; side: "home" | "away" };
+  impact: { chanceBefore: number; chanceAfter: number; rankBefore: number; rankAfter: number; zoneAfter: Zone; table: WhatIfTableRow[] };
+  game: {
+    /** where the time axis ends (3600, or later after overtime) */
+    endSeconds: number;
+    goals: GoalMarker[];
+    /** the focus team's playoff chance from the start, after each goal (%) */
+    steps: { seconds: number; chance: number }[];
+  };
+  /** shots and puck-control share per period; empty when the feed has neither */
+  periods: { label: string; shots: Score | null; control: Score | null }[];
+  playerOfGame: {
+    name: string;
+    team: TeamRef;
+    photo: string | null;
+    initials: string;
+    goals: number;
+    assists: number;
+    /** this season including tonight */
+    season: { games: number; goals: number; assists: number } | null;
+    /** one fact from the data ("Points in 4 games in a row") */
+    note: string | null;
+  } | null;
+  nextTime: NextTimePanel | null;
+}
+
+/** the focus team's next game: what it's worth, the head-to-head, both teams' form, a player to watch */
+export interface NextTimePanel {
+  matchId: string;
+  opponent: TeamRef;
+  home: boolean;
+  /** "Fri 23 Oct · 18:30" */
+  when: string;
+  /** playoff chance now and with a regulation win / loss there, % */
+  worth: { now: number; win: number; loss: number } | null;
+  /** this season's games between the two, oldest first, from the focus team's view */
+  headToHead: { matchId: string; date: string; result: FormResult; score: string }[];
+  /** the last five of both teams, oldest first */
+  form: { team: TeamRef; results: { result: FormResult; title: string }[] }[];
+  playerToWatch: { name: string; team: TeamRef; photo: string | null; initials: string; note: string } | null;
+  /** the liiga team id to follow */
+  followTeamId: string;
 }
 
 /**
@@ -984,8 +1105,11 @@ export interface RewardOffer {
   description: string;
   /** null means members only */
   costPoints: number | null;
-  /** the partner's official site; null hides "Go to partner site" */
+  /** the partner's official site; null hides "Go to partner site" (the demo's partners are fictional) */
   partnerUrl?: string | null;
+  /** the (fictional) partner: name, an invented monogram and its colours */
+  partner?: { name: string; monogram: string; bg: string; fg: string; accent: string; pattern: "dots" | "stripes" | null } | null;
+  category?: "food" | "sports" | "travel" | "shopping";
   /** the fan's code once unlocked */
   redemption?: { code: string; at: string } | null;
   /** members only: the fan has a plan */
@@ -1104,6 +1228,8 @@ export interface MyCallRow {
   answer: string | null;
   status: MyCallStatus;
   points: number;
+  /** a your call! question, the match prediction or party trivia */
+  kind?: "call" | "prediction" | "trivia";
   /** iso */
   openedAt: string;
 }
@@ -1131,7 +1257,7 @@ export interface MeResponse extends ApiMeta {
   follows: string[];
   notificationPrefs: NotificationPrefs;
   /** the pinned demo clock when DEMO_MODE is on */
-  demo: { label: string; now: string } | null;
+  demo?: { label: string; now: string } | null;
   /** what the fan can spend (a guest: the welcome balance they start with) */
   wallet: { balance: number };
   /** running plans, one per plan */
@@ -1211,6 +1337,26 @@ export interface NotificationsResponse extends ApiMeta {
 }
 
 export type LeaderboardScope = "weekly" | "season" | "room";
+
+/**
+ * GET /api/site/leaderboard/breakdown?scope=&user=: one fan's board points (earned only: no welcome
+ * points, no spending), by source and by match. both lists sum to `total`, the board's figure
+ */
+export interface PointsBreakdown extends ApiMeta {
+  userId: string;
+  name: string;
+  scope: LeaderboardScope;
+  total: number;
+  bySource: { call: number; prediction: number; trivia: number };
+  /** newest first; points not tied to a match (the seeded history) are one "Earlier" row */
+  perMatch: { matchId: string | null; title: string; points: number }[];
+  /** resolved calls answered in this scope */
+  answered: number;
+  correct: number;
+  correctPct: number;
+  /** the right call that paid most (the latest of equals) */
+  bestCall: { question: string; answer: string; points: number; matchTitle: string } | null;
+}
 
 /** GET /api/site/leaderboard?scope= */
 export interface LeaderboardPageData extends ApiMeta {

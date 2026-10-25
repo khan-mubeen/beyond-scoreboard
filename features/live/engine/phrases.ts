@@ -28,6 +28,10 @@ export const fillPhrase = (template: string, vars: Record<string, string>) =>
 /** a call's options in finnish, with the same ids (team names stay in the nominative) */
 export function optionsFi(options: { id: string; label: string }[], vars: Record<string, string>): { id: string; label: string }[] {
   const fi: Record<string, string> = {
+    home_win: `${vars.home} voittaa`,
+    home_ot: `${vars.home} voittaa jatkoajalla tai voittolaukauksilla`,
+    away_ot: `${vars.away} voittaa jatkoajalla tai voittolaukauksilla`,
+    away_win: `${vars.away} voittaa`,
     home_reg: `${vars.home} varsinaisella peliajalla`,
     away_reg: `${vars.away} varsinaisella peliajalla`,
     overtime: "Jatkoajalle",

@@ -275,6 +275,11 @@ export function createSupabaseDb(sb: SupabaseClient): Db {
       async create(c) {
         return call(must(await sb.from("calls").insert(callRow(c)).select().single()));
       },
+      async createOnce(c) {
+        // one transaction behind a lock on (match, trigger): create_call_once
+        const r = must(await sb.rpc("create_call_once", { p_call: callRow(c) })) as Row;
+        return { call: call(r), created: r.created === true };
+      },
       async update(id, patch) {
         const r = must(await sb.from("calls").update(callRow(patch)).eq("id", id).select().maybeSingle());
         return r ? call(r) : null;

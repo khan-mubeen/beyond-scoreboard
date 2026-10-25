@@ -5,6 +5,8 @@ export { toPublicCall } from "./calls/public";
 export { resolveCall } from "./calls/resolve";
 export { scheduleCalls } from "./calls/schedule";
 export { CALL_POINTS } from "./calls/scoring";
+// the fixed points of the kaleva sports calls, and the match prediction's outcomes
+export { PREDICTION_OUTCOMES, PREDICTION_POINTS, PREDICTION_TYPE, pointsFor, sourceOf, type PointsSource } from "./engine/points";
 export { formatGameClock, gameTimeAt, periodAt } from "./replay/clock";
 export { stateAt } from "./replay/state-at";
 export { useJoinUrl, useRoomState } from "./components/use-room-state";
