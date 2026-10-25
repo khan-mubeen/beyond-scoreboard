@@ -10,9 +10,11 @@ import {
   type DbGuestPass,
   type DbInvite,
   type DbNotification,
+  type DbPhrase,
   type DbPoints,
   type DbPresence,
   type DbRedemption,
+  type DbReport,
   type DbRoom,
   type DbSubscription,
   type DbUser,
@@ -36,8 +38,9 @@ export function createMemoryDb(): Db {
   const likes = new Set<string>();
   const reactions: { commentId: string; userId: string; emoji: string }[] = [];
   const reminders = new Set<string>();
-  const content = new Map<string, { content: unknown; source: "template" | "llm" }>();
-  const phrases: { callType: string; lang: string; template: string; approved: boolean }[] = [];
+  const content = new Map<string, { content: unknown; source: "template" | "llm"; createdAt: string }>();
+  const phrases: DbPhrase[] = [];
+  const reports: DbReport[] = [];
   const notifications: DbNotification[] = [];
   const settings = new Map<string, unknown>();
   const favorites = new Map<string, Set<string>>();
@@ -459,7 +462,10 @@ export function createMemoryDb(): Db {
         return content.get(key) ?? null;
       },
       async put(key, value, source) {
-        content.set(key, { content: value, source });
+        content.set(key, { content: value, source, createdAt: now() });
+      },
+      async list() {
+        return [...content.entries()].map(([key, v]) => ({ key, ...v })).sort((a, b) => b.createdAt.localeCompare(a.createdAt));
       },
     },
     phrases: {
@@ -467,7 +473,25 @@ export function createMemoryDb(): Db {
         return phrases.filter((p) => p.approved && p.callType === callType && p.lang === lang).map((p) => p.template);
       },
       async insert(rows) {
-        phrases.push(...rows);
+        phrases.push(...rows.map((r) => ({ ...r, id: randomUUID(), reviewedBy: null, reviewedAt: null, createdAt: now() })));
+      },
+      async list() {
+        return phrases.map((p) => ({ ...p }));
+      },
+      async review(ids, approved, reviewer) {
+        let n = 0;
+        for (const p of phrases) if (ids.includes(p.id)) Object.assign(p, { approved, reviewedBy: reviewer, reviewedAt: now() }, n++);
+        return n;
+      },
+    },
+    reports: {
+      async create(r) {
+        const row: DbReport = { ...r, id: randomUUID(), createdAt: now() };
+        reports.push(row);
+        return { ...row };
+      },
+      async list(limit) {
+        return [...reports].sort((a, b) => b.createdAt.localeCompare(a.createdAt)).slice(0, limit);
       },
     },
     notifications: {

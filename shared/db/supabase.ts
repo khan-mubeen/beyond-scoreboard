@@ -13,6 +13,7 @@ import {
   type DbPoints,
   type DbPresence,
   type DbRedemption,
+  type DbReport,
   type DbRoom,
   type DbSubscription,
   type DbUser,
@@ -82,6 +83,15 @@ const callRow = (c: Partial<Omit<DbCall, "id">>): Row => {
   };
   return Object.fromEntries(Object.entries(c).map(([k, v]) => [map[k] ?? k, v]));
 };
+const report = (r: Row): DbReport => ({
+  id: r.id as string,
+  refKind: r.ref_kind as DbReport["refKind"],
+  refKey: r.ref_key as string,
+  matchId: (r.match_id as string) ?? null,
+  message: r.message as string,
+  userId: (r.user_id as string) ?? null,
+  createdAt: r.created_at as string,
+});
 const answer = (r: Row): DbAnswer => ({
   id: r.id as string,
   callId: r.call_id as string,
@@ -547,6 +557,14 @@ export function createSupabaseDb(sb: SupabaseClient): Db {
       async put(key, value, source) {
         must(await sb.from("content_cache").upsert({ key, content: value, source, created_at: new Date().toISOString() }, { onConflict: "key" }));
       },
+      async list() {
+        return (must(await sb.from("content_cache").select("*").order("created_at", { ascending: false }).limit(500)) as Row[]).map((r) => ({
+          key: r.key as string,
+          content: r.content,
+          source: r.source as "template" | "llm",
+          createdAt: r.created_at as string,
+        }));
+      },
     },
     phrases: {
       async listApproved(callType, lang) {
@@ -557,6 +575,34 @@ export function createSupabaseDb(sb: SupabaseClient): Db {
       async insert(rows) {
         if (!rows.length) return;
         must(await sb.from("phrase_bank").insert(rows.map((r) => ({ call_type: r.callType, lang: r.lang, template: r.template, approved: r.approved }))));
+      },
+      async list() {
+        return (must(await sb.from("phrase_bank").select("*").order("created_at")) as Row[]).map((r) => ({
+          id: r.id as string,
+          callType: r.call_type as string,
+          lang: r.lang as string,
+          template: r.template as string,
+          approved: r.approved as boolean,
+          reviewedBy: (r.reviewed_by as string) ?? null,
+          reviewedAt: (r.reviewed_at as string) ?? null,
+          createdAt: r.created_at as string,
+        }));
+      },
+      async review(ids, approved, reviewer) {
+        if (!ids.length) return 0;
+        const rows = must(await sb.from("phrase_bank").update({ approved, reviewed_by: reviewer, reviewed_at: new Date().toISOString() }).in("id", ids).select("id")) as Row[];
+        return rows.length;
+      },
+    },
+    reports: {
+      async create(r) {
+        const row = must(
+          await sb.from("content_reports").insert({ ref_kind: r.refKind, ref_key: r.refKey, match_id: r.matchId, message: r.message, user_id: r.userId }).select().single(),
+        ) as Row;
+        return report(row);
+      },
+      async list(limit) {
+        return (must(await sb.from("content_reports").select("*").order("created_at", { ascending: false }).limit(limit)) as Row[]).map(report);
       },
     },
     notifications: {

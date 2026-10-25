@@ -66,7 +66,7 @@ export interface DbCall {
   correctOptionId: string | null;
   resolvedAt: string | null;
   /** the finnish wording of the question and options */
-  i18n?: { fi?: { question: string; options: DbCallOption[] } } | null;
+  i18n?: { fi?: { question: string; options: DbCallOption[] }; wording?: "ai" | "auto" } | null;
 }
 
 export interface DbAnswer {
@@ -88,6 +88,27 @@ export interface DbPoints {
   reason: string;
   /** what a debit paid for (the subscription or redemption id) */
   ref?: string | null;
+  createdAt: string;
+}
+
+export interface DbPhrase {
+  id: string;
+  callType: string;
+  lang: string;
+  template: string;
+  approved: boolean;
+  reviewedBy: string | null;
+  reviewedAt: string | null;
+  createdAt: string;
+}
+
+export interface DbReport {
+  id: string;
+  refKind: "text" | "call";
+  refKey: string;
+  matchId: string | null;
+  message: string;
+  userId: string | null;
   createdAt: string;
 }
 
@@ -320,10 +341,22 @@ export interface Db {
   content: {
     get(key: string): Promise<{ content: unknown; source: "template" | "llm" } | null>;
     put(key: string, content: unknown, source: "template" | "llm"): Promise<void>;
+    /** every stored text (the editor's list), newest first */
+    list(): Promise<{ key: string; content: unknown; source: "template" | "llm"; createdAt: string }[]>;
   };
   phrases: {
     listApproved(callType: string, lang: string): Promise<string[]>;
     insert(rows: { callType: string; lang: string; template: string; approved: boolean }[]): Promise<void>;
+    /** every wording with its review (the editor) */
+    list(): Promise<DbPhrase[]>;
+    /** an editor approves or rejects wordings */
+    review(ids: string[], approved: boolean, reviewer: string): Promise<number>;
+  };
+  /** "report a mistake" in a generated text or a call's wording */
+  reports: {
+    create(r: Omit<DbReport, "id" | "createdAt">): Promise<DbReport>;
+    /** newest first */
+    list(limit: number): Promise<DbReport[]>;
   };
   notifications: {
     /** bulk insert; rows whose dedupe key already exists are skipped */

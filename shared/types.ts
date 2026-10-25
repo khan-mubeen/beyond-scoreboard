@@ -154,6 +154,76 @@ export interface Content {
   status: "verified" | "fallback";
   /** iso date-time */
   generatedAt: string;
+  /** a stored text's editor review (content_cache); public pages show a stored text only once approved */
+  review?: ContentReview | null;
+  /** set when served: where this text came from, whether an editor approved it, its key for reports */
+  origin?: TextOrigin | null;
+}
+
+export interface ContentReview {
+  status: "pending" | "approved" | "rejected";
+  /** the reviewer's name and when (iso); null while pending */
+  by: string | null;
+  at: string | null;
+  /** an editor changed the wording (the validator passed it again) */
+  edited?: boolean;
+}
+
+/** /editor: one stored text part (a match story or 60-second summary in one language) */
+export interface EditorPart {
+  key: string;
+  kind: "story" | "summary";
+  /** ai: an llm wrote it; template: written from match data */
+  source: "ai" | "template";
+  sentences: { text: string; passed: boolean; reason: string | null }[];
+  blocked: number;
+  review: ContentReview;
+}
+
+/** /editor: a match's texts in one language, reviewed together */
+export interface EditorText {
+  /** "<matchId>|<teamId>|<lang>" */
+  id: string;
+  matchId: string;
+  title: string;
+  lang: "en" | "fi";
+  demo: boolean;
+  status: ContentReview["status"];
+  reviewedBy: string | null;
+  reviewedAt: string | null;
+  parts: EditorPart[];
+  reports: number;
+  href: string;
+}
+
+/** /editor: the phrase bank's wordings for one question type */
+export interface EditorPhraseGroup {
+  callType: string;
+  items: { id: string; lang: string; template: string; status: ContentReview["status"]; reviewedBy: string | null; reviewedAt: string | null; problem: string | null; callType: string }[];
+}
+
+/** /editor: a mistake a fan reported */
+export interface EditorReport {
+  id: string;
+  refKind: "text" | "call";
+  refKey: string;
+  matchId: string | null;
+  message: string;
+  userId: string | null;
+  createdAt: string;
+  what: string;
+  title: string;
+  href: string | null;
+}
+
+/** the honest label of a generated text */
+export interface TextOrigin {
+  /** ai: an llm wrote it (from ledger facts, validated); template: written from match data */
+  source: "ai" | "template";
+  /** only when an editor approved exactly this text in /editor */
+  reviewed: { by: string; at: string } | null;
+  /** the content_cache key (null for a live template), for "report a mistake" */
+  key: string | null;
 }
 
 export type ValidationErrorType =
@@ -162,7 +232,9 @@ export type ValidationErrorType =
   | "unknown_name"
   | "quote"
   | "off_ice_claim"
-  | "betting_language";
+  | "betting_language"
+  /** the same claim (a chance, a position, a change) said twice in one text, or a near-copy sentence */
+  | "repeated_fact";
 
 export interface VerifiedClaim {
   text: string;
@@ -926,6 +998,8 @@ export interface SpokenSummary {
   lang: Language;
   transcript: string;
   audio: { url: string; durationSec: number; voice: string; source: "azure" | "azure-portal" } | null;
+  /** where the transcript came from (its label) */
+  origin?: TextOrigin | null;
 }
 
 /** a game this season between the same two teams, newest first */
@@ -987,6 +1061,8 @@ export interface LiveCall {
   reason: string | null;
   /** the same call in finnish (same option ids) */
   fi?: { question: string; options: CallOption[] } | null;
+  /** ai: the wording came from the ai phrase bank (approved); auto: the built-in wording. the answer always comes from liiga data */
+  wording?: "ai" | "auto";
 }
 
 export type RotationPhaseName = "lobby" | "live" | "summary" | "idle";
