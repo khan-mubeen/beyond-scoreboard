@@ -281,7 +281,8 @@ function nextTime(
     opponent,
     home,
     when: `${shortDate(d)} · ${timeLabel(d)}`,
-    worth: coming.win !== null && coming.loss !== null ? { now: chanceNow, win: coming.win, loss: coming.loss } : null,
+    // the chance that game moves most for the team (playoff, relegation or top 4)
+    worth: coming.relevant ?? (coming.win !== null && coming.loss !== null ? { label: "Playoff chance", now: chanceNow, win: coming.win, loss: coming.loss } : null),
     headToHead,
     form: [
       { team: book.ref(focusId), results: formOf(focusId) },

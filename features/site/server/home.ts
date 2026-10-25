@@ -10,10 +10,10 @@ import type { ApiMeta, DataSource, FeaturedMatch, HomePage, LiigaTableData, Matc
 import { SITE } from "./config";
 import { favoriteTeamIds } from "./favorites";
 import { teamsWorld } from "./teams-data";
-import { chanceNow, gameStakes, type GameStakes } from "./game-stakes";
+import { chanceNow, gameStakes, metricFor, type GameStakes } from "./game-stakes";
 import type { Viewer } from "./identity";
 import { longDate, ordinal, pct, shortDate } from "./labels";
-import { chips, factsFor } from "./match";
+import { chips, meaningFacts, worthLine } from "./match";
 import { summaryOf } from "./match-parts";
 import { weeklyLeaderboard } from "./points";
 import { teamBook, type TeamBook } from "./teams";
@@ -48,15 +48,16 @@ function resultNote(f: LiigaFixture, book: TeamBook): string {
 }
 
 /**
- * a result card's graphic and teaser: both teams' playoff chance after the game and how far it
- * moved (the game judged as the season stood before it), and the winner's next game
+ * a result card's graphic and teaser: each team's most relevant chance after the game and how far
+ * it moved (the game judged as the season stood before it), and the winner's next game
  */
 function resultCard(ctx: SeasonContext, f: LiigaFixture, book: TeamBook, nowIso: string): Pick<MatchSummary, "swing" | "teaser"> {
   const s = gameStakes(ctx, f);
   const g = gameOfFixture(f);
   const side = (x: "home" | "away") => {
-    const now = pct(chanceNow(s!, x, g).playoffs);
-    return { now, change: now - pct(s!.baseline[x].playoffs) };
+    const { metric, label } = metricFor(s!, x, g);
+    const now = pct(chanceNow(s!, x, g)[metric]);
+    return { now, change: now - pct(s!.baseline[x][metric]), label };
   };
   const winner = (f.homeGoals ?? 0) > (f.awayGoals ?? 0) ? f.homeTeamId : f.awayTeamId;
   const next = ctx.schedule.find((x) => x.status === "scheduled" && x.start > f.start && x.start > nowIso && (x.homeTeamId === winner || x.awayTeamId === winner));
@@ -74,19 +75,21 @@ const swingOf = (s: GameStakes) =>
     return sum + (w.regulationWin.playoffs - w.regulationLoss.playoffs) + (w.regulationLoss.relegation - w.regulationWin.relegation);
   }, 0);
 
-/** one line on what's at stake: the team with the bigger swing, playoff or relegation */
+/** one line on what's at stake: the team this game swings most, in the chance it moves most */
 function stakesLine(g: LiigaGame, s: GameStakes, book: TeamBook): string {
   const best = (["home", "away"] as const)
     .map((side) => {
       const w = s.worth[side];
-      return { side, w, playoff: w.regulationWin.playoffs - w.regulationLoss.playoffs, releg: w.regulationLoss.relegation - w.regulationWin.relegation };
+      const { metric } = metricFor(s, side, g);
+      return { side, w, metric, swing: Math.abs(w.regulationWin[metric] - w.regulationLoss[metric]) };
     })
-    .reduce((a, b) => (Math.max(b.playoff, b.releg) > Math.max(a.playoff, a.releg) ? b : a));
+    .reduce((a, b) => (b.swing > a.swing ? b : a));
   const name = book.ref(g[best.side].teamId, g[best.side].name).name;
-  if (best.releg > best.playoff) {
-    return `${name}: relegation chance ${pct(best.w.regulationLoss.relegation)}% with a loss, ${pct(best.w.regulationWin.relegation)}% with a win`;
-  }
-  return `${name}: playoff chance ${pct(best.w.regulationWin.playoffs)}% with a win, ${pct(best.w.regulationLoss.playoffs)}% with a loss`;
+  const { w, metric } = best;
+  const noun = { playoffs: "playoff chance", relegation: "relegation chance", top4: "top-4 chance" }[metric];
+  // relegation: the loss first, it is the risk
+  if (metric === "relegation") return `${name}: ${noun} ${pct(w.regulationLoss[metric])}% with a loss, ${pct(w.regulationWin[metric])}% with a win`;
+  return `${name}: ${noun} ${pct(w.regulationWin[metric])}% with a win, ${pct(w.regulationLoss[metric])}% with a loss`;
 }
 
 function liigaTable(rows: Awaited<ReturnType<typeof getStandings>>["data"]["rows"], favId: string, favLive: boolean, book: TeamBook): LiigaTableData {
@@ -169,7 +172,7 @@ export async function homePage(viewer: Viewer, opts: { team?: string; date?: str
     featured = {
       match,
       background: "/placeholders/featured-live.svg",
-      whatItMeans: whatItMeansText(factsFor(featuredGame, s, side, book)),
+      whatItMeans: whatItMeansText(meaningFacts(featuredGame, s, side, book)),
       stakes: chips(s, featuredGame, book),
       // open = still taking answers: status open and the lock ahead (a lock lands on the next tick)
       openCalls: openNow(engineMatch(featuredGame.id)?.state?.call) ? 1 : 0,
@@ -200,7 +203,7 @@ export async function homePage(viewer: Viewer, opts: { team?: string; date?: str
     const s = gameStakes(ctx, f, shared);
     if (!s) return undefined;
     const side = f.homeTeamId === team ? "home" : "away";
-    return `What this game is worth for ${book.ref(team).name}: Win → ${pct(s.worth[side].regulationWin.playoffs)}% · Loss → ${pct(s.worth[side].regulationLoss.playoffs)}% playoff chance`;
+    return `What this game is worth for ${book.ref(team).name}: ${worthLine(s.worth[side], s.baseline[side])}`;
   };
   // "your teams": each followed team's next game and what it is worth
   const world = await teamsWorld(favIds);

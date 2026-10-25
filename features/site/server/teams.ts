@@ -27,7 +27,12 @@ export async function teamBook(): Promise<TeamBook> {
     ref(teamId, name) {
       const t = byId.get(teamId);
       const slug = teamId.split(":")[1] ?? teamId;
-      return { id: teamId, name: name ?? names.get(teamId) ?? t?.name ?? slug, logo: t?.logoLight ?? t?.logoDark ?? placeholderLogo(slug) };
+      return {
+        id: teamId,
+        name: name ?? names.get(teamId) ?? t?.name ?? slug,
+        ...(t?.abbreviation && { abbr: t.abbreviation }),
+        logo: t?.logoLight ?? t?.logoDark ?? placeholderLogo(slug),
+      };
     },
   };
 }

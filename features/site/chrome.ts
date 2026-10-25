@@ -21,3 +21,18 @@ export const QUICK_LINKS: QuickLink[] = [
   { id: "friends", label: "Friends", href: "/friends", icon: "friends" },
   { id: "settings", label: "Settings", href: "/settings", icon: "settings" },
 ];
+
+/**
+ * the sidebar link a page belongs to: the link whose path is the page's path, else the longest
+ * one the page's path starts with (whole segments only: /calls/history is "Call history", not
+ * "Your Call!"; /friends is "Friends", never "Profile"). null when none matches
+ */
+export function activeLinkFor(pathname: string, links: QuickLink[] = QUICK_LINKS): string | null {
+  const path = pathname.replace(/\/+$/, "") || "/";
+  const hrefPath = (h: string) => h.split(/[?#]/)[0].replace(/\/+$/, "") || "/";
+  const hits = links.filter((l) => {
+    const h = hrefPath(l.href);
+    return path === h || (h !== "/" && path.startsWith(`${h}/`));
+  });
+  return hits.sort((a, b) => hrefPath(b.href).length - hrefPath(a.href).length)[0]?.id ?? null;
+}

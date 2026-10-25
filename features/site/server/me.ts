@@ -1,6 +1,6 @@
 // GET /api/site/me: the viewer as the chrome shows them, on every page
 import { openCalls } from "@/features/live/server";
-import { demoLabel, demoMode, leagueNow } from "@/shared/clock";
+import { demoMode } from "@/shared/clock";
 import { DEFAULT_PREFS, getDb } from "@/shared/db";
 import type { MeResponse } from "@/shared/types";
 import { favoriteTeams, followedIds } from "./favorites";
@@ -43,7 +43,9 @@ export async function mePage(viewer: Viewer, publicUrl = ""): Promise<MeResponse
     friends,
     friendRequests,
     guestPass,
-    // demo: demoMode() ? { label: demoLabel() ?? "Demo", now: leagueNow().toISOString() } : null,
+    demoMode: demoMode(),
+    // the demo date chip is off for now; to bring it back: demo: demoMode() ? { label: demoLabel() ?? "Demo", now: leagueNow().toISOString() } : null
+    // (demoLabel and leagueNow from @/shared/clock)
     asOf: new Date().toISOString(),
     source: "db",
   };

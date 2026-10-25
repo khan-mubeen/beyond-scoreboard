@@ -11,6 +11,7 @@ import { demoMode, leagueNow } from "@/shared/clock";
 import { getDb } from "@/shared/db";
 import { engineTable, homePage } from "../home";
 import { rotationInfo } from "../rotation";
+import { tickerLine } from "../ticker";
 import { teamBook } from "../teams";
 import { ensureUser, viewerOf } from "../identity";
 import { leaderboardPage } from "../leaderboard";
@@ -441,6 +442,11 @@ siteRouter.get(
     const s = await getStandings(await getSeason(), live === "true");
     return { ...s.data, asOf: s.asOf, source: s.source };
   }),
+);
+
+siteRouter.get(
+  "/ticker",
+  handle(async () => tickerLine()),
 );
 
 siteRouter.get(

@@ -306,12 +306,16 @@ describe("what if?", () => {
 
   it("a set win gives the stakes card's win number; win >= overtime win >= overtime loss >= loss", async () => {
     const page = (await http(`/matches/${UPCOMING}`)).body;
+    // the card shows the team's most relevant chance; a relegation chance falls with a win
+    const metric: "playoffs" | "top4" | "relegation" = page.seasonStakes.metric ?? "playoffs";
     const options = page.seasonStakes.whatIf;
     expect(options.games[0].gameId).toBe(UPCOMING);
     expect(options.max).toBe(4);
     const { home, away } = options.games[0];
     const focusHome = page.seasonStakes.teamName === home.name;
     const focus = focusHome ? home.id : away.id;
+    // the panel's first gauge is the card's chance
+    expect(options.metrics[focus]).toBe(metric);
     // the card's outcomes are the focus team's view; the api takes the home team's
     const homeView = { regulationWin: "regulationWin", overtimeWin: "overtimeWin", overtimeLoss: "overtimeLoss", regulationLoss: "regulationLoss" } as const;
     const flip = { regulationWin: "regulationLoss", overtimeWin: "overtimeLoss", overtimeLoss: "overtimeWin", regulationLoss: "regulationWin" } as const;
@@ -323,11 +327,11 @@ describe("what if?", () => {
       expect(r.status).toBe(200);
       expect(liiga.findGamblingFields(r.body)).toEqual([]);
       const team = r.body.teams.find((t: Json) => t.team.id === focus);
-      expect(team.after.playoffs, o).toBe(page.seasonStakes.worth[o]);
-      expect(team.before.playoffs).toBe(page.seasonStakes.before);
-      chances.push(team.after.playoffs);
+      expect(team.after[metric], o).toBe(page.seasonStakes.worth[o]);
+      expect(team.before[metric]).toBe(page.seasonStakes.before);
+      chances.push(team.after[metric]);
     }
-    expect(chances).toEqual([...chances].sort((a, b) => b - a));
+    expect(chances).toEqual([...chances].sort((a, b) => (metric === "relegation" ? a - b : b - a)));
   });
 
   it("rejects decided games, repeats, unknown outcomes and more than four results", async () => {

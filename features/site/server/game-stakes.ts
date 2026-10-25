@@ -5,6 +5,8 @@ import type { LiigaFixture, LiigaGame } from "@/features/liiga";
 import {
   chanceTimeline,
   forecastBefore,
+  relevantMetric,
+  type ChanceMetric,
   forecastNow,
   ifEndsNow,
   tableIfEndsNow,
@@ -72,8 +74,16 @@ export function chanceNow(s: GameStakes, side: Side, game: Pick<LiigaGame, "stat
   return s.baseline[side];
 }
 
-export function timelineFor(s: GameStakes, side: Side, game: Pick<LiigaGame, "goals">) {
-  return chanceTimeline(game.goals, side, s.baseline[side].playoffs, s.worth[side], s.otRate[side]);
+export function timelineFor(s: GameStakes, side: Side, game: Pick<LiigaGame, "goals">, metric: ChanceMetric = "playoffs") {
+  return chanceTimeline(game.goals, side, s.baseline[side][metric], s.worth[side], s.otRate[side], metric);
+}
+
+/**
+ * the chance this game moves most for one team (playoff, relegation or top 4): the widest gap
+ * between a win and a loss, or for a finished game the biggest change from before to after
+ */
+export function metricFor(s: GameStakes, side: Side, game: Pick<LiigaGame, "status" | "decidedIn" | "home" | "away">) {
+  return relevantMetric({ worth: s.worth[side], before: s.baseline[side], after: game.status === "final" ? chanceNow(s, side, game) : null });
 }
 
 /** the table after the game (final) or if it ended now (live); the table before for an upcoming game */

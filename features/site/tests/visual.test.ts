@@ -78,7 +78,11 @@ describe("the finished page's insights", () => {
     const n = detail.insights!.nextTime!;
     expect(n).toBeTruthy();
     expect(n.matchId).toMatch(/^2027-\d+$/);
-    if (n.worth) expect(n.worth.win).toBeGreaterThanOrEqual(n.worth.loss);
+    // a win can't hurt: a higher playoff or top-4 chance, a lower relegation chance
+    if (n.worth) {
+      if (/^relegation/i.test(n.worth.label)) expect(n.worth.win).toBeLessThanOrEqual(n.worth.loss);
+      else expect(n.worth.win).toBeGreaterThanOrEqual(n.worth.loss);
+    }
     expect(n.form).toHaveLength(2);
     for (const f of n.form) expect(f.results.length).toBeLessThanOrEqual(5);
     // tonight's game is the focus team's latest result
@@ -98,10 +102,12 @@ describe("the results list", () => {
         expect(s.now).toBeGreaterThanOrEqual(0);
         expect(s.now).toBeLessThanOrEqual(100);
       }
-      // the winner can't lose chance from a win, the loser can't gain from a loss
+      // the winner's chance can't get worse from a win, the loser's can't get better from a loss
+      // (each side's own chance: a relegation chance getting better means going down)
       const homeWon = r.score!.home > r.score!.away;
-      expect((homeWon ? r.swing!.home : r.swing!.away).change).toBeGreaterThanOrEqual(0);
-      expect((homeWon ? r.swing!.away : r.swing!.home).change).toBeLessThanOrEqual(0);
+      const better = (s: { change: number; label?: string }) => (/^relegation/i.test(s.label ?? "") ? -s.change : s.change);
+      expect(better(homeWon ? r.swing!.home : r.swing!.away)).toBeGreaterThanOrEqual(0);
+      expect(better(homeWon ? r.swing!.away : r.swing!.home)).toBeLessThanOrEqual(0);
       if (r.teaser) expect(r.teaser.href).toMatch(/^\/match\/2027-\d+$/);
     }
   });

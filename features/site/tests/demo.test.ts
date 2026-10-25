@@ -87,9 +87,8 @@ describe("pinned demo clock", () => {
     await control("restart");
   });
 
-  it("the top nav chip, the home date and the table come from demoNow", async () => {
-    const me = (await http("/me")).body as MeResponse;
-    // expect(me.demo?.label).toBe("Demo · Tue 20 Oct 2026");
+  it("the home date and the table come from demoNow (the top nav chip is off for now)", async () => {
+    expect(((await http("/me")).body as MeResponse).demo ?? null).toBeNull();
     const home = (await http("/home")).body as HomePage;
     expect(home.dateLabel).toBe("Tuesday, 20 October 2026");
     // the 117 games finished before the demo date, nothing after

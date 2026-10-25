@@ -6,6 +6,7 @@ import { compareRows, forecastNow, getSeasonContext, zoneForRank, zoneLabel, typ
 import { demoMode, leagueNow } from "@/shared/clock";
 import type { FormResult, TeamListItem, TeamNextGame, TeamPageData } from "@/shared/types";
 import { gameStakes } from "./game-stakes";
+import { worthLine } from "./match";
 import { pct, shortDate, timeLabel } from "./labels";
 import { teamBook, type TeamBook } from "./teams";
 
@@ -28,7 +29,7 @@ function nextGameOf(ctx: SeasonContext, shared: ForecastResult, book: TeamBook, 
     opponent: opp,
     home,
     when: `${shortDate(d)} · ${timeLabel(d)}`,
-    worth: s ? `Win → ${pct(s.worth[home ? "home" : "away"].regulationWin.playoffs)}% playoff chance` : null,
+    worth: s ? worthLine(s.worth[home ? "home" : "away"], s.baseline[home ? "home" : "away"]) : null,
   };
 }
 

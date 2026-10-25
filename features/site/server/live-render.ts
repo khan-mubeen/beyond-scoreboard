@@ -7,7 +7,7 @@ import { whatItMeansText } from "@/features/story/server";
 import { checkText } from "@/shared/guardrails";
 import { gameStakes, timelineFor } from "./game-stakes";
 import { clockIn, pct, periodName, whenLabel } from "./labels";
-import { chips, emptyStakes, factsFor, seasonStakesCard, stakesSide } from "./match";
+import { chips, emptyStakes, meaningFacts, seasonStakesCard, stakesSide } from "./match";
 import { clipOf } from "./highlight";
 import { eventsOf, periodScoresOf } from "./match-parts";
 import { triviaFor } from "./ask";
@@ -33,7 +33,7 @@ export const siteRenderer: MatchRenderer = {
       stakes: {
         chips: chips(s, game, book),
         seasonStakes: s ? seasonStakesCard(s, game, side, book) : emptyStakes(game[side].name),
-        whatItMeans: whatItMeansText(factsFor(game, s, side, book)),
+        whatItMeans: whatItMeansText(meaningFacts(game, s, side, book)),
       },
       // broadcast to everyone: our highlight's url only once the match is over (free highlights)
       events: eventsOf(game, names, timeline, book, clipOf(_matchId, liigaGameUrl(game), game.status === "final")),

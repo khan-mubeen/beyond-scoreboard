@@ -1,7 +1,7 @@
 // GET /api/site/matches/:id: a live, upcoming or finished match exactly as the ui types it
 import { liigaGameUrl, parseMatchId, type LiigaFixture, type LiigaGame } from "@/features/liiga";
 import { getGame, getGameStats, getLineups, getPastAndFuture, liigaNow } from "@/features/liiga/server";
-import { goalOfTheGame, rankOf, zoneForRank, zoneLabel, getSeasonContext, type SeasonContext } from "@/features/stakes/server";
+import { metricNoun, relevantMetric, goalOfTheGame, rankOf, zoneForRank, zoneLabel, getSeasonContext, type ChanceMetric, type SeasonContext } from "@/features/stakes/server";
 import { engineMatch, ensureLiveLoop, roomScope } from "@/features/live/server";
 import { PREDICTION_POINTS, PREDICTION_TYPE } from "@/features/live";
 import { matchStory, spokenSummary, whatItMeansText, type MatchFactsInput } from "@/features/story/server";
@@ -17,7 +17,7 @@ import type {
   StakesChipData,
 } from "@/shared/types";
 import { describeGoalTypes } from "./match-types";
-import { chanceNow, gameStakes, projectedTable, timelineFor, type GameStakes } from "./game-stakes";
+import { chanceNow, gameStakes, metricFor, projectedTable, timelineFor, type GameStakes } from "./game-stakes";
 import type { Viewer } from "./identity";
 import { clockIn, longDate, ordinal, pct, periodName, shortDate, timeLabel } from "./labels";
 import { eventsOf, goalVideo, lineupsOf, statsOf, summaryOf } from "./match-parts";
@@ -55,24 +55,32 @@ const fixtureOf = (g: LiigaGame): LiigaFixture => ({
   rink: g.rink,
 });
 
+/** the what if? panel shows each match team's most relevant chance first, as the stakes card does */
+export function withMetrics<T extends object>(opts: T | null, s: GameStakes, g: LiigaGame): (T & { metrics: Record<string, ChanceMetric> }) | null {
+  return opts && { ...opts, metrics: { [g.home.teamId]: metricFor(s, "home", g).metric, [g.away.teamId]: metricFor(s, "away", g).metric } };
+}
+
 export function chips(s: GameStakes | null, g: LiigaGame, book: TeamBook): StakesChipData[] {
   if (!s) return [];
+  // each team's own most relevant chance: a team with no playoff hope shows relegation, not "0%"
   return (["home", "away"] as const).map((side) => {
-    const now = chanceNow(s, side, g).playoffs;
+    const { metric, label } = metricFor(s, side, g);
+    const now = chanceNow(s, side, g)[metric];
     return {
       team: book.ref(g[side].teamId, g[side].name),
-      label: "Playoff chance",
+      label,
       chance: pct(now),
-      change: pct(now) - pct(s.baseline[side].playoffs),
+      change: pct(now) - pct(s.baseline[side][metric]),
     };
   });
 }
 
 export function seasonStakesCard(s: GameStakes, g: LiigaGame, side: Side, book: TeamBook): SeasonStakes {
   const team = g[side];
-  const timeline = timelineFor(s, side, g);
-  const now = chanceNow(s, side, g).playoffs;
-  const before = s.baseline[side].playoffs;
+  const { metric, label: metricLabel } = metricFor(s, side, g);
+  const timeline = timelineFor(s, side, g, metric);
+  const now = chanceNow(s, side, g)[metric];
+  const before = s.baseline[side][metric];
   const table = projectedTable(s, g);
   const rankNow = rankOf(table, team.teamId);
   const rankBefore = rankOf(s.table, team.teamId);
@@ -91,14 +99,28 @@ export function seasonStakesCard(s: GameStakes, g: LiigaGame, side: Side, book: 
     tableTitle: g.status === "scheduled" ? `${titleLead}: ${ordinal(rankBefore)}` : `${titleLead}: ${ordinal(rankBefore)} → ${ordinal(rankNow)}`,
     tableBadge: rankNow <= 12 ? "Above playoff line" : rankNow <= 14 ? "Below playoff line" : "In the relegation zone",
     // the whole table (the card scrolls it to the team); an 8-row window used to cut off 1st place
+    // both teams of the game stand out; the stakes team says "if it ends now" while live
     rows: table.map((r) => ({
       rank: r.rank,
       label: r.teamId === team.teamId ? `${book.ref(r.teamId).name}${g.status === "live" ? " · if it ends now" : ""}` : book.ref(r.teamId).name,
       zone: zoneForRank(r.rank),
-      ...(r.teamId === team.teamId && { highlight: true }),
+      ...((r.teamId === g.home.teamId || r.teamId === g.away.teamId) && { highlight: true }),
     })),
-    worth: Object.fromEntries((Object.keys(worth) as GameOutcome[]).map((o) => [o, pct(worth[o].playoffs)])) as Record<GameOutcome, number>,
+    worth: Object.fromEntries((Object.keys(worth) as GameOutcome[]).map((o) => [o, pct(worth[o][metric])])) as Record<GameOutcome, number>,
+    metric,
+    metricLabel,
   };
+}
+
+/** "Win → 18% · Loss → 31% relegation chance": a game's worth in the chance it moves most */
+export function worthLine(worth: GameStakes["worth"]["home"], before?: GameStakes["baseline"]["home"]): string {
+  const { metric } = relevantMetric({ worth, before });
+  return `Win → ${pct(worth.regulationWin[metric])}% · Loss → ${pct(worth.regulationLoss[metric])}% ${metricNoun(metric)}`;
+}
+
+function relevantWorth(worth: GameStakes["worth"]["home"], before: GameStakes["baseline"]["home"]) {
+  const { metric, label } = relevantMetric({ worth, before });
+  return { label, now: pct(before[metric]), win: pct(worth.regulationWin[metric]), loss: pct(worth.regulationLoss[metric]) };
 }
 
 /** "20.10.2026" in Helsinki */
@@ -120,11 +142,21 @@ function turningPoint(s: GameStakes | null, side: Side, g: LiigaGame): MatchFact
  * only known after an async lookup, so the summary passes it in
  */
 export function factsFor(g: LiigaGame, s: GameStakes | null, side: Side, book: TeamBook, next: NextGame | null = null): MatchFactsInput {
+  return factsWith(g, s, side, book, next, "playoffs");
+}
+
+/** the facts for "what it means": the chance this game moves most for the team (relegation for a team out of the race) */
+export function meaningFacts(g: LiigaGame, s: GameStakes | null, side: Side, book: TeamBook): MatchFactsInput {
+  const metric = s ? metricFor(s, side, g).metric : "playoffs";
+  return { ...factsWith(g, s, side, book, null, metric), ...(metric !== "playoffs" && { chanceNoun: metricNoun(metric) }) };
+}
+
+function factsWith(g: LiigaGame, s: GameStakes | null, side: Side, book: TeamBook, next: NextGame | null, metric: "playoffs" | "relegation" | "top4"): MatchFactsInput {
   const table = s ? projectedTable(s, g) : null;
   const name = (x: Side) => book.ref(g[x].teamId, g[x].name).name;
   return {
     dateFi: fiDate(new Date(g.start)),
-    worth: s ? { win: pct(s.worth[side].regulationWin.playoffs), loss: pct(s.worth[side].regulationLoss.playoffs) } : null,
+    worth: s ? { win: pct(s.worth[side].regulationWin[metric]), loss: pct(s.worth[side].regulationLoss[metric]) } : null,
     turningPoint: g.status === "final" ? turningPoint(s, side, g) : null,
     next: next && { opponent: next.opponent, date: next.date, dateFi: next.dateFi, win: next.win, loss: next.loss },
     matchId: g.id,
@@ -145,8 +177,8 @@ export function factsFor(g: LiigaGame, s: GameStakes | null, side: Side, book: T
       awayScore: goal.awayScore,
       kind: describeGoalTypes(goal.types).labels[0] ?? null,
     })),
-    chanceBefore: s ? pct(s.baseline[side].playoffs) : null,
-    chanceAfter: s ? pct(chanceNow(s, side, g).playoffs) : null,
+    chanceBefore: s ? pct(s.baseline[side][metric]) : null,
+    chanceAfter: s ? pct(chanceNow(s, side, g)[metric]) : null,
     positionBefore: s ? rankOf(s.table, g[side].teamId) : null,
     positionAfter: table ? rankOf(table, g[side].teamId) : null,
     sourceGameIds: [g.id],
@@ -161,6 +193,10 @@ export interface NextGame {
   /** the team's playoff chance with a regulation win / loss there */
   win: number | null;
   loss: number | null;
+  /** the same for the chance that game moves most, for the "what it's worth" line */
+  worthLine: string | null;
+  /** that chance now and with a regulation win / loss there, % */
+  relevant: { label: string; now: number; win: number; loss: number } | null;
 }
 
 /** the stakes team's next game: pastAndFutureGames first (as docs/api/mapping.md), the schedule as a fallback */
@@ -183,6 +219,8 @@ export async function nextGame(g: LiigaGame, side: Side, ctx: SeasonContext, boo
     dateFi: fiDate(d),
     win: s ? pct(s.worth[nextSide].regulationWin.playoffs) : null,
     loss: s ? pct(s.worth[nextSide].regulationLoss.playoffs) : null,
+    worthLine: s ? worthLine(s.worth[nextSide], s.baseline[nextSide]) : null,
+    relevant: s ? relevantWorth(s.worth[nextSide], s.baseline[nextSide]) : null,
   };
 }
 
@@ -193,7 +231,7 @@ function nextUp(next: NextGame | null, book: TeamBook): FinishedMatchDetail["nex
   return {
     title: `${book.ref(f.homeTeamId, f.homeName).name} vs ${book.ref(f.awayTeamId, f.awayName).name}`,
     when: `${shortDate(d)} · ${timeLabel(d)}`,
-    worth: next.win !== null ? `What it's worth: Win → ${next.win}% playoff chance` : "What it's worth: chances update after tonight",
+    worth: next.worthLine ? `What it's worth: ${next.worthLine}` : "What it's worth: chances update after tonight",
     matchId: f.id,
   };
 }
@@ -295,7 +333,7 @@ export async function matchDetail(id: string, viewer: Viewer, opts: { host?: boo
         ? "Statistics appear when the replay ends: the feed only has the final totals."
         : "Awaiting statistics from the Liiga feed. No values are assumed.",
     lineups: lineupsOf(lineups?.data ?? null),
-    seasonStakes: s ? { ...seasonStakesCard(s, g, side, book), whatIf: g.status === "final" ? null : await whatIfOptions(ctx, g.id) } : emptyStakes(g[side].name),
+    seasonStakes: s ? { ...seasonStakesCard(s, g, side, book), whatIf: g.status === "final" ? null : withMetrics(await whatIfOptions(ctx, g.id), s, g) } : emptyStakes(g[side].name),
     isReplay,
     highlight,
     streamLock: locked ? { ...streamLockFor(hosted!.poster), guestPass: pass?.offer ?? null, passUsed: !!pass?.used } : null,
@@ -321,7 +359,7 @@ export async function matchDetail(id: string, viewer: Viewer, opts: { host?: boo
         src: null,
         href: liigaUrl,
       },
-      whatItMeans: whatItMeansText(facts),
+      whatItMeans: whatItMeansText(meaningFacts(g, s, side, book)),
       discussion,
       guidelinesHref: "/guidelines",
       callIt: null,

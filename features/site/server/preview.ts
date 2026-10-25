@@ -10,7 +10,7 @@ import type { ApiMeta, DataSource, HeadToHeadGame, PreviewMatchDetail } from "@/
 import type { GameStakes } from "./game-stakes";
 import type { Viewer } from "./identity";
 import { shortDate } from "./labels";
-import { chips, emptyStakes, seasonStakesCard, type Side } from "./match";
+import { chips, emptyStakes, seasonStakesCard, withMetrics, type Side } from "./match";
 import { summaryOf } from "./match-parts";
 import type { TeamBook } from "./teams";
 import { whatIfOptions } from "./whatif";
@@ -71,7 +71,7 @@ export async function previewDetail(a: {
     venue: g.rink ?? "",
     dateLabel: shortDate(new Date(g.start)),
     stakesSummary: chips(s, g, book),
-    seasonStakes: s ? { ...seasonStakesCard(s, g, side, book), whatIf: await whatIfOptions(ctx, g.id) } : emptyStakes(g[side].name),
+    seasonStakes: s ? { ...seasonStakesCard(s, g, side, book), whatIf: withMetrics(await whatIfOptions(ctx, g.id), s, g) } : emptyStakes(g[side].name),
     headToHead: headToHead(ctx, g, book),
     reminder: reminders.includes(g.id),
     liigaUrl: liigaGameUrl(g),
