@@ -119,7 +119,7 @@ export function SubscriptionCard({ sub, balance, onSubscribe }: { sub: Subscript
         <button
           type="button"
           onClick={() => onSubscribe(points)}
-          className={`h-11 flex-1 rounded-lg text-sm font-semibold transition hover:brightness-110 ${popular ? "bg-accent text-accent-ink" : "border border-accent bg-surface text-accent hover:bg-surface-2"}`}
+          className={`h-11 flex-1 rounded-lg text-sm font-semibold transition hover:bg-accent-hover ${popular ? "bg-accent text-accent-ink" : "border border-accent bg-surface text-accent hover:bg-surface-2"}`}
         >
           {active ? "Extend" : "Subscribe"}
         </button>
@@ -174,7 +174,7 @@ function CodeBox({ code, partnerUrl }: { code: string; partnerUrl: string | null
           Copy code
         </button>
         {partnerUrl && (
-          <a href={partnerUrl} target="_blank" rel="noreferrer" className="flex h-10 flex-1 items-center justify-center gap-1 rounded-lg bg-accent text-sm font-semibold text-accent-ink hover:brightness-110">
+          <a href={partnerUrl} target="_blank" rel="noreferrer" className="flex h-10 flex-1 items-center justify-center gap-1 rounded-lg bg-accent text-sm font-semibold text-accent-ink hover:bg-accent-hover">
             Go to partner site <Icon name="arrowUpRight" className="size-3.5" />
           </a>
         )}
@@ -242,7 +242,7 @@ export function OfferCard({ offer }: { offer: RewardOffer }) {
             Unlock with {fmtInt(points)} pts
           </button>
         ) : offer.eligible ? (
-          <button type="button" disabled={busy} onClick={() => void redeem()} className="h-10 rounded-lg bg-accent text-sm font-semibold text-accent-ink hover:brightness-110 disabled:opacity-60">
+          <button type="button" disabled={busy} onClick={() => void redeem()} className="h-10 rounded-lg bg-accent text-sm font-semibold text-accent-ink hover:bg-accent-hover disabled:opacity-60">
             Members only · Get your code
           </button>
         ) : (
@@ -262,7 +262,7 @@ export function OfferCard({ offer }: { offer: RewardOffer }) {
         </p>
         <p className="mt-2 text-xs text-muted">{OFFER_NOTE}</p>
         <div className="mt-4 flex gap-2">
-          <button type="button" disabled={busy} onClick={() => void redeem()} className="h-11 flex-1 rounded-lg bg-accent font-semibold text-accent-ink hover:brightness-110 disabled:opacity-60">
+          <button type="button" disabled={busy} onClick={() => void redeem()} className="h-11 flex-1 rounded-lg bg-accent font-semibold text-accent-ink hover:bg-accent-hover disabled:opacity-60">
             {busy ? "Unlocking…" : `Unlock with ${fmtInt(points ?? 0)} pts`}
           </button>
           <button type="button" onClick={() => setConfirming(false)} className="h-11 rounded-lg border border-line px-4 font-semibold">

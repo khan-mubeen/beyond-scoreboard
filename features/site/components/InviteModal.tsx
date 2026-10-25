@@ -86,7 +86,7 @@ export function InviteModal({
           type="button"
           onClick={() => void share()}
           disabled={!invite}
-          className="flex h-11 items-center justify-center gap-2 rounded-lg bg-accent font-semibold text-accent-ink hover:brightness-110 disabled:opacity-50"
+          className="flex h-11 items-center justify-center gap-2 rounded-lg bg-accent font-semibold text-accent-ink hover:bg-accent-hover disabled:opacity-50"
         >
           <Icon name="arrowUpRight" className="size-4" /> Share invite
         </button>

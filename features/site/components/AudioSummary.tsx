@@ -117,7 +117,7 @@ export function AudioSummary({ summary, defaultLang = "en", tv = false }: { summ
                 setProgress(0);
                 setLang(l);
               }}
-              className={`px-3 py-1 ${lang === l ? "bg-ink text-surface" : "hover:bg-surface-2"}`}
+              className={`px-3 py-1 ${lang === l ? "bg-accent text-accent-ink" : "hover:bg-surface-2"}`}
             >
               {l.toUpperCase()}
             </button>
@@ -130,7 +130,7 @@ export function AudioSummary({ summary, defaultLang = "en", tv = false }: { summ
           <button
             type="button"
             onClick={toggle}
-            className={`flex items-center gap-2 rounded-full bg-accent font-semibold text-accent-ink hover:brightness-110 ${tv ? "px-6 py-3 text-xl" : "px-4 py-2 text-sm"}`}
+            className={`flex items-center gap-2 rounded-full bg-accent font-semibold text-accent-ink hover:bg-accent-hover ${tv ? "px-6 py-3 text-xl" : "px-4 py-2 text-sm"}`}
             aria-label={playing ? "Pause the summary" : `Listen to the summary, ${fmt(total)}`}
           >
             <Icon name={playing ? "pause" : "play"} className="size-4" />

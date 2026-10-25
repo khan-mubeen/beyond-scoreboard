@@ -89,7 +89,7 @@ function PartyHeader({
         <button
           type="button"
           onClick={onInvite}
-          className="flex h-9 shrink-0 items-center gap-1.5 rounded-lg bg-accent px-3 text-sm font-semibold text-accent-ink hover:brightness-110"
+          className="flex h-9 shrink-0 items-center gap-1.5 rounded-lg bg-accent px-3 text-sm font-semibold text-accent-ink hover:bg-accent-hover"
         >
           <Icon name="users" className="size-4" />
           Invite

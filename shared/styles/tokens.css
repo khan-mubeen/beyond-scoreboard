@@ -10,6 +10,7 @@
   --pp-ink: #eef3fb;
   --pp-muted: #8d9bb4;
   --pp-accent: #4cc3ff;
+  --pp-accent-hover: #7fd5ff;
   --pp-accent-ink: #04131d;
   --pp-accent-soft: #12283a;
   --pp-live: #ff5a6a;
@@ -48,9 +49,9 @@
 
 /*
  * site theme: the kaleva sports pages. white cards float on a light grey page. the primary colour
- * (accent) is ink: selected states, buttons, tabs, links, focus, toggles, sliders. kaleva red is
- * "live" only: live badges and dots, open questions and their countdown, notification badges,
- * errors, and the "Sports" in the logo
+ * (accent) is kaleva red: buttons, selected states, tabs, links, progress, toggles, sliders, focus.
+ * "live" is its own token (the same red today) and live things keep their own shape, so they never
+ * read as a plain button: the filled LIVE pill with a pulsing dot, open questions on a red tint
  */
 [data-theme="site"] {
   --pp-bg: #f4f5f7;
@@ -59,12 +60,12 @@
   --pp-line: #e5e7eb;
   --pp-ink: #111418;
   --pp-muted: #6b7280;
-  /* the primary, ink: 18:1 on white, white text on it 18:1 */
-  --pp-accent: #111418;
-  --pp-accent-hover: #2d333b;
+  /* the primary, kaleva red: 5.3:1 on white, white text on it 5.3:1 (AA); hover 7.1:1 */
+  --pp-accent: #d80016;
+  --pp-accent-hover: #b00012;
   --pp-accent-ink: #ffffff;
-  /* a selected or "you" row: a light grey tint, the ink text on it 16:1 */
-  --pp-accent-soft: #eceef1;
+  /* a selected or "you" row: a soft red tint; red text on it 4.8:1, ink text 17:1 */
+  --pp-accent-soft: #fdeef0;
   /* kaleva red: 5.3:1 on white, white text on it 5.3:1 */
   --pp-live: #d80016;
   --pp-live-ink: #ffffff;
@@ -106,6 +107,7 @@
   --color-ink: var(--pp-ink);
   --color-muted: var(--pp-muted);
   --color-accent: var(--pp-accent);
+  --color-accent-hover: var(--pp-accent-hover);
   --color-accent-ink: var(--pp-accent-ink);
   --color-accent-soft: var(--pp-accent-soft);
   /* the same primary by its meaning, and kaleva red for live */

@@ -94,7 +94,7 @@ function RotationStage({ match, rotation, onSeeStakes, me }: { match: LiveMatchD
         <button
           type="button"
           onClick={onSeeStakes}
-          className="flex shrink-0 items-center gap-1.5 self-start rounded-lg bg-accent px-4 py-2.5 text-sm font-semibold text-accent-ink hover:brightness-110"
+          className="flex shrink-0 items-center gap-1.5 self-start rounded-lg bg-accent px-4 py-2.5 text-sm font-semibold text-accent-ink hover:bg-accent-hover"
         >
           See season stakes <Icon name="arrowRight" className="size-4" />
         </button>
@@ -308,7 +308,7 @@ export function LiveMatch({ match: initial, source, onChange }: { match: LiveMat
                         <button
                           type="button"
                           onClick={seeStakes}
-                          className="flex shrink-0 items-center gap-1.5 self-start rounded-lg bg-accent px-4 py-2.5 text-sm font-semibold text-accent-ink hover:brightness-110"
+                          className="flex shrink-0 items-center gap-1.5 self-start rounded-lg bg-accent px-4 py-2.5 text-sm font-semibold text-accent-ink hover:bg-accent-hover"
                         >
                           See season stakes <Icon name="arrowRight" className="size-4" />
                         </button>

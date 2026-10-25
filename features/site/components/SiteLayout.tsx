@@ -4,6 +4,7 @@ import type { Breadcrumb, DataSource } from "@/shared/types";
 import { KalevaFooter } from "./kaleva/KalevaChrome";
 import { useMe } from "../data";
 import { Icon } from "./Icon";
+import { LiveNowProvider } from "./live-now";
 import { Sidebar } from "./Sidebar";
 import { SidebarDrawer } from "./SidebarDrawer";
 import { ToastProvider } from "./Toast";
@@ -109,43 +110,53 @@ export function SiteLayout({
   return (
     <MotionConfig reducedMotion="user">
       <ToastProvider>
-        <div className="min-h-screen overflow-x-clip bg-bg text-ink">
-          <TopNav me={me} menu={menu} />
-          <div className="flex">
-            <AnimatePresence initial={false}>
-              {docks && (
-                <motion.div
-                  key="dock"
-                  id={SIDEBAR_ID}
-                  className={`scroll-thin sticky top-16 hidden h-[calc(100vh-4rem)] shrink-0 overflow-x-hidden overflow-y-auto border-r border-line lg:block ${
-                    sidebar.variant === "compact" ? "bg-surface" : "bg-surface-2/60"
-                  }`}
-                  initial={{ width: 0, opacity: 0 }}
-                  animate={{ width: sidebar.variant === "compact" ? 260 : 288, opacity: 1 }}
-                  exit={{ width: 0, opacity: 0 }}
-                  transition={{ type: "tween", duration: 0.2 }}
-                >
-                  <div className={`px-4 py-5 ${sidebar.variant === "compact" ? "w-[260px]" : "w-[288px]"}`}>
-                    {panel}
-                  </div>
-                </motion.div>
-              )}
-            </AnimatePresence>
-            <div className="min-w-0 flex-1">
-              {/* demo mode runs on saved data on purpose: judges read this bar as an error there */}
-              {((source === "snapshot" && !me.data?.demo && !me.data?.demoMode) || source === "mock") && (
-                <p role="note" className="border-b border-line bg-highlight px-4 py-1.5 text-center text-xs text-ink lg:px-6">
-                  {source === "snapshot" ? "Showing saved Liiga data — live updates resume when the feed is back." : "Demo data from the design."}
-                </p>
-              )}
-              {children}
+        <LiveNowProvider>
+          <div className="min-h-screen overflow-x-clip bg-bg text-ink">
+            <TopNav me={me} menu={menu} />
+            <div className="flex">
+              <AnimatePresence initial={false}>
+                {docks && (
+                  // the rail (its background and border) runs the page's full height; the panel inside
+                  // sticks under the 64 px header, one viewport tall, and scrolls by itself when needed
+                  <motion.div
+                    key="dock"
+                    id={SIDEBAR_ID}
+                    className={`hidden shrink-0 self-stretch overflow-x-clip border-r border-line lg:block ${sidebar.variant === "compact" ? "bg-surface" : "bg-surface-2/60"}`}
+                    initial={{ width: 0, opacity: 0 }}
+                    animate={{ width: sidebar.variant === "compact" ? 260 : 288, opacity: 1 }}
+                    exit={{ width: 0, opacity: 0 }}
+                    transition={{ type: "tween", duration: 0.2 }}
+                  >
+                    <div
+                      data-testid="sidebar-panel"
+                      className={`scroll-thin sticky top-16 h-[calc(100dvh-4rem)] overflow-y-auto overscroll-contain px-4 py-5 ${sidebar.variant === "compact" ? "w-[260px]" : "w-[288px]"}`}
+                    >
+                      {panel}
+                    </div>
+                  </motion.div>
+                )}
+              </AnimatePresence>
+              <div className="min-w-0 flex-1">
+                {/* demo mode runs on saved data on purpose: judges read this bar as an error there */}
+                {((source === "snapshot" && !me.data?.demo && !me.data?.demoMode) || source === "mock") && (
+                  <p
+                    role="note"
+                    className="border-b border-line bg-highlight px-4 py-1.5 text-center text-xs text-ink lg:px-6"
+                  >
+                    {source === "snapshot"
+                      ? "Showing saved Liiga data — live updates resume when the feed is back."
+                      : "Demo data from the design."}
+                  </p>
+                )}
+                {children}
+              </div>
             </div>
+            <KalevaFooter note="Demo — Kaleva Sports concept" />
+            <SidebarDrawer open={drawerOpen} onClose={() => setDrawerOpen(false)} id={DRAWER_ID}>
+              {panel}
+            </SidebarDrawer>
           </div>
-          <KalevaFooter note="Demo — Kaleva Sports concept" />
-          <SidebarDrawer open={drawerOpen} onClose={() => setDrawerOpen(false)} id={DRAWER_ID}>
-            {panel}
-          </SidebarDrawer>
-        </div>
+        </LiveNowProvider>
       </ToastProvider>
     </MotionConfig>
   );

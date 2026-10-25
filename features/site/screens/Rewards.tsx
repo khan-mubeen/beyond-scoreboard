@@ -102,7 +102,7 @@ function RewardsBody({ page, user, balance }: { page: RewardsPage; user: UserSum
   const offers = page.offers.filter((o) => category === "all" || o.category === category);
 
   return (
-    <div className="px-4 pb-12 md:px-6">
+    <div className="mx-auto w-full max-w-[1360px] px-4 pb-12 md:px-6">
       <Breadcrumbs items={[{ label: "Sports", href: "/sports" }, { label: `${page.titleLead} ${page.titleAccent}` }]} />
       <main className="min-w-0">
         <div className="flex flex-wrap items-start justify-between gap-3">
@@ -154,7 +154,7 @@ function RewardsBody({ page, user, balance }: { page: RewardsPage; user: UserSum
                   type="button"
                   aria-pressed={category === c.id}
                   onClick={() => setCategory(c.id)}
-                  className={`h-8 rounded-full px-3 text-sm font-semibold transition-colors ${category === c.id ? "bg-ink text-surface" : "border border-line bg-surface hover:bg-surface-2"}`}
+                  className={`h-8 rounded-full px-3 text-sm font-semibold transition-colors ${category === c.id ? "bg-accent text-accent-ink" : "border border-line bg-surface hover:bg-surface-2"}`}
                 >
                   {c.label}
                 </button>

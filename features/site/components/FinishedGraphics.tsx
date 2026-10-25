@@ -299,7 +299,7 @@ export function NextTimePanel({ next, focus }: { next: NextTime; focus: Finished
           </h2>
           <p className="text-sm text-muted">{next.when}</p>
         </div>
-        <a href={`/match/${next.matchId}`} className="flex items-center gap-1 text-sm font-semibold text-ink hover:underline">
+        <a href={`/match/${next.matchId}`} className="flex items-center gap-1 text-sm font-semibold text-accent hover:underline">
           Match preview <Icon name="arrowRight" className="size-4" />
         </a>
       </div>
@@ -361,7 +361,7 @@ export function NextTimePanel({ next, focus }: { next: NextTime; focus: Finished
           type="button"
           aria-pressed={reminded}
           onClick={() => void remind()}
-          className={`flex h-11 flex-1 items-center justify-center gap-2 rounded-lg px-4 text-sm font-semibold transition-colors ${reminded ? "border border-good bg-good-soft text-good" : "bg-accent text-accent-ink hover:brightness-110"}`}
+          className={`flex h-11 flex-1 items-center justify-center gap-2 rounded-lg px-4 text-sm font-semibold transition-colors ${reminded ? "border border-good bg-good-soft text-good" : "bg-accent text-accent-ink hover:bg-accent-hover"}`}
         >
           <Icon name="bell" className="size-4" />
           {reminded ? "Reminder set" : "Set reminder"}

@@ -126,3 +126,27 @@ html {
     background: var(--pp-line);
   }
 }
+
+/* an unlocked badge: a soft light sweeps across the medal now and then; still with reduced motion */
+@keyframes badge-shine {
+  0%,
+  70% {
+    transform: translateX(-120%) rotate(20deg);
+  }
+  100% {
+    transform: translateX(120%) rotate(20deg);
+  }
+}
+.badge-shine::after {
+  content: "";
+  position: absolute;
+  inset: -20%;
+  background: linear-gradient(90deg, transparent 35%, rgb(255 255 255 / 0.55) 50%, transparent 65%);
+  animation: badge-shine 5s ease-in-out infinite;
+}
+@media (prefers-reduced-motion: reduce) {
+  .badge-shine::after {
+    animation: none;
+    opacity: 0;
+  }
+}

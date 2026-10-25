@@ -91,7 +91,7 @@ export function CheckoutForm({ plan, balance, onDone, initialPoints = null }: { 
         {summaryText(plan, points)}
       </p>
       {error && <p className="text-sm text-bad">{error}</p>}
-      <button type="button" disabled={busy} onClick={() => void confirm()} className="h-12 rounded-lg bg-accent text-base font-semibold text-accent-ink hover:brightness-110 disabled:opacity-60">
+      <button type="button" disabled={busy} onClick={() => void confirm()} className="h-12 rounded-lg bg-accent text-base font-semibold text-accent-ink hover:bg-accent-hover disabled:opacity-60">
         {busy ? "Confirming…" : "Confirm purchase"}
       </button>
       <p className="-mt-2 text-center text-xs text-muted">{DEMO_PAYMENT_NOTE}</p>
@@ -146,7 +146,7 @@ export function PurchaseSuccess({ result, liveHref, onClose }: { result: Subscri
       <p className="text-xs text-muted">Your balance: {fmtInt(result.balance)} pts · {DEMO_PAYMENT_NOTE}</p>
       <div className="flex w-full flex-col gap-2">
         {p.includesLiveStream && (
-          <a href={liveHref ?? "/sports?show=live"} onClick={onClose} className="flex h-12 items-center justify-center gap-2 rounded-lg bg-accent font-semibold text-accent-ink hover:brightness-110">
+          <a href={liveHref ?? "/sports?show=live"} onClick={onClose} className="flex h-12 items-center justify-center gap-2 rounded-lg bg-accent font-semibold text-accent-ink hover:bg-accent-hover">
             <Icon name="play" className="size-4" /> Start watching live
           </a>
         )}

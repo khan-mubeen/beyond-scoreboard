@@ -87,7 +87,7 @@ function PredictionBar({ p, picked, busy, onLock }: { p: MatchPrediction | null;
           type="button"
           disabled={!pickedOption || busy}
           onClick={onLock}
-          className="flex h-10 items-center gap-2 rounded-lg bg-accent px-4 font-semibold text-accent-ink hover:brightness-110 disabled:opacity-50"
+          className="flex h-10 items-center gap-2 rounded-lg bg-accent px-4 font-semibold text-accent-ink hover:bg-accent-hover disabled:opacity-50"
         >
           <Icon name="lock" className="size-4" /> {busy ? "Locking…" : `Lock it in · +${p.points} pts if right`}
         </button>
@@ -264,7 +264,7 @@ export function WhatIfPanel({ options }: { options: WhatIfOptions }) {
                     role="tab"
                     aria-selected={t.team.id === focusTeam.team.id}
                     onClick={() => setFocus(t.team.id)}
-                    className={`flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-semibold ${t.team.id === focusTeam.team.id ? "bg-ink text-surface" : "bg-surface-2 hover:bg-line"}`}
+                    className={`flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-semibold ${t.team.id === focusTeam.team.id ? "bg-accent text-accent-ink" : "bg-surface-2 hover:bg-line"}`}
                   >
                     <TeamLogo team={t.team} size={16} /> {t.team.name}
                   </button>

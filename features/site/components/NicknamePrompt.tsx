@@ -53,7 +53,7 @@ export function NicknamePrompt({
         <button
           type="submit"
           disabled={busy || !name.trim()}
-          className="h-11 rounded-lg bg-accent text-sm font-semibold text-accent-ink hover:brightness-110 disabled:opacity-50"
+          className="h-11 rounded-lg bg-accent text-sm font-semibold text-accent-ink hover:bg-accent-hover disabled:opacity-50"
         >
           {busy ? "Joining…" : "Let's go"}
         </button>

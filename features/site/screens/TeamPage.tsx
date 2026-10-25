@@ -24,7 +24,7 @@ export function TeamPage({ slug }: { slug: string }) {
   const t = data?.item;
   return (
     <SiteLayout sidebar={{ activeLinkId: "teams", docked: true }}>
-      <main className="px-4 pb-12 md:px-6">
+      <main className="mx-auto w-full max-w-[1360px] px-4 pb-12 md:px-6">
         <Breadcrumbs items={[{ label: "Sports", href: "/sports" }, { label: "Teams", href: "/teams" }, { label: t?.team.name ?? "Team" }]} />
         {!data || !t ? (
           status === "error" ? (

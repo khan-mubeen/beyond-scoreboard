@@ -5,7 +5,7 @@ import { type FormEvent, useState } from "react";
 import { Icon } from "../components/Icon";
 import { NicknamePrompt } from "../components/NicknamePrompt";
 import { SectionCard } from "../components/SectionCard";
-import { SiteLayout } from "../components/SiteLayout";
+import { Breadcrumbs, SiteLayout } from "../components/SiteLayout";
 import { InitialAvatar } from "../components/TeamLogo";
 import { toast } from "../components/Toast";
 import {
@@ -142,9 +142,11 @@ export function FriendsPage() {
 
   return (
     <SiteLayout sidebar={{ activeLinkId: "friends", docked: true }}>
-      <div className="mx-auto max-w-6xl px-4 py-6 md:px-[30px]">
-        <h1 className="font-serif text-3xl font-bold">Friends</h1>
-        <div className="mt-4 grid gap-4 xl:grid-cols-[minmax(0,1fr)_360px]">
+      {/* the same width, gutters and title as SitePage */}
+      <main className="mx-auto w-full max-w-[1360px] px-4 pb-12 md:px-6">
+        <Breadcrumbs items={[{ label: "Sports", href: "/sports" }, { label: "Friends" }]} />
+        <h1 className="font-serif text-[36px] leading-tight font-bold">Friends</h1>
+        <div className="mt-5 grid gap-x-6 gap-y-4 xl:grid-cols-[minmax(0,1fr)_360px]">
           {/* from 1280 px: invites and requests beside the list; narrower, they come first */}
           <aside
             aria-label="Invites and requests"
@@ -261,7 +263,7 @@ export function FriendsPage() {
             )}
           </div>
         </div>
-      </div>
+      </main>
       <NicknamePrompt
         open={nameOpen}
         title="Pick a nickname"
@@ -364,7 +366,7 @@ export function InvitePage({ code }: { code: string }) {
                     ? () => window.location.assign(invite.match ? `/match/${invite.match.id}` : "/sports")
                     : go
                 }
-                className="flex h-12 items-center justify-center gap-2 rounded-lg bg-accent text-base font-semibold text-accent-ink hover:brightness-110"
+                className="flex h-12 items-center justify-center gap-2 rounded-lg bg-accent text-base font-semibold text-accent-ink hover:bg-accent-hover"
                 data-testid="invite-accept"
               >
                 {invite.used || invite.yours ? "Go to the match" : "Join the party"}

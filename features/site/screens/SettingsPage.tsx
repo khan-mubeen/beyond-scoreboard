@@ -1,11 +1,13 @@
 import { useState } from "react";
 import type { Language, NotificationPrefs } from "@/shared/types";
 import { SectionCard } from "../components/SectionCard";
-import { Breadcrumbs, SiteLayout } from "../components/SiteLayout";
+import { SitePage } from "../components/SitePage";
+import { Avatar } from "../components/TeamLogo";
 import { PageSkeleton } from "../components/Skeleton";
 import { toast } from "../components/Toast";
 import { resetProfile, saveSettings, useMe } from "../data";
 import { NAMES } from "@/shared/copy/names";
+import type { MeResponse } from "@/shared/types";
 
 /** change the nickname in place; used on settings and the profile */
 export function NicknameForm({ current }: { current: string | null }) {
@@ -70,6 +72,36 @@ function Toggle({ on, label, hint, onChange }: { on: boolean; label: string; hin
   );
 }
 
+/** the aside: who you are on the boards, and your friend code */
+function AccountSummary({ me }: { me: MeResponse }) {
+  return (
+    <SectionCard title="Your account">
+      <div className="flex items-center gap-3">
+        <Avatar src={me.user.avatar} name={me.user.name} size={52} />
+        <div className="min-w-0">
+          <p className="truncate text-lg font-bold" data-testid="account-name">
+            {me.nickname ?? me.user.name}
+          </p>
+          <p className="text-sm text-muted">{me.nickname ? "How you show on boards and in the party" : "Pick a nickname to show on the boards"}</p>
+        </div>
+      </div>
+      <div className="mt-4 rounded-lg bg-surface-2 p-3">
+        <p className="text-xs text-muted">Friend code</p>
+        {me.friendCode ? (
+          <p className="font-mono text-xl font-bold tracking-[0.25em]" data-testid="account-friend-code">
+            {me.friendCode}
+          </p>
+        ) : (
+          <p className="text-sm text-muted">Appears once you pick a nickname.</p>
+        )}
+      </div>
+      <a href="/profile" className="mt-3 inline-block text-sm font-semibold text-accent hover:underline">
+        Your profile →
+      </a>
+    </SectionCard>
+  );
+}
+
 /** /settings: nickname, language (calls and the audio summary), notifications, reset */
 export function SettingsPage() {
   const me = useMe().data;
@@ -81,17 +113,21 @@ export function SettingsPage() {
   }
 
   return (
-    <SiteLayout sidebar={{ activeLinkId: "settings", docked: true }}>
-      <main className="px-4 pb-12 md:px-6">
-        <Breadcrumbs items={[{ label: "Sports", href: "/sports" }, { label: "Settings" }]} />
-        <h1 className="font-serif text-[36px] leading-tight font-bold">Settings</h1>
-        {!me ? (
-          <PageSkeleton cards={3} />
-        ) : (
-          <div className="mt-4 flex max-w-2xl flex-col gap-4">
+    <SitePage
+      activeLinkId="settings"
+      crumbs={[{ label: "Sports", href: "/sports" }, { label: "Settings" }]}
+      title="Settings"
+      aside={me ? <AccountSummary me={me} /> : undefined}
+      asideLabel="Your account"
+    >
+      {!me ? (
+        <PageSkeleton cards={3} />
+      ) : (
+        <div className="grid items-start gap-4 xl:grid-cols-2">
+          <div className="flex flex-col gap-4">
             <SectionCard title="Your name">
               <NicknameForm current={me.nickname} />
-              <p className="mt-2 text-xs text-muted">Shown on leaderboards and in Watch Together.</p>
+              <p className="mt-2 text-xs text-muted">Shown on leaderboards and in the Watch Party.</p>
             </SectionCard>
 
             <SectionCard title="Language">
@@ -112,6 +148,8 @@ export function SettingsPage() {
               <p className="mt-2 text-xs text-muted">Used for {NAMES.call} questions and the audio summary.</p>
             </SectionCard>
 
+          </div>
+          <div className="flex flex-col gap-4">
             <SectionCard title="Notifications">
               <div className="flex flex-col divide-y divide-line">
                 {PREFS.map((p) => (
@@ -144,8 +182,8 @@ export function SettingsPage() {
               )}
             </SectionCard>
           </div>
-        )}
-      </main>
-    </SiteLayout>
+        </div>
+      )}
+    </SitePage>
   );
 }

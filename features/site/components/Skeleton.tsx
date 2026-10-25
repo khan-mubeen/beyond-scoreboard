@@ -141,7 +141,7 @@ export function DataUnavailable({ what = "this page", onRetry }: { what?: string
           <button
             type="button"
             onClick={onRetry}
-            className="mt-5 inline-flex h-11 items-center rounded-lg bg-accent px-5 text-sm font-semibold text-accent-ink hover:brightness-110"
+            className="mt-5 inline-flex h-11 items-center rounded-lg bg-accent px-5 text-sm font-semibold text-accent-ink hover:bg-accent-hover"
           >
             Try again
           </button>
