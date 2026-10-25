@@ -3,6 +3,7 @@ import type { Language, SpokenSummary } from "@/shared/types";
 import { deviceSeconds, DEVICE_RATE, PAUSE_MS, pickVoice, sentencesOf } from "./device-voice";
 import { Icon } from "./Icon";
 import { SectionCard } from "./SectionCard";
+import { AiLabel } from "./AiLabel";
 
 const fmt = (s: number) => `${Math.floor(s / 60)}:${String(Math.round(s % 60)).padStart(2, "0")}`;
 
@@ -23,7 +24,7 @@ function useDeviceVoice(lang: Language): SpeechSynthesisVoice | null {
  * the 60-second summary: listen (the stored ai voice, else the device's own), en | fi, and the
  * transcript that is spoken. nothing autoplays; in tv mode the host presses play
  */
-export function AudioSummary({ summary, defaultLang = "en", tv = false }: { summary: Record<Language, SpokenSummary>; defaultLang?: Language; tv?: boolean }) {
+export function AudioSummary({ summary, defaultLang = "en", tv = false, matchId }: { summary: Record<Language, SpokenSummary>; defaultLang?: Language; tv?: boolean; matchId?: string }) {
   const [lang, setLang] = useState<Language>(defaultLang);
   const [playing, setPlaying] = useState(false);
   const [progress, setProgress] = useState(0);
@@ -100,7 +101,6 @@ export function AudioSummary({ summary, defaultLang = "en", tv = false }: { summ
     if (device) speakDevice(device);
   }
 
-  const label = s.audio ? `AI voice · Azure Neural (${s.audio.voice})` : device ? "Device voice" : null;
   return (
     <SectionCard
       id="audio-summary"
@@ -153,10 +153,14 @@ export function AudioSummary({ summary, defaultLang = "en", tv = false }: { summ
           onTimeUpdate={(e) => setProgress(e.currentTarget.currentTime / (e.currentTarget.duration || total))}
         />
       )}
-      {label && <p className="mt-2 text-xs text-muted">{label}</p>}
       <p lang={lang} className={`mt-3 leading-relaxed ${tv ? "text-xl" : "text-[15px]"}`}>
         {s.transcript}
       </p>
+      {/* the honest labels: the voice, and who wrote the words */}
+      <div className="mt-3 flex flex-col gap-1.5 border-t border-line pt-3">
+        {canListen && <AiLabel label={{ kind: "audio", ai: !!s.audio }} />}
+        <AiLabel label={{ kind: "text", origin: s.origin }} report={tv ? null : { refKind: "text", refKey: s.origin?.key ?? null, matchId }} />
+      </div>
     </SectionCard>
   );
 }

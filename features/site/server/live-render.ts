@@ -2,17 +2,17 @@
 // so a realtime update and a page load always agree
 import { liigaGameUrl, type LiigaGame } from "@/features/liiga";
 import { roomScope, type CallDraft, type MatchRenderer } from "@/features/live/server";
-import { getSeasonContext, ifEndsNow } from "@/features/stakes/server";
+import { getSeasonContext } from "@/features/stakes/server";
 import { whatItMeansText } from "@/features/story/server";
-import { checkText } from "@/shared/guardrails";
 import { gameStakes, timelineFor } from "./game-stakes";
-import { clockIn, pct, periodName, whenLabel } from "./labels";
+import { clockIn, periodName, whenLabel } from "./labels";
 import { chips, emptyStakes, meaningFacts, seasonStakesCard, stakesSide } from "./match";
 import { clipOf } from "./highlight";
 import { eventsOf, periodScoresOf } from "./match-parts";
 import { triviaFor } from "./ask";
 import { boardRows, partyStandings } from "./presence";
 import { postLine } from "./social";
+import { stakesLineFor } from "./stakes-line";
 import { teamBook } from "./teams";
 
 async function stakesFor(game: LiigaGame) {
@@ -54,51 +54,7 @@ export const siteRenderer: MatchRenderer = {
    */
   async stakesLine(_matchId, game, draft: CallDraft) {
     const s = await stakesFor(game);
-    if (!s) return null;
-    const metrics = ["playoffs", "relegation"] as const;
-    const swing = (x: "home" | "away", m: (typeof metrics)[number]) => Math.abs(s.worth[x].regulationWin[m] - s.worth[x].regulationLoss[m]);
-    const fav = stakesSide(game);
-    const { side, metric } = (["home", "away"] as const)
-      .flatMap((x) => metrics.map((m) => ({ side: x, metric: m, swing: swing(x, m) + (x === fav ? 1e-6 : 0) })))
-      .reduce((a, b) => (b.swing > a.swing ? b : a));
-    const team = game[side].name;
-    const worth = s.worth[side];
-    const noun = metric === "playoffs" ? "playoff chance" : "relegation chance";
-    const own = (sc: { home: number; away: number }) => (side === "home" ? sc.home : sc.away);
-    const opp = (sc: { home: number; away: number }) => (side === "home" ? sc.away : sc.home);
-    const score = { home: game.home.goals, away: game.away.goals };
-    const now = ifEndsNow(worth, own(score), opp(score), s.otRate[side])[metric];
-    const goalLine = (scorer: "home" | "away") => {
-      const next = { home: score.home + (scorer === "home" ? 1 : 0), away: score.away + (scorer === "away" ? 1 : 0) };
-      const after = pct(ifEndsNow(worth, own(next), opp(next), s.otRate[side])[metric]);
-      // compared as shown: 99% -> 99% is "keep", not "lift"
-      const verb = after > pct(now) ? (metric === "playoffs" ? "lift" : "raise") : after < pct(now) ? (metric === "playoffs" ? "drop" : "cut") : "keep";
-      const name = game[scorer].name;
-      // "an Ilves goal", "an HIFK goal" (said aitch-I-F-K)
-      const article = /^([AEIOUÄÖ]|H[A-Z]{2})/.test(name) ? "An" : "A";
-      return `${article} ${name} goal now would ${verb} ${team}'s ${noun} ${verb === "keep" ? "at" : "to"} ${after}%.`;
-    };
-    let line: string;
-    switch (draft.rule.kind) {
-      case "who_wins":
-        line =
-          metric === "playoffs"
-            ? `A regulation win would take ${team} to a ${pct(worth.regulationWin.playoffs)}% playoff chance (${pct(worth.regulationLoss.playoffs)}% with a loss).`
-            : `A regulation loss would leave ${team} with a ${pct(worth.regulationLoss.relegation)}% relegation chance (${pct(worth.regulationWin.relegation)}% with a win).`;
-        break;
-      case "overtime": {
-        const ot = worth.overtimeWin[metric] * s.otRate[side] + worth.overtimeLoss[metric] * (1 - s.otRate[side]);
-        line = `Overtime would put ${team}'s ${noun} at ${pct(ot)}%.`;
-        break;
-      }
-      case "power_play":
-      case "answer_back":
-        line = goalLine(draft.rule.side);
-        break;
-      default:
-        line = goalLine(side);
-    }
-    return checkText(line).length ? null : line;
+    return s ? stakesLineFor(s, game, draft.rule, stakesSide(game)) : null;
   },
 
   // the party as everyone sees it (broadcast: each page marks "you" itself)

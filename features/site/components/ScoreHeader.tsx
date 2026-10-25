@@ -4,7 +4,7 @@ import { LiveBadge } from "./LiveMatchCard";
 import { WhenLabel } from "./WhenLabel";
 
 /**
- * a team beside the score: the logo 44 px on phones, 72 on wider screens, and the name big enough
+ * a team beside the score: the logo 44 px on phones, 72 on wider screens and 96 from 1280 px, and the name big enough
  * to balance the score. a long name ("Kiekko-Espoo") wraps at its hyphen instead of being cut
  */
 function Team({ team, align }: { team: TeamRef; align: "left" | "right" }) {
@@ -14,9 +14,9 @@ function Team({ team, align }: { team: TeamRef; align: "left" | "right" }) {
         align === "right" ? "md:flex-row-reverse md:text-right" : "md:flex-row md:text-left"
       }`}
     >
-      <img src={team.logo} alt={`${team.name} logo`} className="size-11 shrink-0 rounded-full md:size-[72px]" />
+      <img src={team.logo} alt={`${team.name} logo`} className="size-11 shrink-0 rounded-full md:size-[72px] xl:size-24" />
       <div className="min-w-0">
-        <p className="text-base leading-tight font-bold [overflow-wrap:anywhere] sm:text-xl md:text-[26px]">{team.name}</p>
+        <p className="text-base leading-tight font-bold [overflow-wrap:anywhere] sm:text-xl md:text-[26px] xl:text-[32px]">{team.name}</p>
         {team.city && <p className="mt-0.5 text-xs text-muted md:text-sm">{team.city}</p>}
       </div>
     </div>

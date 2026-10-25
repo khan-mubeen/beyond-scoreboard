@@ -10,6 +10,7 @@ import { NAMES } from "@/shared/copy/names";
 import { fmtInt } from "../format";
 import { optionClass } from "./CallItCard";
 import { Icon } from "./Icon";
+import { AiLabel } from "./AiLabel";
 import { InitialAvatar } from "./TeamLogo";
 import type { TriviaView } from "./use-live-match";
 
@@ -236,7 +237,7 @@ export function FactCardView({ card, by, compact = false }: { card: FactCard; by
             <span className="italic">{card.question}</span>
           </p>
           <p className="mt-0.5 text-sm font-semibold">{card.answer}</p>
-          <p className="mt-1 text-[11px] text-muted">Source: {card.source}</p>
+          <AiLabel className="mt-1 text-[11px]" label={{ kind: "data" }} />
         </div>
       </div>
     </div>
@@ -319,6 +320,7 @@ export function TriviaCard({ t, display = false }: { t: TriviaView; display?: bo
           "The answer is marked above."
         )}
       </p>
+      {!display && <AiLabel className="mt-1.5" label={{ kind: "data" }} />}
     </div>
   );
 }

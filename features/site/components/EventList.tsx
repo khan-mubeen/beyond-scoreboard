@@ -61,8 +61,8 @@ export function EventList({
     >
       <ol className="flex flex-col divide-y divide-line">
         {events.map((e) => (
-          <li key={e.id} className="grid grid-cols-[3.25rem_minmax(0,1fr)_auto] items-center gap-3 py-3.5 first:pt-0">
-            <div className="text-xs leading-tight text-muted">
+          <li key={e.id} className="grid grid-cols-[3.25rem_minmax(0,1fr)] items-center gap-x-3 gap-y-2 py-3.5 first:pt-0 sm:grid-cols-[3.25rem_minmax(0,1fr)_auto]">
+            <div className="row-span-2 self-start text-xs leading-tight text-muted sm:row-span-1 sm:self-center">
               <p className="text-sm font-bold text-ink tabular-nums">{e.time}</p>
               {e.period.replace(" period", "")}
               <br />
@@ -72,7 +72,8 @@ export function EventList({
               <p className="text-sm font-bold">{e.title}</p>
               <p className="truncate text-xs text-muted">{e.detail}</p>
             </div>
-            <div className="flex items-center gap-3">
+            {/* on a phone the chance change and the watch link go under the title, which keeps its width */}
+            <div className="flex flex-wrap items-center gap-3 empty:hidden">
               <EffectTag effect={e.effect} />
               {e.video?.src ? (
                 <WatchButton onClick={() => onWatch(e)} />

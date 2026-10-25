@@ -1,4 +1,4 @@
-// small svg charts, our own (like StepChart): an arc gauge, mirrored bars, form strips, a stacked
+// small svg charts, our own (like StepChart): an arc gauge, form strips, a stacked
 // bar, and a table whose rows slide into their new places. motion respects reduced motion
 // (SiteLayout's MotionConfig); every chart has a text alternative
 import { motion } from "motion/react";
@@ -120,34 +120,6 @@ export function MovingTable({ rows, highlight = [], caption }: { rows: MovingRow
             : [row];
         })}
       </ol>
-    </div>
-  );
-}
-
-/** home vs away per row, bars growing from the middle (shots per period) */
-export function MirroredBars({ rows, home, away }: { rows: { label: string; home: number; away: number }[]; home: { name: string; color: string }; away: { name: string; color: string } }) {
-  const max = Math.max(1, ...rows.flatMap((r) => [r.home, r.away]));
-  return (
-    <div role="img" aria-label={rows.map((r) => `${r.label}: ${home.name} ${r.home}, ${away.name} ${r.away}`).join("; ")}>
-      <div className="mb-1 flex justify-between text-xs font-semibold" aria-hidden>
-        <span>{home.name}</span>
-        <span>{away.name}</span>
-      </div>
-      <ul className="flex flex-col gap-1.5" aria-hidden>
-        {rows.map((r) => (
-          <li key={r.label} className="grid grid-cols-[2rem_minmax(0,1fr)_4.5rem_minmax(0,1fr)_2rem] items-center gap-1.5 text-xs tabular-nums">
-            <span className="text-right font-bold">{r.home}</span>
-            <span className="flex justify-end">
-              <motion.span className="h-3 rounded-l" style={{ background: home.color }} initial={{ width: 0 }} animate={{ width: `${(100 * r.home) / max}%` }} transition={{ duration: 0.6 }} />
-            </span>
-            <span className="text-center text-muted">{r.label}</span>
-            <span className="flex">
-              <motion.span className="h-3 rounded-r" style={{ background: away.color }} initial={{ width: 0 }} animate={{ width: `${(100 * r.away) / max}%` }} transition={{ duration: 0.6 }} />
-            </span>
-            <span className="font-bold">{r.away}</span>
-          </li>
-        ))}
-      </ul>
     </div>
   );
 }

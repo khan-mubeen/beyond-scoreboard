@@ -33,6 +33,8 @@ import { matchStarted, NOT_STARTED } from "../started";
 import { cancel, purchase, redeemOffer, WalletError } from "../wallet";
 import { predict, predictionFor, PredictionError } from "../prediction";
 import { breakdownFor } from "../breakdown";
+import { EditorError, editorPhrases, editorReports, editorTexts, editText, reviewPhrases, reviewText } from "../editor";
+import { ReportError, reportMistake } from "../reports";
 
 const matchId = z.string().regex(/^\d{4}-\d+$/, "match ids look like 2027-2701404");
 const nickname = z.string().trim().min(1).max(24);
@@ -42,6 +44,16 @@ const schemas = {
   join: z.object({ nickname: nickname.optional(), roomCode: z.string().regex(/^[A-Z]{4}$/).optional(), bot: z.boolean().optional() }),
   read: z.object({ id: z.string().uuid().optional() }),
   leaderboard: z.object({ scope: z.enum(["weekly", "season", "room"]).default("weekly") }),
+  report: z.object({
+    refKind: z.enum(["text", "call"]),
+    refKey: z.string().min(1).max(200),
+    matchId: matchId.nullable().optional(),
+    message: z.string().max(400),
+  }),
+  editorFilter: z.object({ filter: z.enum(["demo", "all"]).default("demo") }),
+  editorReview: z.object({ action: z.enum(["approve", "reject"]), reviewer: z.string().max(60) }),
+  editorEdit: z.object({ key: z.string().min(1).max(200), sentences: z.array(z.string().max(600)).min(1).max(40), reviewer: z.string().max(60) }),
+  editorPhrases: z.object({ ids: z.array(z.string().uuid()).min(1).max(200), action: z.enum(["approve", "reject"]), reviewer: z.string().max(60) }),
   breakdown: z.object({ scope: z.enum(["weekly", "season", "room"]).default("weekly"), user: z.string().uuid() }),
   answer: z.object({ optionId: z.string().min(1).max(40) }),
   comment: z.object({ text: z.string().max(400) }),
@@ -670,6 +682,83 @@ siteRouter.post(
     await reportPublicUrl(url);
     return { url: publicBaseUrl(req), ...asOfNow() };
   }),
+);
+
+// ---------- responsible ai: report a mistake (fans) and the editor (host token) ----------
+
+/** a fan reports a mistake in a generated text or a call's wording */
+siteRouter.post(
+  "/reports",
+  handle(async (req, res) => {
+    const body = schemas.report.parse(req.body ?? {});
+    try {
+      const r = await reportMistake(await viewerOf(req, res), { refKind: body.refKind, refKey: body.refKey, matchId: body.matchId ?? null, message: body.message });
+      res.status(201);
+      return { ok: true, id: r.id, ...asOfNow() };
+    } catch (err) {
+      if (err instanceof ReportError) return void res.status(err.status).json({ error: err.message });
+      throw err;
+    }
+  }),
+);
+
+/** the editor's routes need the host token; an editor error is the editor's answer */
+function editor(fn: (req: Request, res: Response) => Promise<unknown>) {
+  return async (req: Request, res: Response) => {
+    if (!process.env.HOST_TOKEN) return void res.status(503).json({ error: "the editor is off (set HOST_TOKEN)" });
+    if (!isHost(req)) return void res.status(403).json({ error: "wrong host token" });
+    try {
+      return await fn(req, res);
+    } catch (err) {
+      if (err instanceof EditorError) return void res.status(err.status).json({ error: err.message, ...err.extra });
+      throw err;
+    }
+  };
+}
+
+siteRouter.get(
+  "/editor/texts",
+  handle(editor(async (req) => ({ texts: await editorTexts(schemas.editorFilter.parse(req.query).filter), ...asOfNow() }))),
+);
+
+siteRouter.post(
+  "/editor/texts/:id/review",
+  handle(
+    editor(async (req) => {
+      const { action, reviewer } = schemas.editorReview.parse(req.body ?? {});
+      return { text: await reviewText(z.string().min(3).max(300).parse(req.params.id), action, reviewer), ...asOfNow() };
+    }),
+  ),
+);
+
+siteRouter.post(
+  "/editor/texts/edit",
+  handle(
+    editor(async (req) => {
+      const { key, sentences, reviewer } = schemas.editorEdit.parse(req.body ?? {});
+      return { text: await editText(key, sentences, reviewer), ...asOfNow() };
+    }),
+  ),
+);
+
+siteRouter.get(
+  "/editor/phrases",
+  handle(editor(async () => ({ groups: await editorPhrases(), ...asOfNow() }))),
+);
+
+siteRouter.post(
+  "/editor/phrases",
+  handle(
+    editor(async (req) => {
+      const { ids, action, reviewer } = schemas.editorPhrases.parse(req.body ?? {});
+      return { ...(await reviewPhrases(ids, action, reviewer)), ...asOfNow() };
+    }),
+  ),
+);
+
+siteRouter.get(
+  "/editor/reports",
+  handle(editor(async () => ({ reports: await editorReports(), ...asOfNow() }))),
 );
 
 siteRouter.use((_req, res) => {

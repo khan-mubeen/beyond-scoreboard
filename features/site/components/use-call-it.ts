@@ -5,6 +5,10 @@ export type CallPhase = "open" | "locked" | "revealed" | "cancelled";
 
 /** what the call it! card renders. the mock countdown and the live server both produce it */
 export interface CallItView {
+  /** the call (for "report a mistake"); absent on the design's mock */
+  id?: string;
+  /** ai: the wording came from the ai phrase bank; auto: the built-in wording */
+  wording?: "ai" | "auto";
   question: string;
   subtitle: string;
   options: { id: string; label: string }[];

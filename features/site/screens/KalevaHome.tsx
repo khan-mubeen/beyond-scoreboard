@@ -2,6 +2,7 @@ import { useState } from "react";
 import { KF, KF_EVENTS, KF_FRONT, type KfArticle, type KfBlock, toneOf } from "../kaleva";
 import { Icon } from "../components/Icon";
 import { KalevaDrawer, KalevaFooter, KalevaHeader, KalevaTopBar, linkProps } from "../components/kaleva/KalevaChrome";
+import { SportsSpotlight } from "../components/kaleva/SportsSpotlight";
 
 /**
  * "/": the kaleva.fi front page, rebuilt (layout, header, sections, typography, colours and the
@@ -17,6 +18,7 @@ export function KalevaHome() {
       <KalevaTopBar onMenu={() => setMenu(true)} open={menu} />
       <KalevaHeader />
       <KalevaDrawer open={menu} onClose={() => setMenu(false)} />
+      <SportsSpotlight />
 
       <main className="mx-auto max-w-[1440px] pt-6 pb-14 lg:px-[75px] lg:pt-[34px]">
         {/* "juuri nyt" */}

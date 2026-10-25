@@ -48,7 +48,7 @@ describe("link audit", () => {
   });
 
   it("knows the routes", () => {
-    for (const p of ["/", "/leaderboard", "/match/2027-2701404", "/teams/k%C3%A4rp%C3%A4t", "/calls/history", "/guidelines"]) expect(isRoute(p), p).toBe(true);
+    for (const p of ["/", "/leaderboard", "/match/2027-2701404", "/teams/k%C3%A4rp%C3%A4t", "/calls/history", "/guidelines", "/sports/ai", "/editor"]) expect(isRoute(p), p).toBe(true);
     expect(isRoute("/nope")).toBe(false);
   });
 });

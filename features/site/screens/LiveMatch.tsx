@@ -241,7 +241,7 @@ export function LiveMatch({ match: initial, source, onChange }: { match: LiveMat
       onViewAll={tab === "events" ? undefined : () => setTab("events")}
     />
   );
-  const stats = <MatchStats stats={match.stats} source={match.statsSource} note={match.statsNote} />;
+  const stats = <MatchStats stats={match.stats} source={match.statsSource} note={match.statsNote} home={match.match.home} away={match.match.away} />;
   const stakes = <SeasonStakesCard stakes={match.seasonStakes} />;
   const callCard = (
     <CallItCard

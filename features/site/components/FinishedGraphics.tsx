@@ -1,6 +1,6 @@
 // the finished match page's graphics: what the game meant for the season (gauge + the table
-// moving), the game in one chart (goals on one axis, the playoff-chance steps over them), shots and
-// puck control per period, the player of the game, and "next time"
+// moving), the game in one chart (goals on one axis, the playoff-chance steps over them), the
+// player of the game, and "next time" (shots and puck time per period: MatchStats)
 import { AnimatePresence, motion } from "motion/react";
 import { useEffect, useMemo, useState } from "react";
 import { zoneForRank } from "@/features/stakes";
@@ -8,7 +8,7 @@ import type { FinishedInsights, GoalMarker, NextTimePanel as NextTime, TeamRef, 
 import { ordinal } from "../format";
 import { setReminderApi } from "../data";
 import { teamColors } from "../team-colors";
-import { ArcGauge, FormStrip, MirroredBars, MovingTable, type MovingRow } from "./charts";
+import { ArcGauge, FormStrip, MovingTable, type MovingRow } from "./charts";
 import { FollowButton } from "./Follow";
 import { Icon } from "./Icon";
 import { Pill, SectionCard } from "./SectionCard";
@@ -199,45 +199,6 @@ export function GameChart({ insights, home, away, onWatch }: { insights: Finishe
       </svg>
       <AnimatePresence>{chosen && <GoalCard key={chosen.id} goal={chosen} focusName={focus.team.name} onWatch={onWatch} onClose={() => setOpen(null)} />}</AnimatePresence>
       {!game.goals.length && <p className="text-sm text-muted">No goals in regulation or overtime.</p>}
-    </SectionCard>
-  );
-}
-
-/** shots per period (mirrored) and puck control per period, where the feed has them */
-export function PeriodsPanel({ insights, home, away }: { insights: FinishedInsights; home: TeamRef; away: TeamRef }) {
-  const shots = insights.periods.filter((p) => p.shots).map((p) => ({ label: p.label, home: p.shots!.home, away: p.shots!.away }));
-  const control = insights.periods.filter((p) => p.control);
-  if (!shots.length && !control.length) return null;
-  const hc = teamColors(home).bg;
-  const ac = teamColors(away).bg;
-  return (
-    <SectionCard title="Shots and momentum">
-      {shots.length > 0 && (
-        <>
-          <h3 className="mb-2 text-xs font-semibold tracking-wider text-muted uppercase">Shots on goal per period</h3>
-          <MirroredBars rows={shots} home={{ name: home.name, color: hc }} away={{ name: away.name, color: ac }} />
-        </>
-      )}
-      {control.length > 0 && (
-        <>
-          <h3 className="mt-5 mb-2 text-xs font-semibold tracking-wider text-muted uppercase">Time with the puck</h3>
-          <ul className="flex flex-col gap-1.5">
-            {control.map((p) => (
-              <li key={p.label} className="grid grid-cols-[2.5rem_minmax(0,1fr)] items-center gap-2 text-xs tabular-nums">
-                <span className="text-muted">{p.label}</span>
-                <span className="flex h-5 overflow-hidden rounded-full" role="img" aria-label={`${p.label}: ${home.name} ${p.control!.home}%, ${away.name} ${p.control!.away}%`}>
-                  <motion.span className="flex items-center pl-2 font-bold text-white" style={{ background: hc }} initial={{ width: "50%" }} animate={{ width: `${p.control!.home}%` }} transition={{ duration: 0.6 }}>
-                    {p.control!.home}%
-                  </motion.span>
-                  <span className="flex flex-1 items-center justify-end pr-2 font-bold text-white" style={{ background: ac }}>
-                    {p.control!.away}%
-                  </span>
-                </span>
-              </li>
-            ))}
-          </ul>
-        </>
-      )}
     </SectionCard>
   );
 }

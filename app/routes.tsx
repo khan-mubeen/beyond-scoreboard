@@ -2,7 +2,7 @@
 // demand (one chunk per page, so a phone only downloads the page it opens).
 // plain <a> links; between site pages the click is handled here (history.pushState), so the
 // data cache survives and a visited page shows its last data at once. no router library needed
-import { type ComponentType, Fragment, lazy, type ReactNode, startTransition, Suspense, useEffect, useState } from "react";
+import { type ComponentType, Fragment, lazy, type ReactNode, startTransition, Suspense, useEffect, useLayoutEffect, useState } from "react";
 import { Card } from "@/shared/ui";
 
 /** a screen module's named export as a lazy component */
@@ -28,6 +28,9 @@ const AchievementsPage = page(() => import("@/features/site/screens/ProfilePage"
 const MyCalls = page(() => import("@/features/site/screens/MyCalls"), "MyCalls");
 const CallHistory = page(() => import("@/features/site/screens/MyCalls"), "CallHistory");
 const SettingsPage = page(() => import("@/features/site/screens/SettingsPage"), "SettingsPage");
+const AiPage = page(() => import("@/features/site/screens/AiPage"), "AiPage");
+const EditorPage = page(() => import("@/features/site/screens/EditorPage"), "EditorPage");
+const NotFound = page(() => import("@/features/site/screens/NotFound"), "NotFound");
 const Landing = page(() => import("@/features/live/screens/Landing"), "Landing");
 const PhoneRoom = page<{ code: string }>(() => import("@/features/live/screens/PhoneRoom"), "PhoneRoom");
 const HostRoom = page<{ code: string }>(() => import("@/features/live/screens/HostRoom"), "HostRoom");
@@ -39,48 +42,52 @@ const DevStory = page(() => import("@/features/story/screens/DevStory"), "DevSto
 /** "site" pages use the light kaleva theme, the rest keep the dark room theme */
 export type Theme = "site" | "room";
 
-const ROUTES: [RegExp, (params: string[]) => ReactNode, Theme][] = [
+/** pattern, page, theme, the default <title> (a page with data sets a better one: usePageTitle) */
+const ROUTES: [RegExp, (params: string[]) => ReactNode, Theme, string][] = [
   // the kaleva.fi front page, rebuilt; its links open kaleva.fi, Kaleva Sports is the one way in
-  [/^\/$/, () => <KalevaHome />, "site"],
+  [/^\/$/, () => <KalevaHome />, "site", "Kaleva"],
   // kaleva sports pages
-  [/^\/sports$/, () => <SportsHome />, "site"],
-  [/^\/dev\/brand$/, () => <BrandPage />, "site"],
-  [/^\/match\/([^/]+)$/, ([id]) => <MatchPage id={id} />, "site"],
-  [/^\/rewards$/, () => <Rewards />, "site"],
-  [/^\/leaderboard$/, () => <LeaderboardPage />, "site"],
-  [/^\/guidelines$/, () => <Guidelines />, "site"],
-  [/^\/demo\/control$/, () => <DemoControl />, "site"],
-  [/^\/tv$/, () => <TvNow />, "site"],
+  [/^\/sports$/, () => <SportsHome />, "site", "Kaleva Sports"],
+  [/^\/dev\/brand$/, () => <BrandPage />, "site", "Brand · Kaleva Sports"],
+  [/^\/match\/([^/]+)$/, ([id]) => <MatchPage id={id} />, "site", "Match · Kaleva Sports"],
+  [/^\/rewards$/, () => <Rewards />, "site", "Rewards · Kaleva Sports"],
+  [/^\/leaderboard$/, () => <LeaderboardPage />, "site", "Leaderboard · Kaleva Sports"],
+  [/^\/guidelines$/, () => <Guidelines />, "site", "Community guidelines · Kaleva Sports"],
+  [/^\/demo\/control$/, () => <DemoControl />, "site", "Demo control · Kaleva Sports"],
+  [/^\/tv$/, () => <TvNow />, "site", "TV · Kaleva Sports"],
   // the watch party: the short address on the tv, friends, invite links
-  [/^\/join$/, () => <JoinNow />, "site"],
-  [/^\/friends$/, () => <FriendsPage />, "site"],
-  [/^\/i\/([A-Za-z0-9]{6,12})$/, ([code]) => <InvitePage code={code} />, "site"],
-  [/^\/calls$/, () => <MyCalls />, "site"],
-  [/^\/calls\/history$/, () => <CallHistory />, "site"],
-  [/^\/teams$/, () => <TeamsPage />, "site"],
-  [/^\/teams\/([^/]+)$/, ([slug]) => <TeamPage slug={slug} />, "site"],
-  [/^\/profile$/, () => <ProfilePage />, "site"],
-  [/^\/achievements$/, () => <AchievementsPage />, "site"],
-  [/^\/settings$/, () => <SettingsPage />, "site"],
+  [/^\/join$/, () => <JoinNow />, "site", "Watch the live match · Kaleva Sports"],
+  [/^\/friends$/, () => <FriendsPage />, "site", "Friends · Kaleva Sports"],
+  [/^\/i\/([A-Za-z0-9]{6,12})$/, ([code]) => <InvitePage code={code} />, "site", "You're invited · Kaleva Sports"],
+  [/^\/calls$/, () => <MyCalls />, "site", "My calls · Kaleva Sports"],
+  [/^\/calls\/history$/, () => <CallHistory />, "site", "Call history · Kaleva Sports"],
+  [/^\/teams$/, () => <TeamsPage />, "site", "Teams · Kaleva Sports"],
+  [/^\/teams\/([^/]+)$/, ([slug]) => <TeamPage slug={slug} />, "site", "Team · Kaleva Sports"],
+  [/^\/profile$/, () => <ProfilePage />, "site", "Profile · Kaleva Sports"],
+  [/^\/achievements$/, () => <AchievementsPage />, "site", "Achievements · Kaleva Sports"],
+  [/^\/settings$/, () => <SettingsPage />, "site", "Settings · Kaleva Sports"],
+  // responsible ai: how we use it, and the editors' review (host token)
+  [/^\/sports\/ai$/, () => <AiPage />, "site", "How we use AI · Kaleva Sports"],
+  [/^\/editor$/, () => <EditorPage />, "site", "Editor · Kaleva Sports"],
   // watch party rooms
-  [/^\/watch$/, () => <Landing />, "room"],
-  [/^\/room\/([^/]+)$/, ([code]) => <PhoneRoom code={code.toUpperCase()} />, "room"],
-  [/^\/room\/([^/]+)\/host$/, ([code]) => <HostRoom code={code.toUpperCase()} />, "room"],
-  [/^\/room\/([^/]+)\/screen$/, ([code]) => <BigScreen code={code.toUpperCase()} />, "room"],
+  [/^\/watch$/, () => <Landing />, "room", "Watch party · Kaleva Sports"],
+  [/^\/room\/([^/]+)$/, ([code]) => <PhoneRoom code={code.toUpperCase()} />, "room", "Watch party room · Kaleva Sports"],
+  [/^\/room\/([^/]+)\/host$/, ([code]) => <HostRoom code={code.toUpperCase()} />, "room", "Host · Kaleva Sports"],
+  [/^\/room\/([^/]+)\/screen$/, ([code]) => <BigScreen code={code.toUpperCase()} />, "room", "Big screen · Kaleva Sports"],
   // dev pages
-  [/^\/dev$/, () => <DevIndex />, "room"],
-  [/^\/dev\/stakes$/, () => <DevStakes />, "room"],
-  [/^\/dev\/live$/, () => <DevLive />, "room"],
-  [/^\/dev\/story$/, () => <DevStory />, "room"],
+  [/^\/dev$/, () => <DevIndex />, "room", "Dev pages"],
+  [/^\/dev\/stakes$/, () => <DevStakes />, "room", "Dev: stakes"],
+  [/^\/dev\/live$/, () => <DevLive />, "room", "Dev: live"],
+  [/^\/dev\/story$/, () => <DevStory />, "room", "Dev: story"],
 ];
 
-const NOT_FOUND = { element: <main className="grid min-h-screen place-items-center text-muted">Page not found</main>, theme: "room" as Theme };
+const NOT_FOUND = { element: <NotFound />, theme: "site" as Theme, title: "Page not found · Kaleva Sports" };
 
 function find(pathname: string) {
   const path = pathname.replace(/\/+$/, "") || "/";
-  for (const [pattern, render, theme] of ROUTES) {
+  for (const [pattern, render, theme, title] of ROUTES) {
     const match = path.match(pattern);
-    if (match) return { render: () => render(match.slice(1).map(decodeURIComponent)), theme };
+    if (match) return { render: () => render(match.slice(1).map(decodeURIComponent)), theme, title };
   }
   return null;
 }
@@ -110,9 +117,9 @@ function redirected(): string {
   return window.location.pathname + window.location.search;
 }
 
-export function resolveRoute(pathname: string): { element: ReactNode; theme: Theme } {
+export function resolveRoute(pathname: string): { element: ReactNode; theme: Theme; title: string } {
   const hit = find(pathname);
-  return hit ? { element: hit.render(), theme: hit.theme } : NOT_FOUND;
+  return hit ? { element: hit.render(), theme: hit.theme, title: hit.title } : NOT_FOUND;
 }
 
 /** true when a path (no query or hash) is a page of the app; the link audit test uses it */
@@ -156,6 +163,10 @@ export function App() {
   }, []);
 
   const path = location.split("?")[0];
+  // the route's default title; a layout effect, so a page's own (usePageTitle, a passive effect) wins
+  useLayoutEffect(() => {
+    document.title = find(path)?.title ?? NOT_FOUND.title;
+  }, [path]);
   return (
     <Suspense fallback={<div className="min-h-screen bg-bg" />}>
       <Fragment key={location}>{resolveRoute(path).element}</Fragment>

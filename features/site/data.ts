@@ -385,6 +385,21 @@ export function saveHostToken(token: string) {
   }
 }
 
+/** a GET with the host token (the editor) */
+export async function hostGet<T>(url: string, token: string): Promise<{ ok: true; data: T } | { ok: false; status: number; error: string }> {
+  try {
+    const r = await fetch(url, { credentials: "same-origin", cache: "no-store", headers: { "x-host-token": token } });
+    const data = await r.json().catch(() => ({}));
+    if (!r.ok) return { ok: false, status: r.status, error: (data as { error?: string }).error ?? `error ${r.status}` };
+    return { ok: true, data: data as T };
+  } catch {
+    return { ok: false, status: 0, error: "can't reach the server" };
+  }
+}
+
+/** "report a mistake" in a generated text or a call's wording */
+export const reportMistakeApi = (r: { refKind: "text" | "call"; refKey: string; matchId?: string | null; message: string }) => postJson<{ ok: true; id: string }>("/api/site/reports", r);
+
 /** POST with the host token; the server checks it */
 export async function hostPost<T>(url: string, body: unknown, token: string): Promise<{ ok: true; data: T } | { ok: false; status: number; error: string }> {
   try {

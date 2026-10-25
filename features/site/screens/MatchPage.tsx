@@ -1,4 +1,6 @@
+import type { MatchSummary } from "@/shared/types";
 import { SiteLayout } from "../components/SiteLayout";
+import { usePageTitle } from "../components/usePageTitle";
 import { DataUnavailable, MatchSkeleton } from "../components/Skeleton";
 import { isMockMatch, USE_MOCKS, useMatchDetail } from "../data";
 import { FinishedMatch } from "./FinishedMatch";
@@ -6,6 +8,12 @@ import { LiveMatch } from "./LiveMatch";
 import { MatchPreview } from "./MatchPreview";
 import { Placeholder } from "./Placeholder";
 import { TvMatch } from "./TvMatch";
+
+/** "Jukurit 3–2 Tappara · Kaleva Sports"; before the game "Jukurit – Tappara · Kaleva Sports" */
+export function matchTitle(m: Pick<MatchSummary, "home" | "away" | "score">): string {
+  const mid = m.score ? ` ${m.score.home}–${m.score.away} ` : " – ";
+  return `${m.home.name}${mid}${m.away.name} · Kaleva Sports`;
+}
 
 const tvMode = () => typeof window !== "undefined" && new URLSearchParams(window.location.search).get("tv") === "1";
 
@@ -17,6 +25,7 @@ export function MatchPage({ id }: { id: string }) {
 
 function MatchView({ id }: { id: string }) {
   const { data: match, status, source, refresh } = useMatchDetail(id);
+  usePageTitle(match ? matchTitle(match.match) : null);
   if (isMockMatch(id) && !USE_MOCKS) return <Placeholder title="Match centre" />;
   if (!match) {
     if (status === "notfound") return <Placeholder title="Match centre" />;

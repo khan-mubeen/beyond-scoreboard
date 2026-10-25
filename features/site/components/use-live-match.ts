@@ -60,6 +60,8 @@ function viewOf(call: LiveCall, now: number, picked: string | null, error: strin
   const phase =
     call.status === "resolved" ? "revealed" : call.status === "cancelled" ? "cancelled" : call.status === "locked" || secondsLeft === 0 ? "locked" : "open";
   return {
+    id: call.id,
+    wording: call.wording ?? "auto",
     question: fi && call.fi ? call.fi.question : call.question,
     subtitle: phase === "open" ? "Answer before the timer ends" : phase === "locked" ? "Answers are locked" : "",
     options: fi && call.fi ? call.fi.options : call.options,

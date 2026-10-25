@@ -1,45 +1,54 @@
-import type { FinishedMatchDetail } from "@/shared/types";
-import { WATCH_CLASS, WatchButton } from "./EventList";
-import { Pill, SectionCard } from "./SectionCard";
-import { LiigaLink, Poster } from "./VideoPlayer";
+import type { FinishedMatchDetail, VideoInfo } from "@/shared/types";
+import { Icon } from "./Icon";
+import { Pill } from "./SectionCard";
+import { LiigaLink, VideoPlayer } from "./VideoPlayer";
 
-/** the goal that moved the chance most. watch: our highlight from that goal, else on liiga.fi */
+/**
+ * the finished page's video tile: the goal that moved the chance most (time, period, power play,
+ * the chance change) with our highlight from it, else the game's video. "watch on liiga.fi" when
+ * the clip lives there. a game without goals shows the game's video alone
+ */
 export function GoalOfTheGame({
   goal,
+  video,
   onWatch,
 }: {
-  goal: NonNullable<FinishedMatchDetail["goalOfTheGame"]>;
-  onWatch: () => void;
+  goal: FinishedMatchDetail["goalOfTheGame"];
+  /** the game's own video, when there's no goal clip */
+  video: VideoInfo;
+  onWatch: (v: VideoInfo) => void;
 }) {
-  const hosted = !!goal.video.src;
-  const href = goal.video.href;
-  const thumb = <Poster src={goal.thumbnail} fallback="/placeholders/goal-thumb.svg" className="size-full object-cover" />;
-  const frame = "relative aspect-[3/2] w-full shrink-0 overflow-hidden rounded-lg bg-dark sm:w-44";
+  const clip = goal?.video.src || goal?.video.href ? goal.video : video;
+  const liiga = goal?.video.href ?? video.href ?? null;
   return (
-    <SectionCard title="Goal of the game" action={<Pill tone="good">{goal.chip}</Pill>}>
-      <div className="flex flex-col gap-4 sm:flex-row">
-        {hosted ? (
-          <button type="button" onClick={onWatch} className={frame} aria-label={`Watch: ${goal.title}`}>
-            {thumb}
-          </button>
-        ) : href ? (
-          <a href={href} target="_blank" rel="noreferrer" className={frame} aria-label={`Watch on liiga.fi: ${goal.title}`}>
-            {thumb}
-          </a>
+    <section aria-label={goal ? "Goal of the game" : "Video"} className="flex h-full flex-col overflow-hidden rounded-card border border-line bg-surface shadow-card">
+      <VideoPlayer
+        video={clip}
+        onPlay={() => onWatch(clip)}
+        className="aspect-video shrink-0 rounded-none shadow-none"
+        overlay={
+          <p className="absolute top-3 left-3">
+            <Pill tone="outline" className="border-transparent">
+              <Icon name="star" className="size-3.5 text-accent" /> {goal ? "Goal of the game" : "Highlights"}
+            </Pill>
+          </p>
+        }
+      />
+      <div className="flex flex-1 flex-col p-4">
+        {goal ? (
+          <>
+            <p className="text-xs font-semibold tracking-wider text-muted uppercase">{goal.meta}</p>
+            <h3 className="mt-1 text-lg leading-snug font-bold">{goal.title}</h3>
+            <p className="mt-1 text-sm text-muted">{goal.effectText}</p>
+            <p className="mt-2">
+              <Pill tone="good">{goal.chip}</Pill>
+            </p>
+          </>
         ) : (
-          <div className={frame}>{thumb}</div>
+          <h3 className="text-lg leading-snug font-bold">{video.title}</h3>
         )}
-        <div className="min-w-0">
-          <p className="text-xs font-semibold tracking-wider text-muted uppercase">{goal.meta}</p>
-          <h3 className="mt-1 text-xl font-bold">{goal.title}</h3>
-          <p className="mt-1 text-sm text-muted">{goal.effectText}</p>
-          {hosted ? (
-            <WatchButton onClick={onWatch} label="Watch moment" className="mt-3 px-4 py-2 text-sm" />
-          ) : (
-            href && <LiigaLink href={href} className={`${WATCH_CLASS} mt-3 px-4 py-2 text-sm`} />
-          )}
-        </div>
+        {liiga && <LiigaLink href={liiga} className="mt-auto inline-flex items-center gap-1 self-start pt-3 text-sm font-semibold text-accent hover:underline" />}
       </div>
-    </SectionCard>
+    </section>
   );
 }

@@ -1,6 +1,7 @@
 import { AnimatePresence, motion } from "motion/react";
 import { CountdownRing } from "./CountdownRing";
 import { Icon } from "./Icon";
+import { AiLabel } from "./AiLabel";
 import { Pill } from "./SectionCard";
 import type { CallItView } from "./use-call-it";
 import { fmtClock } from "../format";
@@ -77,6 +78,7 @@ function CallBody({ view, display = false, answered = null }: { view: CallItView
         <CountdownRing seconds={secondsLeft} total={view.totalSeconds} size={display ? 112 : open ? 76 : 56} />
       </div>
       {view.stakesLine && <p className={`rounded-lg bg-surface/80 px-3 py-2 font-medium ${display ? "text-lg" : "text-sm"}`}>{view.stakesLine}</p>}
+      {!display && view.id && <AiLabel label={{ kind: "call", wording: view.wording }} report={view.wording === "ai" ? { refKind: "call", refKey: view.id } : null} />}
 
       <div className="grid grid-cols-2 gap-2">
         {opts.map((o, i) => {
