@@ -144,6 +144,8 @@ export interface LiigaStandings {
 /** team stats for one game. null means the feed can't give it yet ("Data pending") */
 export interface LiigaGameStats {
   shots: Pair | null;
+  /** shots per period (1-3, 4 overtime) */
+  shotsByPeriod: { period: number; home: number; away: number }[];
   blockedShots: Pair | null;
   /** faceoff win share in % */
   faceoffs: Pair | null;

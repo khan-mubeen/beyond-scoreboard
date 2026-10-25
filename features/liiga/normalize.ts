@@ -250,8 +250,21 @@ export function normalizeStats(
         }
       : null;
 
+  // shots per period (5 is the shootout: no shots there)
+  const shotsByPeriod = has
+    ? [...new Set(home.map((s) => s.period ?? 0))]
+        .filter((n) => n >= 1 && n <= 4)
+        .sort((x, y) => x - y)
+        .flatMap((n) => {
+          const h = home.find((s) => s.period === n)?.shots;
+          const a = away.find((s) => s.period === n)?.shots;
+          return typeof h === "number" && typeof a === "number" ? [{ period: n, home: h, away: a }] : [];
+        })
+    : [];
+
   return {
     shots: pair((s) => s.shots),
+    shotsByPeriod,
     blockedShots,
     faceoffs: faceoffWins ? share(faceoffWins[0], faceoffWins[1]) : null,
     penaltyMinutes: pair((s) => s.penaltyMinutes),

@@ -177,6 +177,8 @@ let seasonStats: { key: string; at: number; value: Promise<SeasonStats> } | null
 export interface SeasonStats {
   /** player id -> games, goals and assists */
   players: Map<number, PlayerSeasonStats>;
+  /** player id -> each game they played this season so far, oldest first (hot streaks) */
+  log: Map<number, PlayerGameLine[]>;
   /** finished games counted, and the ones whose details couldn't be read (a missing snapshot) */
   games: number;
   missing: number;
@@ -187,6 +189,17 @@ export interface SeasonStats {
  * before the league clock: in demo mode nothing after the demo date is counted. games are read
  * a few at a time and cached (24 h for a final), the totals for 10 minutes
  */
+export interface PlayerGameLine {
+  matchId: string;
+  start: string;
+  /** the team they played for, their name and photo then */
+  teamId: string;
+  name: string;
+  picture: string | null;
+  goals: number;
+  assists: number;
+}
+
 export function getSeasonStats(season: number): Promise<SeasonStats> {
   const key = `${season}:${helsinkiDate(leagueNow())}`;
   if (seasonStats && seasonStats.key === key && Date.now() - seasonStats.at < SEASON_TTL_MS) return seasonStats.value;
@@ -196,6 +209,7 @@ export function getSeasonStats(season: number): Promise<SeasonStats> {
     const played = schedule.data.filter((f) => f.status === "final" && f.start < nowIso);
     const players = new Map<number, PlayerSeasonStats>();
     const row = (id: number) => players.get(id) ?? players.set(id, { games: 0, goals: 0, assists: 0 }).get(id)!;
+    const log = new Map<number, PlayerGameLine[]>();
     let missing = 0;
     for (let i = 0; i < played.length; i += 4) {
       await Promise.all(
@@ -203,18 +217,33 @@ export function getSeasonStats(season: number): Promise<SeasonStats> {
           const res = await client.get<GameDetailsDTO>(`/api/v1/games/${f.season}/${f.gameId}`, TTL.final).catch(() => null);
           if (!res) return void missing++;
           const game = normalizeGame(res.data.game);
-          for (const p of [...(res.data.homeTeamPlayers ?? []), ...(res.data.awayTeamPlayers ?? [])]) if (p.id != null && !p.removed) row(p.id).games++;
+          const tonight = new Map<number, { goals: number; assists: number }>();
+          const line = (id: number) => tonight.get(id) ?? tonight.set(id, { goals: 0, assists: 0 }).get(id)!;
           for (const g of game.goals) {
             // shootout goals don't count as goals in the season totals
             if (g.period > 4) continue;
-            if (g.scorerId !== null) row(g.scorerId).goals++;
-            for (const a of g.assistIds) row(a).assists++;
+            if (g.scorerId !== null) {
+              row(g.scorerId).goals++;
+              line(g.scorerId).goals++;
+            }
+            for (const a of g.assistIds) {
+              row(a).assists++;
+              line(a).assists++;
+            }
+          }
+          for (const p of [...(res.data.homeTeamPlayers ?? []), ...(res.data.awayTeamPlayers ?? [])]) {
+            if (p.id == null || p.removed) continue;
+            row(p.id).games++;
+            const t = tonight.get(p.id) ?? { goals: 0, assists: 0 };
+            const name = [p.firstName, p.lastName].filter(Boolean).join(" ");
+            (log.get(p.id) ?? log.set(p.id, []).get(p.id)!).push({ matchId: f.id, start: f.start, teamId: p.teamId ?? "", name, picture: p.pictureUrl ?? null, ...t });
           }
         }),
       );
     }
     if (missing) console.warn(`liiga: season stats count ${played.length - missing} of ${played.length} games (${missing} without details; npm run snapshot -- --season)`);
-    return { players, games: played.length - missing, missing };
+    for (const lines of log.values()) lines.sort((a, b) => a.start.localeCompare(b.start));
+    return { players, log, games: played.length - missing, missing };
   })();
   value.catch(() => (seasonStats = null));
   seasonStats = { key, at: Date.now(), value };
