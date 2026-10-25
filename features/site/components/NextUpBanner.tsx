@@ -40,7 +40,7 @@ export function NextUpBanner({
         aria-pressed={set}
         onClick={toggle}
         className={`flex h-11 items-center justify-center gap-2 rounded-lg px-5 text-sm font-semibold transition-colors ${
-          set ? "border border-good bg-good-soft text-good" : "bg-accent text-accent-ink hover:brightness-110"
+          set ? "border border-good bg-good-soft text-good" : "bg-accent text-accent-ink hover:bg-accent-hover"
         }`}
       >
         {!set && <Icon name="bell" className="size-4" />}

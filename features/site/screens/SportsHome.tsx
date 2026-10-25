@@ -6,7 +6,10 @@ import { DateSelect, type FilterOption, FilterPills } from "../components/Filter
 import { HeroBanner } from "../components/HeroBanner";
 import { Leaderboard } from "../components/Leaderboard";
 import { LiigaTable } from "../components/LiigaTable";
+import { Icon } from "../components/Icon";
+import { useLiveNow } from "../components/live-now";
 import { LiveMatchCard } from "../components/LiveMatchCard";
+import { LiveNowCard } from "../components/LiveNowCard";
 import { PickTeamPrompt } from "../components/PickTeamPrompt";
 import { MatchCard } from "../components/MatchCard";
 import { SeasonStakesStrip } from "../components/SeasonStakesStrip";
@@ -54,9 +57,34 @@ function YourTeams({ teams }: { teams: HomePage["yourTeams"] }) {
   );
 }
 
+/** an empty filter that leads somewhere: a short message beside the Live now / Next up card */
+function EmptyFilter({ title, text, links }: { title: string; text: string; links: { label: string; onClick: () => void }[] }) {
+  return (
+    <div className="grid gap-4 md:grid-cols-2" data-testid="empty-filter">
+      <section className="flex flex-col justify-center gap-2 rounded-card border border-line bg-surface p-5 shadow-card">
+        <span className="grid size-10 place-items-center rounded-full bg-surface-2 text-muted">
+          <Icon name="calendar" className="size-5" />
+        </span>
+        <h2 className="text-lg font-bold">{title}</h2>
+        <p className="text-sm text-muted">{text}</p>
+        <p className="mt-1 flex flex-wrap gap-3">
+          {links.map((l) => (
+            <button key={l.label} type="button" onClick={l.onClick} className="text-sm font-semibold text-accent hover:underline">
+              {l.label} →
+            </button>
+          ))}
+        </p>
+      </section>
+      <LiveNowCard />
+    </div>
+  );
+}
+
 /** kaleva sports home (docs/design/01-home.png) */
 export function SportsHome() {
   const { data: home, status, source, refresh } = useHomePage();
+  // the same source as the header ticker and the Live now card: lobby, live and final agree
+  const now = useLiveNow();
   // the header's Live and Results open /sports?show=live|results
   const [filter, setFilter] = useState<Filter>(initialFilter);
   const sidebar = { activeLinkId: "home", docked: true };
@@ -65,16 +93,21 @@ export function SportsHome() {
     return <SiteLayout sidebar={sidebar}>{status === "error" ? <DataUnavailable what="the sports home" onRetry={refresh} /> : <HomeSkeleton />}</SiteLayout>;
   }
 
+  // the rotation's match counts as live only in its live phase, as the ticker says; other live games from the page
+  const rotationId = now && now.phase !== "next" ? now.t.matchId : null;
+  const liveGames = home.live.filter((m) => m.id !== rotationId);
+  const liveCount = liveGames.length + (now?.phase === "live" ? 1 : 0);
   const options: FilterOption<Filter>[] = [
     { id: "all", label: "All", icon: "grid" },
-    { id: "live", label: `Live (${home.live.length})`, icon: "live" },
+    { id: "live", label: `Live (${liveCount})`, icon: "live" },
     { id: "results", label: "Results", icon: "calendar" },
     { id: "upcoming", label: "Upcoming", icon: "history" },
   ];
   const show = (f: Filter) => filter === "all" || filter === f;
   const featured = home.featured;
-  const showFeatured = featured && (filter === "all" || (filter === "live" && featured.match.status === "live"));
-  const otherLive = home.live.filter((m) => m.id !== featured?.match.id);
+  const featuredLive = featured ? (featured.match.id === rotationId ? now?.phase === "live" : featured.match.status === "live") : false;
+  const showFeatured = featured && (filter === "all" || (filter === "live" && featuredLive));
+  const otherLive = liveGames.filter((m) => m.id !== featured?.match.id);
 
   return (
     <SiteLayout sidebar={sidebar} source={source}>
@@ -100,8 +133,46 @@ export function SportsHome() {
             >
               {showFeatured && <LiveMatchCard featured={featured} />}
               {filter === "all" && home.seasonStakesToday.length > 0 && <SeasonStakesStrip title="Season stakes today" items={home.seasonStakesToday} />}
-              {show("live") && (otherLive.length > 0 || filter === "live") && (
-                <MatchSection title={`Live Matches (${home.live.length})`}>
+              {filter === "live" && liveCount === 0 && (
+                <>
+                  <EmptyFilter
+                    title="No games live right now"
+                    text="Live games show here with their score and Your Call! questions. Here's what's on next."
+                    links={[
+                      { label: "Upcoming games", onClick: () => setFilter("upcoming") },
+                      { label: "All results", onClick: () => setFilter("results") },
+                    ]}
+                  />
+                  {home.recent.length > 0 && (
+                    <MatchSection title="Latest results">
+                      <div className="grid gap-3">
+                        {home.recent.slice(0, 3).map((m) => (
+                          <MatchCard key={m.id} match={m} />
+                        ))}
+                      </div>
+                    </MatchSection>
+                  )}
+                </>
+              )}
+              {filter === "results" && home.recent.length === 0 && (
+                <EmptyFilter title="No results yet" text="Finished games show here with what they meant for the table." links={[{ label: "Upcoming games", onClick: () => setFilter("upcoming") }]} />
+              )}
+              {filter === "upcoming" && home.upcoming.length === 0 && (
+                <>
+                  <EmptyFilter title="No games scheduled" text="New fixtures show here as soon as the league publishes them." links={[{ label: "Latest results", onClick: () => setFilter("results") }]} />
+                  {home.recent.length > 0 && (
+                    <MatchSection title="Latest results">
+                      <div className="grid gap-3">
+                        {home.recent.slice(0, 3).map((m) => (
+                          <MatchCard key={m.id} match={m} />
+                        ))}
+                      </div>
+                    </MatchSection>
+                  )}
+                </>
+              )}
+              {show("live") && otherLive.length > 0 && (
+                <MatchSection title={`Live Matches (${liveCount})`}>
                   <div className="grid gap-3 md:grid-cols-[minmax(0,1.3fr)_minmax(0,1fr)]">
                     {otherLive.map((m) => (
                       <MatchCard key={m.id} match={m} />

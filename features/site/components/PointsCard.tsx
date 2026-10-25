@@ -18,9 +18,10 @@ function LevelBar({ user, className = "" }: { user: UserSummary; className?: str
   );
 }
 
-const levelText = (u: UserSummary) => `Level ${u.level} · ${fmtInt(u.pointsToNextLevel)} pts to Level ${u.level + 1}`;
+/** the level grows with earned points, not the balance: "Earned 0 · 50 to Level 2" */
+export const levelText = (u: UserSummary) => `Earned ${fmtInt(u.earned ?? 0)} · ${fmtInt(u.pointsToNextLevel)} to Level ${u.level + 1}`;
 
-/** total points, this week, level bar. the numbers count up when points land. compact is the rewards sidebar version */
+/** the points balance, earned this week, and the level bar (earned points). the numbers count up when points land. compact is the rewards sidebar version */
 export function PointsCard({ user, compact = false }: { user: UserSummary; compact?: boolean }) {
   const points = useCountUp(user.points);
   const week = useCountUp(user.pointsThisWeek);
@@ -28,7 +29,7 @@ export function PointsCard({ user, compact = false }: { user: UserSummary; compa
     <div className="rounded-card border border-line bg-surface p-4 shadow-card">
       <div className="flex items-start justify-between gap-3">
         <div>
-          <p className="text-sm text-muted">Total Points</p>
+          <p className="text-sm text-muted">Points balance</p>
           <p className="mt-1 flex items-center gap-2 text-[30px] leading-none font-bold tabular-nums" aria-live="polite">
             {!compact && <Icon name="trophy" className="size-7 text-gold" />}
             {fmtInt(points)}
@@ -47,10 +48,7 @@ export function PointsCard({ user, compact = false }: { user: UserSummary; compa
       </div>
       <p className="mt-4 text-sm">
         <span className="font-semibold">Level {user.level}</span>
-        <span className="text-muted">
-          {" "}
-          · {fmtInt(user.pointsToNextLevel)} pts to Level {user.level + 1}
-        </span>
+        <span className="text-muted"> · {levelText(user)}</span>
       </p>
       <LevelBar user={user} className="mt-2" />
     </div>
@@ -79,7 +77,9 @@ export function PointsBalanceCard({ user, earnChips }: { user: UserSummary; earn
           <span className="text-[40px] leading-none font-bold tabular-nums">{fmtInt(points)}</span>
           <span className="font-semibold text-muted">points</span>
         </p>
-        <p className="mt-2 text-sm">{levelText(user)}</p>
+        <p className="mt-2 text-sm">
+          <span className="font-semibold">Level {user.level}</span> <span className="text-muted">· {levelText(user)}</span>
+        </p>
         <LevelBar user={user} className="mt-3 w-full max-w-60" />
       </div>
       <ul className="flex flex-wrap gap-2" aria-label="Ways to earn points">

@@ -1,13 +1,17 @@
 import { useState } from "react";
-import { AchievementCard } from "../components/Follow";
+import type { MeResponse } from "@/shared/types";
+import { BadgeSummary, BadgeTile, Medal, nextUp, nextUpText } from "../components/Badges";
 import { FavoriteTeams } from "../components/FavoriteTeams";
-import { PointsCard } from "../components/PointsCard";
+import { levelText } from "../components/PointsCard";
 import { ActionLink, SectionCard } from "../components/SectionCard";
-import { Breadcrumbs, SiteLayout } from "../components/SiteLayout";
+import { SitePage } from "../components/SitePage";
 import { DataUnavailable, PageSkeleton } from "../components/Skeleton";
 import { PurchaseHistory, SubscriptionCard } from "../components/RewardCards";
 import { CheckoutModal } from "../components/Checkout";
+import { Avatar } from "../components/TeamLogo";
+import { useCountUp } from "../components/use-count-up";
 import { useMe, useProfile, useRewardsPage } from "../data";
+import { fmtInt } from "../format";
 import { NicknameForm } from "./SettingsPage";
 
 /** the fan's running plans (cancel stops renewal; they stay active until they end) and purchases */
@@ -35,56 +39,98 @@ function PlansSection() {
   );
 }
 
-/** /profile: name, level and points, teams, how the calls went, badges */
+/** the level as a ring around its number: the share of the way to the next level */
+function LevelRing({ level, progress }: { level: number; progress: number }) {
+  const r = 30;
+  const circ = 2 * Math.PI * r;
+  return (
+    <svg viewBox="0 0 72 72" width="72" height="72" role="img" aria-label={`Level ${level}, ${Math.round(progress * 100)}% to the next`}>
+      <circle cx="36" cy="36" r={r} fill="none" stroke="var(--pp-surface-2)" strokeWidth="7" />
+      <circle cx="36" cy="36" r={r} fill="none" stroke="var(--pp-accent)" strokeWidth="7" strokeLinecap="round" strokeDasharray={`${circ * progress} ${circ}`} transform="rotate(-90 36 36)" />
+      <text x="36" y="33" textAnchor="middle" fontSize="9" fontWeight="700" fill="var(--pp-muted)">
+        LEVEL
+      </text>
+      <text x="36" y="47" textAnchor="middle" fontSize="17" fontWeight="800" fill="var(--pp-ink)">
+        {level}
+      </text>
+    </svg>
+  );
+}
+
+/** one header across the page: who, the level, the balance, this week, the friend code */
+function ProfileHeader({ me }: { me: MeResponse }) {
+  const u = me.user;
+  const points = useCountUp(u.points);
+  return (
+    <section aria-label="Your profile" className="grid gap-5 rounded-card border border-line bg-surface p-5 shadow-card md:grid-cols-[minmax(0,1fr)_auto] md:items-center" data-testid="profile-header">
+      <div className="flex min-w-0 items-center gap-4">
+        <Avatar src={u.avatar} name={u.name} size={72} />
+        <div className="min-w-0">
+          <p className="truncate text-2xl font-bold">{me.nickname ?? u.name}</p>
+          <p className="text-sm text-muted">{u.role}</p>
+          {me.friendCode && (
+            <p className="mt-2 inline-flex items-center gap-2 rounded-lg bg-surface-2 px-2.5 py-1 text-xs text-muted">
+              Friend code
+              <span className="font-mono text-base font-bold tracking-[0.2em] text-ink" data-testid="profile-friend-code">
+                {me.friendCode}
+              </span>
+            </p>
+          )}
+        </div>
+      </div>
+      <div className="flex flex-wrap items-center gap-x-6 gap-y-3">
+        <div className="flex items-center gap-3">
+          <LevelRing level={u.level} progress={u.levelProgress} />
+          <p className="max-w-40 text-sm text-muted">{levelText(u)}</p>
+        </div>
+        <div className="border-line md:border-l md:pl-6">
+          <p className="text-xs text-muted">Points balance</p>
+          <p className="text-3xl leading-tight font-bold tabular-nums" aria-live="polite">
+            {fmtInt(points)}
+          </p>
+        </div>
+        <div className="border-line md:border-l md:pl-6">
+          <p className="text-xs text-muted">Earned this week</p>
+          <p className="text-3xl leading-tight font-bold text-good tabular-nums">+{fmtInt(u.pointsThisWeek)}</p>
+        </div>
+      </div>
+    </section>
+  );
+}
+
+/** /profile: the header, then name, friends, plans and teams beside call stats and badges */
 export function ProfilePage() {
   const me = useMe().data;
   const { data, status, refresh } = useProfile();
+  const next = data ? nextUp(data.achievements) : null;
 
   return (
-    <SiteLayout sidebar={{ activeLinkId: "profile", docked: true }}>
-      <main className="px-4 pb-12 md:px-6">
-        <Breadcrumbs items={[{ label: "Sports", href: "/sports" }, { label: "Profile" }]} />
-        <h1 className="font-serif text-[36px] leading-tight font-bold">{me?.nickname ?? "Your profile"}</h1>
-        {!me || !data ? (
-          status === "error" ? (
-            <DataUnavailable what="your profile" onRetry={refresh} />
-          ) : (
-            <PageSkeleton cards={4} />
-          )
+    <SitePage activeLinkId="profile" crumbs={[{ label: "Sports", href: "/sports" }, { label: "Profile" }]} title="Your profile">
+      {!me || !data ? (
+        status === "error" ? (
+          <DataUnavailable what="your profile" onRetry={refresh} />
         ) : (
-          <div className="mt-4 grid max-w-5xl gap-4 lg:grid-cols-2">
+          <PageSkeleton cards={4} />
+        )
+      ) : (
+        <>
+          <ProfileHeader me={me} />
+          <div className="grid items-start gap-4 lg:grid-cols-2">
             <div className="flex flex-col gap-4">
               <SectionCard title="Your name">
                 <NicknameForm current={me.nickname} />
               </SectionCard>
               <SectionCard title="Friends" action={<ActionLink href="/friends">{me.friendRequests ? `${me.friendRequests} new request${me.friendRequests === 1 ? "" : "s"}` : "Friends page"}</ActionLink>}>
-                {me.friendCode ? (
-                  <p className="flex flex-wrap items-center gap-3 text-sm text-muted">
-                    <span className="rounded-lg bg-surface-2 px-3 py-1.5 font-mono text-xl font-bold tracking-[0.25em] text-ink" data-testid="profile-friend-code">
-                      {me.friendCode}
-                    </span>
-                    Your friend code: friends add you with it.
-                  </p>
-                ) : (
-                  <p className="text-sm text-muted">Pick a nickname and your friend code appears here.</p>
-                )}
-                <p className="mt-2 text-sm text-muted">
-                  {me.friends?.length ? `${me.friends.length} friend${me.friends.length === 1 ? "" : "s"}` : "No friends yet"} · invite one from any match.
+                <p className="text-sm text-muted">
+                  {me.friends?.length ? `${me.friends.length} friend${me.friends.length === 1 ? "" : "s"}` : "No friends yet"} ·{" "}
+                  {me.friendCode ? "friends add you with your code, or invite one from any match." : "pick a nickname to get your friend code."}
                 </p>
               </SectionCard>
-              <PointsCard user={me.user} />
               <PlansSection />
               <FavoriteTeams teams={me.favorites} />
             </div>
             <div className="flex flex-col gap-4">
-              <SectionCard
-                title="Your calls"
-                action={
-                  <ActionLink href="/calls/history">
-                    History
-                  </ActionLink>
-                }
-              >
+              <SectionCard title="Your calls" action={<ActionLink href="/calls/history">History</ActionLink>}>
                 <dl className="grid grid-cols-3 gap-3 text-center">
                   {[
                     ["Answered", `${data.stats.answered}`],
@@ -101,52 +147,54 @@ export function ProfilePage() {
                   {data.stats.correct} right across {data.stats.matches} {data.stats.matches === 1 ? "match" : "matches"}.
                 </p>
               </SectionCard>
-              <SectionCard title="Achievements" action={<ActionLink href="/achievements">See all</ActionLink>}>
-                <div className="flex flex-col gap-2">
-                  {[...data.achievements]
-                    .sort((a, b) => Number(b.unlocked) - Number(a.unlocked))
-                    .slice(0, 4)
-                    .map((a) => (
-                      <AchievementCard key={a.id} a={a} />
-                    ))}
-                </div>
+              <SectionCard
+                title={`Achievements · ${data.achievements.filter((a) => a.unlocked).length} of ${data.achievements.length}`}
+                action={<ActionLink href="/achievements">See all</ActionLink>}
+              >
+                <ul className="grid grid-cols-4 gap-2" aria-label="Your badges">
+                  {data.achievements.map((a) => (
+                    <li key={a.id} className="flex flex-col items-center gap-1 text-center" title={`${a.title}: ${a.description}`}>
+                      <Medal a={a} size={64} />
+                      <span className={`text-xs font-semibold ${a.unlocked ? "" : "text-muted"}`}>{a.title}</span>
+                    </li>
+                  ))}
+                </ul>
+                {next && <p className="mt-3 rounded-lg bg-surface-2 px-3 py-2 text-sm">Next up: {nextUpText(next)}</p>}
               </SectionCard>
             </div>
           </div>
-        )}
-      </main>
-    </SiteLayout>
+        </>
+      )}
+    </SitePage>
   );
 }
 
-/** /achievements: every badge and how close the fan is */
+/** /achievements: every badge as a medal, with the summary and the next one to get */
 export function AchievementsPage() {
   const { data, status, refresh } = useProfile();
-  const unlocked = data?.achievements.filter((a) => a.unlocked).length ?? 0;
   return (
-    <SiteLayout sidebar={{ activeLinkId: "achievements", docked: true }}>
-      <main className="px-4 pb-12 md:px-6">
-        <Breadcrumbs items={[{ label: "Sports", href: "/sports" }, { label: "Achievements" }]} />
-        <h1 className="font-serif text-[36px] leading-tight font-bold">Achievements</h1>
-        {!data ? (
-          status === "error" ? (
-            <DataUnavailable what="your achievements" onRetry={refresh} />
-          ) : (
-            <PageSkeleton cards={4} />
-          )
+    <SitePage
+      activeLinkId="achievements"
+      crumbs={[{ label: "Sports", href: "/sports" }, { label: "Achievements" }]}
+      title="Achievements"
+      intro="Make calls during live games, follow a team and join the party to earn badges."
+    >
+      {!data ? (
+        status === "error" ? (
+          <DataUnavailable what="your achievements" onRetry={refresh} />
         ) : (
-          <>
-            <p className="text-sm text-muted">
-              {unlocked} of {data.achievements.length} unlocked. Make calls during live games to earn more.
-            </p>
-            <div className="mt-4 grid max-w-5xl gap-3 md:grid-cols-2">
-              {data.achievements.map((a) => (
-                <AchievementCard key={a.id} a={a} />
-              ))}
-            </div>
-          </>
-        )}
-      </main>
-    </SiteLayout>
+          <PageSkeleton cards={4} />
+        )
+      ) : (
+        <>
+          <BadgeSummary list={data.achievements} />
+          <ul className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4" aria-label="All badges">
+            {data.achievements.map((a) => (
+              <BadgeTile key={a.id} a={a} />
+            ))}
+          </ul>
+        </>
+      )}
+    </SitePage>
   );
 }
