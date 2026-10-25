@@ -47,7 +47,7 @@ export { controlRotation, isRotationMatch, phaseOf, ROTATION_KEY, rotationConfig
 export type { RotationAction, RotationNow } from "../engine/rotation";
 export type { CallDraft, CallKind } from "../engine/rules";
 // for npm run pregen:phrases (story): the rules a stored wording must pass
-export { BUILT_IN, PHRASE_VARS, phraseProblem, type PhraseLang } from "../engine/phrases";
+export { BUILT_IN, PHRASE_VARS, phraseProblem, wordCallSourced, type PhraseLang } from "../engine/phrases";
 
 /** the game being replayed. stub: always the mock demo game. todo: liiga data via stakes */
 export function replayGame(room: Room): { game: GameTeams; goals: GoalEvent[] } {

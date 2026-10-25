@@ -46,4 +46,13 @@ describe("call wordings", () => {
     expect(wordCall("first_goal_period", vars, ["Who strikes first in {period}?"], "en")).toBe(fillPhrase(BUILT_IN.first_goal_period.en, vars));
     expect(wordCall("first_goal_period", vars, [], "fi")).toBe("Kuka tekee 2. erän ensimmäisen maalin?");
   });
+
+  it("rejects filler like \"exactly\" or \"precisely\"; the built-in wording is used instead", () => {
+    expect(phraseProblem("answer_back", "Can {team} answer within exactly 5 minutes?")).toBe("filler word");
+    expect(phraseProblem("power_play", "Will {team} score precisely on this power play?")).toBe("filler word");
+    expect(phraseProblem("answer_back", "Vastaako {team} tasan viiden minuutin sisällä?")).toBe("filler word");
+    expect(phraseProblem("answer_back", "Will {team} answer within 5 minutes?")).toBeNull();
+    // a stored row is checked again when it's used: the built-in wording goes live
+    expect(wordCall("answer_back", { ...vars, team: "Ilves" }, ["Can {team} answer within exactly 5 minutes?"])).toBe("Will Ilves answer within 5 minutes?");
+  });
 });

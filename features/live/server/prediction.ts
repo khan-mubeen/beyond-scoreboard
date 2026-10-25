@@ -8,7 +8,7 @@
 import type { LiigaGame } from "@/features/liiga";
 import { demoMode } from "@/shared/clock";
 import { getDb, type DbCall } from "@/shared/db";
-import { optionsFi, wordCall } from "../engine/phrases";
+import { optionsFi, wordCall, wordCallSourced } from "../engine/phrases";
 import { PREDICTION_TYPE } from "../engine/points";
 import { whoWinsDraft } from "../engine/rules";
 import { isRotationMatch, phaseOf } from "./rotation";
@@ -72,12 +72,13 @@ export async function createPrediction(matchId: string, game: Pick<LiigaGame, "h
   const db = getDb();
   const draft = whoWinsDraft(game);
   const [approved, approvedFi] = await Promise.all([db.phrases.listApproved(draft.kind, "en").catch(() => []), db.phrases.listApproved(draft.kind, "fi").catch(() => [])]);
+  const worded = wordCallSourced(draft.kind, draft.vars, approved);
   return db.calls.createOnce({
-    i18n: { fi: { question: wordCall(draft.kind, draft.vars, approvedFi, "fi"), options: optionsFi(draft.options, draft.vars) } },
+    i18n: { fi: { question: wordCall(draft.kind, draft.vars, approvedFi, "fi"), options: optionsFi(draft.options, draft.vars) }, wording: worded.ai ? "ai" : "auto" },
     matchId,
     type: draft.kind,
     trigger: predictionTrigger(cycle),
-    question: wordCall(draft.kind, draft.vars, approved),
+    question: worded.text,
     options: draft.options,
     stakesLine,
     openedGameTime: 0,

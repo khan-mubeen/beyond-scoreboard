@@ -52,6 +52,8 @@ const SUBJECT: Partial<Record<CallKind, RegExp>> = {
   overtime: /overtime|jatkoaj/i,
 };
 
+const FILLER = /\b(exactly|precisely)\b|(^|\s)(tasan|täsmälleen)(\s|$)/i;
+
 /**
  * a template is usable when it's a short question that still asks what the call decides: only its
  * kind's placeholders, its options' shape (yes / no), its subject, and the guardrails
@@ -60,6 +62,8 @@ export function phraseProblem(kind: CallKind, template: string): string | null {
   const t = template.trim();
   if (t.length < 8 || t.length > 90) return "length";
   if (!t.endsWith("?")) return "not a question";
+  // filler that changes nothing and reads like fine print: "within exactly 5 minutes"
+  if (FILLER.test(t)) return "filler word";
   const used = [...t.matchAll(/\{(\w+)\}/g)].map((m) => m[1]);
   const bad = used.find((v) => !PHRASE_VARS[kind].includes(v));
   if (bad) return `unknown placeholder {${bad}}`;
@@ -83,8 +87,14 @@ export function phraseProblem(kind: CallKind, template: string): string | null {
 
 /** a random approved template, else the built-in, filled and checked */
 export function wordCall(kind: CallKind, vars: Record<string, string>, approved: string[], lang: PhraseLang = "en", rand = Math.random): string {
+  return wordCallSourced(kind, vars, approved, lang, rand).text;
+}
+
+/** the wording and where it came from: ai (an approved phrase-bank wording) or the built-in one */
+export function wordCallSourced(kind: CallKind, vars: Record<string, string>, approved: string[], lang: PhraseLang = "en", rand = Math.random): { text: string; ai: boolean } {
   const pool = approved.filter((t) => phraseProblem(kind, t) === null);
   const template = pool.length ? pool[Math.floor(rand() * pool.length)] : BUILT_IN[kind][lang];
   const text = fillPhrase(template, vars);
-  return checkText(text).length || /\{\w+\}/.test(text) ? fillPhrase(BUILT_IN[kind][lang], vars) : text;
+  const fallback = checkText(text).length > 0 || /\{\w+\}/.test(text);
+  return fallback ? { text: fillPhrase(BUILT_IN[kind][lang], vars), ai: false } : { text, ai: pool.length > 0 };
 }

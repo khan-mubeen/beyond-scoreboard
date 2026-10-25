@@ -13,7 +13,7 @@ import { demoMode } from "@/shared/clock";
 import { getDb, type DbCall } from "@/shared/db";
 import type { RotationMatchConfig } from "@/shared/demo";
 import type { LiveCall, LiveRotation, LiveStakes, LiveState, MatchEvent, PartyMember, RoomLeaderboardRow, Score } from "@/shared/types";
-import { optionsFi, wordCall } from "../engine/phrases";
+import { optionsFi, wordCall, wordCallSourced } from "../engine/phrases";
 import { gameAt, nextMomentAfter, replayEnd, replayTime, type ReplayClock } from "../engine/replay";
 import { gameAtVideo, goalVideoTimes, planCalls, type PlannedCall } from "../engine/rotation";
 import { CALL_POINTS, PREDICTION_TYPE, pointsFor, sourceOf, TRIVIA_POINTS } from "../engine/points";
@@ -619,14 +619,16 @@ class MatchLoop {
       db.phrases.listApproved(draft.kind, "en").catch(() => []),
       db.phrases.listApproved(draft.kind, "fi").catch(() => []),
     ]);
+    const worded = wordCallSourced(draft.kind, draft.vars, approved);
     const call = await db.calls.create({
-      // every fan gets the same call; a finnish-speaking fan reads it in finnish
-      i18n: { fi: { question: wordCall(draft.kind, draft.vars, approvedFi, "fi"), options: optionsFi(draft.options, draft.vars) } },
+      // every fan gets the same call; a finnish-speaking fan reads it in finnish. wording: whether
+      // the question's words came from the ai phrase bank (the answer always comes from liiga data)
+      i18n: { fi: { question: wordCall(draft.kind, draft.vars, approvedFi, "fi"), options: optionsFi(draft.options, draft.vars) }, wording: worded.ai ? "ai" : "auto" },
       matchId: this.matchId,
       type: draft.kind,
       // a rotation plays the same game every cycle: the cycle keeps each run's calls apart
       trigger: this.cycle === null ? draft.trigger : `${this.cycle}:${draft.trigger}`,
-      question: wordCall(draft.kind, draft.vars, approved),
+      question: worded.text,
       options: draft.options,
       stakesLine: await renderer!.stakesLine(this.matchId, game, draft).catch(() => null),
       openedGameTime: game.gameTime,
@@ -660,6 +662,7 @@ class MatchLoop {
       correctOptionId: c.status === "resolved" ? c.correctOptionId : null,
       reason: c.status === "cancelled" ? "decided while answers were open" : null,
       fi: c.i18n?.fi ?? null,
+      wording: c.i18n?.wording === "ai" ? "ai" : "auto",
     };
   }
 
